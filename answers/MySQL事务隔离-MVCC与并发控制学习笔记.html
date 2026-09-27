@@ -1,0 +1,3520 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MySQL 事务隔离、MVCC 与并发控制学习笔记">
+  <title>MySQL 事务隔离、MVCC 与并发控制学习笔记</title>
+  <link rel="stylesheet" href="../assets/answer-pages.css?v=2">
+  <script>window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] } };</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">MD</span><span class="brand-title">MySQL 事务隔离、MVCC 与并发控制学习笔记</span></div>
+    <div class="top-actions"><a class="source-link" href="0-md/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB-MVCC%E4%B8%8E%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.md">查看 Markdown</a><button class="menu-button" id="menuToggle" type="button" aria-label="打开目录" aria-expanded="false">☰</button><button class="icon-button" id="themeToggle" type="button" aria-label="切换深浅主题">◐</button></div>
+  </header>
+  <section class="hero"><div class="eyebrow">Markdown Reading Page</div><h1>MySQL 事务隔离、MVCC 与并发控制学习笔记</h1></section>
+  <main class="layout" id="main">
+    <aside class="toc-shell" id="tocShell"><nav class="toc" aria-label="页面目录"><p class="toc-title">READING MAP</p><a href="#1-mysql-事务隔离级别如何选择" data-toc="1-mysql-事务隔离级别如何选择" data-level="1">1. MySQL 事务隔离级别如何选择？</a>
+<a href="#1-1-四种事务隔离级别" data-toc="1-1-四种事务隔离级别" data-level="2">1.1 四种事务隔离级别</a>
+<a href="#2-read-uncommitted" data-toc="2-read-uncommitted" data-level="1">2. Read Uncommitted</a>
+<a href="#3-read-committed" data-toc="3-read-committed" data-level="1">3. Read Committed</a>
+<a href="#4-repeatable-read" data-toc="4-repeatable-read" data-level="1">4. Repeatable Read</a>
+<a href="#5-serializable" data-toc="5-serializable" data-level="1">5. Serializable</a>
+<a href="#6-隔离级别不是越高越好" data-toc="6-隔离级别不是越高越好" data-level="1">6. 隔离级别不是越高越好</a>
+<a href="#7-rc-和-rr-怎么选" data-toc="7-rc-和-rr-怎么选" data-level="1">7. RC 和 RR 怎么选？</a>
+<a href="#rc" data-toc="rc" data-level="2">RC</a>
+<a href="#rr" data-toc="rr" data-level="2">RR</a>
+<a href="#面试回答" data-toc="面试回答" data-level="2">面试回答</a>
+<a href="#8-隔离级别不能替代业务并发控制" data-toc="8-隔离级别不能替代业务并发控制" data-level="1">8. 隔离级别不能替代业务并发控制</a>
+<a href="#9-mvcc-是什么" data-toc="9-mvcc-是什么" data-level="1">9. MVCC 是什么？</a>
+<a href="#10-如果没有-mvcc-会怎么样" data-toc="10-如果没有-mvcc-会怎么样" data-level="1">10. 如果没有 MVCC 会怎么样？</a>
+<a href="#11-什么叫-多版本" data-toc="11-什么叫-多版本" data-level="1">11. 什么叫&quot;多版本&quot;？</a>
+<a href="#12-历史版本在哪里" data-toc="12-历史版本在哪里" data-level="1">12. 历史版本在哪里？</a>
+<a href="#13-undo-log-有什么作用" data-toc="13-undo-log-有什么作用" data-level="1">13. Undo Log 有什么作用？</a>
+<a href="#13-1-事务回滚" data-toc="13-1-事务回滚" data-level="2">13.1 事务回滚</a>
+<a href="#13-2-mvcc-历史版本读取" data-toc="13-2-mvcc-历史版本读取" data-level="2">13.2 MVCC 历史版本读取</a>
+<a href="#14-read-view-是什么" data-toc="14-read-view-是什么" data-level="1">14. Read View 是什么？</a>
+<a href="#15-rr-与-rc-的核心区别如何从-mvcc-理解" data-toc="15-rr-与-rc-的核心区别如何从-mvcc-理解" data-level="1">15. RR 与 RC 的核心区别如何从 MVCC 理解？</a>
+<a href="#15-1-rr" data-toc="15-1-rr" data-level="2">15.1 RR</a>
+<a href="#15-2-rc" data-toc="15-2-rc" data-level="2">15.2 RC</a>
+<a href="#16-rc-vs-rr-不应该只背定义" data-toc="16-rc-vs-rr-不应该只背定义" data-level="1">16. RC vs RR 不应该只背定义</a>
+<a href="#17-快照读与当前读" data-toc="17-快照读与当前读" data-level="1">17. 快照读与当前读</a>
+<a href="#18-快照读" data-toc="18-快照读" data-level="1">18. 快照读</a>
+<a href="#19-当前读" data-toc="19-当前读" data-level="1">19. 当前读</a>
+<a href="#20-快照读-vs-当前读的核心区别" data-toc="20-快照读-vs-当前读的核心区别" data-level="1">20. 快照读 vs 当前读的核心区别</a>
+<a href="#21-select-for-update" data-toc="21-select-for-update" data-level="1">21. SELECT ... FOR UPDATE</a>
+<a href="#22-for-update-是不是一定只锁一行" data-toc="22-for-update-是不是一定只锁一行" data-level="1">22. FOR UPDATE 是不是一定只锁一行？</a>
+<a href="#23-record-lock-gap-lock-next-key-lock" data-toc="23-record-lock-gap-lock-next-key-lock" data-level="1">23. Record Lock、Gap Lock、Next-Key Lock</a>
+<a href="#record-lock" data-toc="record-lock" data-level="2">Record Lock</a>
+<a href="#gap-lock" data-toc="gap-lock" data-level="2">Gap Lock</a>
+<a href="#next-key-lock" data-toc="next-key-lock" data-level="2">Next-Key Lock</a>
+<a href="#24-mvcc-和-lock-分别解决什么" data-toc="24-mvcc-和-lock-分别解决什么" data-level="1">24. MVCC 和 Lock 分别解决什么？</a>
+<a href="#25-高并发业务为什么不能只会-for-update" data-toc="25-高并发业务为什么不能只会-for-update" data-level="1">25. 高并发业务为什么不能只会 FOR UPDATE？</a>
+<a href="#26-乐观锁-cas" data-toc="26-乐观锁-cas" data-level="1">26. 乐观锁 / CAS</a>
+<a href="#27-原子-update-为什么重要" data-toc="27-原子-update-为什么重要" data-level="1">27. 原子 UPDATE 为什么重要？</a>
+<a href="#28-mysql-事务相关面试需要掌握到什么程度" data-toc="28-mysql-事务相关面试需要掌握到什么程度" data-level="1">28. MySQL 事务相关面试需要掌握到什么程度？</a>
+<a href="#29-面试最容易形成的追问链" data-toc="29-面试最容易形成的追问链" data-level="1">29. 面试最容易形成的追问链</a>
+<a href="#30-当前完整知识脑图" data-toc="30-当前完整知识脑图" data-level="1">30. 当前完整知识脑图</a>
+<a href="#31-学习边界" data-toc="31-学习边界" data-level="1">31. 学习边界</a>
+<a href="#必须掌握" data-toc="必须掌握" data-level="2">必须掌握</a>
+<a href="#了解即可" data-toc="了解即可" data-level="2">了解即可</a>
+<a href="#暂时不用投入大量时间" data-toc="暂时不用投入大量时间" data-level="2">暂时不用投入大量时间</a>
+<a href="#32-推荐继续学习顺序" data-toc="32-推荐继续学习顺序" data-level="1">32. 推荐继续学习顺序</a>
+<a href="#33-select-for-update-到底锁什么" data-toc="33-select-for-update-到底锁什么" data-level="1">33. SELECT ... FOR UPDATE 到底锁什么？</a>
+<a href="#34-record-lock" data-toc="34-record-lock" data-level="1">34. Record Lock</a>
+<a href="#35-为什么范围查询不能只锁已有记录" data-toc="35-为什么范围查询不能只锁已有记录" data-level="1">35. 为什么范围查询不能只锁已有记录？</a>
+<a href="#36-gap-lock" data-toc="36-gap-lock" data-level="1">36. Gap Lock</a>
+<a href="#37-next-key-lock" data-toc="37-next-key-lock" data-level="1">37. Next-Key Lock</a>
+<a href="#38-为什么普通-select-不需要这样锁" data-toc="38-为什么普通-select-不需要这样锁" data-level="1">38. 为什么普通 SELECT 不需要这样锁？</a>
+<a href="#39-mysql-rr-如何处理幻读" data-toc="39-mysql-rr-如何处理幻读" data-level="1">39. MySQL RR 如何处理幻读？</a>
+<a href="#快照读" data-toc="快照读" data-level="2">快照读</a>
+<a href="#当前读" data-toc="当前读" data-level="2">当前读</a>
+<a href="#40-索引为什么会影响-for-update-的锁范围" data-toc="40-索引为什么会影响-for-update-的锁范围" data-level="1">40. 索引为什么会影响 FOR UPDATE 的锁范围？</a>
+<a href="#41-为什么主键-唯一索引等值查询更适合精确加锁" data-toc="41-为什么主键-唯一索引等值查询更适合精确加锁" data-level="1">41. 为什么主键 / 唯一索引等值查询更适合精确加锁？</a>
+<a href="#42-什么是死锁" data-toc="42-什么是死锁" data-level="1">42. 什么是死锁？</a>
+<a href="#43-innodb-遇到死锁怎么办" data-toc="43-innodb-遇到死锁怎么办" data-level="1">43. InnoDB 遇到死锁怎么办？</a>
+<a href="#44-如何降低死锁概率" data-toc="44-如何降低死锁概率" data-level="1">44. 如何降低死锁概率？</a>
+<a href="#44-1-统一加锁顺序" data-toc="44-1-统一加锁顺序" data-level="2">44.1 统一加锁顺序</a>
+<a href="#44-2-事务尽量短" data-toc="44-2-事务尽量短" data-level="2">44.2 事务尽量短</a>
+<a href="#44-3-正确设计索引" data-toc="44-3-正确设计索引" data-level="2">44.3 正确设计索引</a>
+<a href="#44-4-单个事务不要锁太多数据" data-toc="44-4-单个事务不要锁太多数据" data-level="2">44.4 单个事务不要锁太多数据</a>
+<a href="#45-agent-多-worker-抢任务怎么设计" data-toc="45-agent-多-worker-抢任务怎么设计" data-level="1">45. Agent 多 Worker 抢任务怎么设计？</a>
+<a href="#46-for-update-vs-cas-条件-update-怎么选" data-toc="46-for-update-vs-cas-条件-update-怎么选" data-level="1">46. FOR UPDATE vs CAS / 条件 UPDATE 怎么选？</a>
+<a href="#简单状态竞争" data-toc="简单状态竞争" data-level="2">简单状态竞争</a>
+<a href="#复杂-读取-判断-修改" data-toc="复杂-读取-判断-修改" data-level="2">复杂&quot;读取 → 判断 → 修改&quot;</a>
+<a href="#47-乐观锁-vs-悲观锁的初步理解" data-toc="47-乐观锁-vs-悲观锁的初步理解" data-level="1">47. 乐观锁 vs 悲观锁的初步理解</a>
+<a href="#悲观锁" data-toc="悲观锁" data-level="2">悲观锁</a>
+<a href="#乐观锁" data-toc="乐观锁" data-level="2">乐观锁</a>
+<a href="#48-当前-mysql-并发控制完整知识链" data-toc="48-当前-mysql-并发控制完整知识链" data-level="1">48. 当前 MySQL 并发控制完整知识链</a>
+<a href="#49-下一阶段学习路线-从单库事务走向分布式一致性" data-toc="49-下一阶段学习路线-从单库事务走向分布式一致性" data-level="1">49. 下一阶段学习路线：从单库事务走向分布式一致性</a>
+<a href="#50-从-mysql-本地事务进入分布式一致性" data-toc="50-从-mysql-本地事务进入分布式一致性" data-level="1">50. 从 MySQL 本地事务进入分布式一致性</a>
+<a href="#51-为什么-db-commit-mq-send-有问题" data-toc="51-为什么-db-commit-mq-send-有问题" data-level="1">51. 为什么 DB COMMIT → MQ SEND 有问题？</a>
+<a href="#52-为什么不能把-mq-send-放进数据库事务" data-toc="52-为什么不能把-mq-send-放进数据库事务" data-level="1">52. 为什么不能把 MQ SEND 放进数据库事务？</a>
+<a href="#53-transactional-outbox-pattern" data-toc="53-transactional-outbox-pattern" data-level="1">53. Transactional Outbox Pattern</a>
+<a href="#54-outbox-publisher" data-toc="54-outbox-publisher" data-level="1">54. Outbox Publisher</a>
+<a href="#55-为什么-outbox-仍然可能重复发送" data-toc="55-为什么-outbox-仍然可能重复发送" data-level="1">55. 为什么 Outbox 仍然可能重复发送？</a>
+<a href="#56-at-least-once-与幂等" data-toc="56-at-least-once-与幂等" data-level="1">56. At-Least-Once 与幂等</a>
+<a href="#57-eventid-unique-实现消费者去重" data-toc="57-eventid-unique-实现消费者去重" data-level="1">57. event_id + UNIQUE 实现消费者去重</a>
+<a href="#58-消费记录-业务修改必须同事务" data-toc="58-消费记录-业务修改必须同事务" data-level="1">58. 消费记录 + 业务修改必须同事务</a>
+<a href="#59-inbox-pattern" data-toc="59-inbox-pattern" data-level="1">59. Inbox Pattern</a>
+<a href="#60-在-agent-workflow-中如何使用-outbox" data-toc="60-在-agent-workflow-中如何使用-outbox" data-level="1">60. 在 Agent Workflow 中如何使用 Outbox？</a>
+<a href="#61-agent-worker-为什么也必须幂等" data-toc="61-agent-worker-为什么也必须幂等" data-level="1">61. Agent Worker 为什么也必须幂等？</a>
+<a href="#62-retry-exponential-backoff-与-jitter" data-toc="62-retry-exponential-backoff-与-jitter" data-level="1">62. Retry、Exponential Backoff 与 Jitter</a>
+<a href="#63-retryable-error-vs-non-retryable-error" data-toc="63-retryable-error-vs-non-retryable-error" data-level="1">63. Retryable Error vs Non-Retryable Error</a>
+<a href="#64-dlq-failed-state" data-toc="64-dlq-failed-state" data-level="1">64. DLQ / Failed State</a>
+<a href="#65-db-mq-面试回答模板" data-toc="65-db-mq-面试回答模板" data-level="1">65. DB + MQ 面试回答模板</a>
+<a href="#问-db-成功但-mq-失败怎么办" data-toc="问-db-成功但-mq-失败怎么办" data-level="2">问：DB 成功但 MQ 失败怎么办？</a>
+<a href="#问-mq-重复消费怎么办" data-toc="问-mq-重复消费怎么办" data-level="2">问：MQ 重复消费怎么办？</a>
+<a href="#66-从-outbox-进入可靠-agent-worker" data-toc="66-从-outbox-进入可靠-agent-worker" data-level="1">66. 从 Outbox 进入可靠 Agent Worker</a>
+<a href="#67-为什么-agent-长任务不能一直持有数据库锁" data-toc="67-为什么-agent-长任务不能一直持有数据库锁" data-level="1">67. 为什么 Agent 长任务不能一直持有数据库锁？</a>
+<a href="#68-lease-临时执行权" data-toc="68-lease-临时执行权" data-level="1">68. Lease：临时执行权</a>
+<a href="#69-claim-task-抢任务仍然使用-cas" data-toc="69-claim-task-抢任务仍然使用-cas" data-level="1">69. Claim Task：抢任务仍然使用 CAS</a>
+<a href="#70-heartbeat-执行中的-worker-如何续租" data-toc="70-heartbeat-执行中的-worker-如何续租" data-level="1">70. Heartbeat：执行中的 Worker 如何续租？</a>
+<a href="#71-stale-worker-split-brain-问题" data-toc="71-stale-worker-split-brain-问题" data-level="1">71. Stale Worker / Split Brain 问题</a>
+<a href="#72-提交结果时也要-cas" data-toc="72-提交结果时也要-cas" data-level="1">72. 提交结果时也要 CAS</a>
+<a href="#73-fencing-token-executionversion" data-toc="73-fencing-token-executionversion" data-level="1">73. Fencing Token / execution_version</a>
+<a href="#74-agent-task-retry" data-toc="74-agent-task-retry" data-level="1">74. Agent Task Retry</a>
+<a href="#75-为什么重试必然要求副作用幂等" data-toc="75-为什么重试必然要求副作用幂等" data-level="1">75. 为什么重试必然要求副作用幂等？</a>
+<a href="#76-agent-tool-call-的-operationid" data-toc="76-agent-tool-call-的-operationid" data-level="1">76. Agent Tool Call 的 operation_id</a>
+<a href="#77-workflow-node-也需要稳定身份" data-toc="77-workflow-node-也需要稳定身份" data-level="1">77. Workflow Node 也需要稳定身份</a>
+<a href="#78-可靠-agent-worker-状态机" data-toc="78-可靠-agent-worker-状态机" data-level="1">78. 可靠 Agent Worker 状态机</a>
+<a href="#79-一个较完整的-agent-task-表" data-toc="79-一个较完整的-agent-task-表" data-level="1">79. 一个较完整的 Agent Task 表</a>
+<a href="#80-agent-worker-完整执行流程" data-toc="80-agent-worker-完整执行流程" data-level="1">80. Agent Worker 完整执行流程</a>
+<a href="#81-db-与-mq-在-agent-系统里的职责" data-toc="81-db-与-mq-在-agent-系统里的职责" data-level="1">81. DB 与 MQ 在 Agent 系统里的职责</a>
+<a href="#82-langgraph-与-worker-可靠性层的关系" data-toc="82-langgraph-与-worker-可靠性层的关系" data-level="1">82. LangGraph 与 Worker 可靠性层的关系</a>
+<a href="#83-agent-worker-崩溃怎么办-面试回答" data-toc="83-agent-worker-崩溃怎么办-面试回答" data-level="1">83. Agent Worker 崩溃怎么办？面试回答</a>
+<a href="#84-这一阶段必须掌握的核心概念" data-toc="84-这一阶段必须掌握的核心概念" data-level="1">84. 这一阶段必须掌握的核心概念</a>
+<a href="#85-当前完整学习链" data-toc="85-当前完整学习链" data-level="1">85. 当前完整学习链</a>
+<a href="#86-从可靠-worker-进入-durable-agent-workflow" data-toc="86-从可靠-worker-进入-durable-agent-workflow" data-level="1">86. 从可靠 Worker 进入 Durable Agent Workflow</a>
+<a href="#87-checkpoint-是什么" data-toc="87-checkpoint-是什么" data-level="1">87. Checkpoint 是什么？</a>
+<a href="#88-为什么-agent-workflow-特别需要-checkpoint" data-toc="88-为什么-agent-workflow-特别需要-checkpoint" data-level="1">88. 为什么 Agent Workflow 特别需要 Checkpoint？</a>
+<a href="#89-checkpoint-需要保存什么" data-toc="89-checkpoint-需要保存什么" data-level="1">89. Checkpoint 需要保存什么？</a>
+<a href="#89-1-workflow-state" data-toc="89-1-workflow-state" data-level="2">89.1 Workflow State</a>
+<a href="#89-2-node-state" data-toc="89-2-node-state" data-level="2">89.2 Node State</a>
+<a href="#89-3-execution-metadata" data-toc="89-3-execution-metadata" data-level="2">89.3 Execution Metadata</a>
+<a href="#90-node-状态机" data-toc="90-node-状态机" data-level="1">90. Node 状态机</a>
+<a href="#91-checkpoint-并不能自动解决副作用重复" data-toc="91-checkpoint-并不能自动解决副作用重复" data-level="1">91. Checkpoint 并不能自动解决副作用重复</a>
+<a href="#92-node-必须尽量设计成幂等" data-toc="92-node-必须尽量设计成幂等" data-level="1">92. Node 必须尽量设计成幂等</a>
+<a href="#93-executionkey-与-operationid-是同一个思想" data-toc="93-executionkey-与-operationid-是同一个思想" data-level="1">93. execution_key 与 operation_id 是同一个思想</a>
+<a href="#94-workflow-resume-如何工作" data-toc="94-workflow-resume-如何工作" data-level="1">94. Workflow Resume 如何工作？</a>
+<a href="#95-checkpoint-什么时候保存" data-toc="95-checkpoint-什么时候保存" data-level="1">95. Checkpoint 什么时候保存？</a>
+<a href="#96-长-node-内部如何-checkpoint" data-toc="96-长-node-内部如何-checkpoint" data-level="1">96. 长 Node 内部如何 Checkpoint？</a>
+<a href="#方案-a-接受-node-重跑" data-toc="方案-a-接受-node-重跑" data-level="2">方案 A：接受 Node 重跑</a>
+<a href="#方案-b-拆成更小的-node" data-toc="方案-b-拆成更小的-node" data-level="2">方案 B：拆成更小的 Node</a>
+<a href="#97-human-in-the-loop-为什么依赖-checkpoint" data-toc="97-human-in-the-loop-为什么依赖-checkpoint" data-level="1">97. Human-in-the-loop 为什么依赖 Checkpoint？</a>
+<a href="#98-workspace-中的-human-in-the-loop" data-toc="98-workspace-中的-human-in-the-loop" data-level="1">98. Workspace 中的 Human-in-the-loop</a>
+<a href="#99-checkpoint-应该放-redis-吗" data-toc="99-checkpoint-应该放-redis-吗" data-level="1">99. Checkpoint 应该放 Redis 吗？</a>
+<a href="#100-workflow-runtime-business-artifact-knowledge-要分开" data-toc="100-workflow-runtime-business-artifact-knowledge-要分开" data-level="1">100. Workflow Runtime、Business Artifact、Knowledge 要分开</a>
+<a href="#100-1-workflow-runtime-state" data-toc="100-1-workflow-runtime-state" data-level="2">100.1 Workflow Runtime State</a>
+<a href="#100-2-business-artifact" data-toc="100-2-business-artifact" data-level="2">100.2 Business Artifact</a>
+<a href="#100-3-knowledge" data-toc="100-3-knowledge" data-level="2">100.3 Knowledge</a>
+<a href="#101-langgraph-checkpoint-需要掌握到什么程度" data-toc="101-langgraph-checkpoint-需要掌握到什么程度" data-level="1">101. LangGraph Checkpoint 需要掌握到什么程度？</a>
+<a href="#必须掌握-2" data-toc="必须掌握-2" data-level="2">必须掌握</a>
+<a href="#理解即可" data-toc="理解即可" data-level="2">理解即可</a>
+<a href="#暂时不用深挖" data-toc="暂时不用深挖" data-level="2">暂时不用深挖</a>
+<a href="#102-worker-recovery-与-workflow-resume-不要混淆" data-toc="102-worker-recovery-与-workflow-resume-不要混淆" data-level="1">102. Worker Recovery 与 Workflow Resume 不要混淆</a>
+<a href="#worker-recovery" data-toc="worker-recovery" data-level="2">Worker Recovery</a>
+<a href="#workflow-resume" data-toc="workflow-resume" data-level="2">Workflow Resume</a>
+<a href="#103-durable-agent-workflow-完整架构" data-toc="103-durable-agent-workflow-完整架构" data-level="1">103. Durable Agent Workflow 完整架构</a>
+<a href="#104-checkpoint-resume-面试回答" data-toc="104-checkpoint-resume-面试回答" data-level="1">104. Checkpoint / Resume 面试回答</a>
+<a href="#105-这一站必须记住的六句话" data-toc="105-这一站必须记住的六句话" data-level="1">105. 这一站必须记住的六句话</a>
+<a href="#1-checkpoint-的本质" data-toc="1-checkpoint-的本质" data-level="2">1. Checkpoint 的本质</a>
+<a href="#2-checkpoint-不等于幂等" data-toc="2-checkpoint-不等于幂等" data-level="2">2. Checkpoint 不等于幂等</a>
+<a href="#3-可重试-node-必须考虑幂等" data-toc="3-可重试-node-必须考虑幂等" data-level="2">3. 可重试 Node 必须考虑幂等</a>
+<a href="#4-worker-recovery-与-workflow-resume-是两层问题" data-toc="4-worker-recovery-与-workflow-resume-是两层问题" data-level="2">4. Worker Recovery 与 Workflow Resume 是两层问题</a>
+<a href="#5-human-in-the-loop-不应该一直占-worker" data-toc="5-human-in-the-loop-不应该一直占-worker" data-level="2">5. Human-in-the-loop 不应该一直占 Worker</a>
+<a href="#6-db-是-runtime-state-的-source-of-truth" data-toc="6-db-是-runtime-state-的-source-of-truth" data-level="2">6. DB 是 Runtime State 的 Source of Truth</a>
+<a href="#106-当前完整学习链" data-toc="106-当前完整学习链" data-level="1">106. 当前完整学习链</a></nav></aside>
+    <article class="article"><blockquote><p>学习主线：<strong>事务隔离级别 → MVCC → Undo Log → Read View → 快照读 / 当前读 → Record / Gap / Next-Key Lock → 死锁 → 高并发事务设计</strong></p></blockquote>
+<p>本文整理当前对话中关于 MySQL 事务相关的内容，并按照面试学习链路重新组织。</p>
+<hr>
+<h1 id="1-mysql-事务隔离级别如何选择" data-section="SECTION 01">1. MySQL 事务隔离级别如何选择？</h1>
+<p>事务隔离级别的选择，本质是在：</p>
+<ul><li>一致性</li><li>并发性能</li><li>业务复杂度</li></ul>
+<p>之间做权衡。</p>
+<p>实际项目中最常见的是：</p>
+<ul><li><strong>Repeatable Read（RR，可重复读）</strong></li><li><strong>Read Committed（RC，读已提交）</strong></li></ul>
+<p>MySQL InnoDB 默认使用 <strong>Repeatable Read</strong>。</p>
+<hr>
+<h2 id="1-1-四种事务隔离级别" data-section="SECTION 02">1.1 四种事务隔离级别</h2>
+<div class="table-wrap"><pre class="plain-table">  ------------------------------------------------------------------------
+  隔离级别          脏读      不可重复读          幻读          并发性能
+  -------------- ----------- ------------ -------------------- -----------
+  Read              可能         可能             可能            最高
+  Uncommitted                                                  
+
+  Read Committed    不会         可能             可能            较高
+
+  Repeatable        不会         不会             SQL             中等
+  Read                                     标准仍可能；InnoDB  
+                                          在很多场景通过 MVCC  
+                                          / Next-Key Lock 处理 
+
+  Serializable      不会         不会             不会            最低
+  ------------------------------------------------------------------------</pre></div>
+<hr>
+<h1 id="2-read-uncommitted" data-section="SECTION 03">2. Read Uncommitted</h1>
+<p>Read Uncommitted 允许一个事务读取另一个事务<strong>尚未提交的数据</strong>。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A：
+
+UPDATE account
+SET balance = 0;
+
+还没有 COMMIT
+
+
+事务 B：
+
+SELECT balance
+→ 读取到了 0
+
+
+事务 A：
+
+ROLLBACK</code></pre></div>
+<p>事务 B 读取到的：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>balance = 0</code></pre></div>
+<p>实际上最终根本没有生效。</p>
+<p>这就是：</p>
+<blockquote><p><strong>脏读（Dirty Read）</strong></p></blockquote>
+<p>普通业务系统基本不会使用 Read Uncommitted。</p>
+<hr>
+<h1 id="3-read-committed" data-section="SECTION 04">3. Read Committed</h1>
+<p>RC 的核心规则：</p>
+<blockquote><p>每一次普通快照读，都读取当前已经提交、且对该语句可见的数据。</p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A：
+
+SELECT price
+→ 100
+
+
+事务 B：
+
+UPDATE product
+SET price = 200;
+
+COMMIT;
+
+
+事务 A：
+
+再次 SELECT price
+→ 200</code></pre></div>
+<p>同一个事务中：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第一次 = 100
+第二次 = 200</code></pre></div>
+<p>这就是：</p>
+<blockquote><p><strong>不可重复读</strong></p></blockquote>
+<p>RC 的优势是：</p>
+<ul><li>通常锁范围相对更小</li><li>减少部分 Gap Lock 带来的冲突</li><li>高并发场景下比较常见</li></ul>
+<p>适合：</p>
+<ul><li>普通 CRUD</li><li>后台管理</li><li>大量查询</li><li>不要求事务内始终看到完全相同快照的业务</li></ul>
+<hr>
+<h1 id="4-repeatable-read" data-section="SECTION 05">4. Repeatable Read</h1>
+<p>RR 是 MySQL InnoDB 默认事务隔离级别。</p>
+<p>核心目标：</p>
+<blockquote><p>同一个事务中的一致性快照读，可以保持稳定的读取视角。</p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A：
+
+BEGIN;
+
+SELECT price
+→ 100
+
+
+事务 B：
+
+UPDATE product
+SET price = 200;
+
+COMMIT;
+
+
+事务 A：
+
+再次 SELECT price
+→ 100</code></pre></div>
+<p>虽然数据库最新值已经变成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>200</code></pre></div>
+<p>但事务 A 仍然可能读取：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>100</code></pre></div>
+<p>背后的核心机制：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MVCC
++
+Read View
++
+Undo Log</code></pre></div>
+<hr>
+<h1 id="5-serializable" data-section="SECTION 06">5. Serializable</h1>
+<p>Serializable 提供最高程度的事务隔离。</p>
+<p>可以理解成：</p>
+<blockquote><p>宁愿牺牲并发性能，也要提供更严格的事务隔离。</p></blockquote>
+<p>可能出现：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A
+↓
+读取 / 锁定某个范围
+
+事务 B
+↓
+修改相关数据
+↓
+等待</code></pre></div>
+<p>因此可能导致：</p>
+<ul><li>锁等待增加</li><li>并发能力降低</li><li>吞吐量下降</li></ul>
+<p>一般只在极少数需要严格隔离且并发量可控的场景考虑。</p>
+<p>普通 Web 系统通常不会默认使用 Serializable。</p>
+<hr>
+<h1 id="6-隔离级别不是越高越好" data-section="SECTION 07">6. 隔离级别不是越高越好</h1>
+<p>隔离级别提高，通常意味着更强的一致性约束，但也可能带来更多并发成本：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>隔离程度 ↑
+
+锁竞争可能 ↑
+等待时间可能 ↑
+死锁风险可能 ↑
+吞吐量可能 ↓</code></pre></div>
+<p>所以不能简单认为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Serializable &gt; RR &gt; RC</code></pre></div>
+<p>然后无脑选择最高级别。</p>
+<p>真正应该根据业务选择。</p>
+<hr>
+<h1 id="7-rc-和-rr-怎么选" data-section="SECTION 08">7. RC 和 RR 怎么选？</h1>
+<p>可以简单记忆：</p>
+<h2 id="rc" data-section="SECTION 09">RC</h2>
+<p>适合：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>高并发
++
+普通 CRUD
++
+可以接受同一事务中两次查询看到不同的已提交数据</code></pre></div>
+<hr>
+<h2 id="rr" data-section="SECTION 10">RR</h2>
+<p>适合：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>需要事务内一致性读取视角
++
+希望减少不可重复读问题</code></pre></div>
+<p>也是 MySQL InnoDB 默认选择。</p>
+<hr>
+<h2 id="面试回答" data-section="SECTION 11">面试回答</h2>
+<p>如果面试官问：</p>
+<blockquote><p>MySQL 为什么默认 RR，而一些高并发互联网系统会选择 RC？</p></blockquote>
+<p>可以回答：</p>
+<blockquote><p>MySQL 默认 RR，是因为它在一致性和性能之间比较均衡。InnoDB 可以通过 MVCC 提供事务内稳定的一致性读取视角，并在加锁读和范围操作中结合 Next-Key Lock 处理很多幻读问题。  但 RR 在一些范围更新、加锁读场景中可能涉及更多 Gap Lock 和锁竞争。如果业务并不要求一个事务内多次查询始终看到同一个快照，那么 RC 可以减少部分锁冲突，因此一些高并发业务会选择 RC。</p></blockquote>
+<hr>
+<h1 id="8-隔离级别不能替代业务并发控制" data-section="SECTION 12">8. 隔离级别不能替代业务并发控制</h1>
+<p>例如库存只剩：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>stock = 1</code></pre></div>
+<p>两个请求：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A：
+SELECT stock → 1
+
+事务 B：
+SELECT stock → 1</code></pre></div>
+<p>如果应用层分别判断：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>stock &gt; 0</code></pre></div>
+<p>然后再修改：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>A UPDATE stock = 0
+B UPDATE stock = 0</code></pre></div>
+<p>业务逻辑可能产生并发问题。</p>
+<p>更好的方式之一是直接使用条件原子 UPDATE：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE product
+SET stock = stock - 1
+WHERE id = 1
+  AND stock &gt; 0;</code></pre></div>
+<p>然后判断：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>affected_rows = 1
+→ 扣减成功
+
+affected_rows = 0
+→ 库存不足 / 已被其他请求抢先扣减</code></pre></div>
+<p>所以：</p>
+<blockquote><p><strong>隔离级别负责事务之间的数据可见性与隔离规则，但不能代替正确的业务并发设计。</strong></p></blockquote>
+<hr>
+<h1 id="9-mvcc-是什么" data-section="SECTION 13">9. MVCC 是什么？</h1>
+<p>MVCC：</p>
+<blockquote><p><strong>Multi-Version Concurrency Control，多版本并发控制。</strong></p></blockquote>
+<p>先看它解决的问题。</p>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>user
+
+id = 1
+age = 20</code></pre></div>
+<p>两个事务：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A                         事务 B
+
+BEGIN;
+
+SELECT age
+→ 20
+
+                               BEGIN;
+
+                               UPDATE user
+                               SET age = 30
+                               WHERE id = 1;
+
+                               COMMIT;
+
+SELECT age
+→ ?</code></pre></div>
+<p>如果事务 A 使用 RR，一致性快照读下第二次通常仍然可以看到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>20</code></pre></div>
+<p>问题：</p>
+<blockquote><p>数据库明明已经被事务 B 修改成 30，事务 A 为什么还能看到 20？</p></blockquote>
+<p>答案就是：</p>
+<blockquote><p><strong>MVCC</strong></p></blockquote>
+<hr>
+<h1 id="10-如果没有-mvcc-会怎么样" data-section="SECTION 14">10. 如果没有 MVCC 会怎么样？</h1>
+<p>一种最直接的方案是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A：
+我要读 user:1
+↓
+加锁
+
+事务 B：
+我要修改 user:1
+↓
+等待事务 A</code></pre></div>
+<p>这样当然能够保证：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>A 第一次读 = 20
+A 第二次读 = 20</code></pre></div>
+<p>但是会造成大量：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>读阻塞写
+写阻塞读</code></pre></div>
+<p>并发性能会明显下降。</p>
+<p>MVCC 的思路是：</p>
+<blockquote><p><strong>你修改你的，我读取适合我的数据版本。</strong></p></blockquote>
+<p>通过保存历史版本，让普通读操作不必总是通过互斥锁来保证一致性。</p>
+<hr>
+<h1 id="11-什么叫-多版本" data-section="SECTION 15">11. 什么叫&quot;多版本&quot;？</h1>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>age = 20</code></pre></div>
+<p>事务 B：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE user
+SET age = 30
+WHERE id = 1;</code></pre></div>
+<p>逻辑上可以理解成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>当前版本
+
+age = 30
+trx_id = B
+
+   ↓
+
+历史版本
+
+age = 20
+trx_id = ...</code></pre></div>
+<p>事务 A 查询时：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>age = 30
+↓
+当前事务是否可见？</code></pre></div>
+<p>如果不可见：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>30 ❌
+↓
+20 ✅</code></pre></div>
+<p>于是返回：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>20</code></pre></div>
+<p>MVCC 最核心的思想：</p>
+<blockquote><p><strong>通过多个数据版本，让不同事务读取对自己可见的数据版本，从而降低普通读与写之间的锁冲突。</strong></p></blockquote>
+<hr>
+<h1 id="12-历史版本在哪里" data-section="SECTION 16">12. 历史版本在哪里？</h1>
+<p>这就涉及：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MVCC
+ ↓
+Undo Log</code></pre></div>
+<p>可以先理解 InnoDB 记录中存在一些隐藏信息，其中两个关键概念是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB_TRX_ID
+DB_ROLL_PTR</code></pre></div>
+<p>当前学习阶段不需要背内部占多少字节。</p>
+<p>只需要理解：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB_TRX_ID
+→ 最后修改该记录的事务 ID
+
+DB_ROLL_PTR
+→ 指向相关 Undo 信息，用于找到之前的数据版本</code></pre></div>
+<p>逻辑结构：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>当前记录
+
+age = 30
+trx_id = 200
+roll_ptr
+   │
+   ↓
+
+Undo Log
+
+age = 20
+trx_id = 100
+roll_ptr
+   │
+   ↓
+
+Undo Log
+
+age = 18
+trx_id = 50</code></pre></div>
+<p>由此形成：</p>
+<blockquote><p><strong>版本链</strong></p></blockquote>
+<hr>
+<h1 id="13-undo-log-有什么作用" data-section="SECTION 17">13. Undo Log 有什么作用？</h1>
+<p>Undo Log 至少需要掌握两个核心用途。</p>
+<h2 id="13-1-事务回滚" data-section="SECTION 18">13.1 事务回滚</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+UPDATE user
+SET age = 30
+WHERE id = 1;
+
+ROLLBACK;</code></pre></div>
+<p>数据库必须知道：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>30 之前是什么？</code></pre></div>
+<p>通过 Undo 信息可以恢复之前的数据状态。</p>
+<p>逻辑上：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>30
+↓ ROLLBACK
+20</code></pre></div>
+<hr>
+<h2 id="13-2-mvcc-历史版本读取" data-section="SECTION 19">13.2 MVCC 历史版本读取</h2>
+<p>例如事务 A 判断：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>age = 30</code></pre></div>
+<p>这个版本对自己不可见。</p>
+<p>就可以沿版本链寻找：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>30 ❌
+↓
+20 ✅</code></pre></div>
+<p>所以当前阶段可以先记：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MVCC
+=
+Read View
++
+Undo Log 版本链</code></pre></div>
+<hr>
+<h1 id="14-read-view-是什么" data-section="SECTION 20">14. Read View 是什么？</h1>
+<p>有了历史版本之后，还存在一个问题：</p>
+<blockquote><p>当前事务到底应该读取哪个版本？</p></blockquote>
+<p>这就需要：</p>
+<blockquote><p><strong>Read View</strong></p></blockquote>
+<p>可以把 Read View 理解为：</p>
+<blockquote><p>事务进行一致性读取时，用于判断数据版本可见性的&quot;事务状态快照&quot;。</p></blockquote>
+<p>注意：</p>
+<p><strong>Read View 不是把整个数据库复制一份。</strong></p>
+<p>不是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>数据库 = 10 GB
+
+BEGIN
+
+复制 10 GB 数据</code></pre></div>
+<p>而是维护用于判断事务可见性的相关事务 ID / 活跃事务边界信息。</p>
+<p>查询某个数据版本时：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>数据版本
+↓
+对应修改事务 ID
+↓
+结合 Read View
+↓
+判断这个版本是否可见</code></pre></div>
+<p>如果不可见：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>沿 Undo 版本链继续找</code></pre></div>
+<hr>
+<h1 id="15-rr-与-rc-的核心区别如何从-mvcc-理解" data-section="SECTION 21">15. RR 与 RC 的核心区别如何从 MVCC 理解？</h1>
+<p>这是理解隔离级别非常重要的一步。</p>
+<hr>
+<h2 id="15-1-rr" data-section="SECTION 22">15.1 RR</h2>
+<p>可以理解成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A
+
+BEGIN
+
+第一次一致性快照读
+↓
+建立 / 使用一致性 Read View
+
+第二次一致性快照读
+↓
+继续保持该事务的一致性读取视角
+
+第三次一致性快照读
+↓
+继续保持一致性读取视角
+
+COMMIT</code></pre></div>
+<p>因此：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第一次 SELECT → 20</code></pre></div>
+<p>事务 B：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE → 30
+COMMIT</code></pre></div>
+<p>事务 A：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第二次 SELECT → 20
+第三次 SELECT → 20</code></pre></div>
+<p>这就是：</p>
+<blockquote><p>Repeatable Read</p></blockquote>
+<hr>
+<h2 id="15-2-rc" data-section="SECTION 23">15.2 RC</h2>
+<p>RC 下通常可以理解成：</p>
+<blockquote><p>每条一致性快照读语句使用新的 Read View。</p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A：
+
+SELECT
+↓
+Read View 1
+↓
+20
+
+
+事务 B：
+
+UPDATE → 30
+COMMIT
+
+
+事务 A：
+
+SELECT
+↓
+Read View 2
+↓
+30</code></pre></div>
+<p>于是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第一次 → 20
+第二次 → 30</code></pre></div>
+<p>这就是：</p>
+<blockquote><p>Read Committed 下可能出现不可重复读。</p></blockquote>
+<hr>
+<h1 id="16-rc-vs-rr-不应该只背定义" data-section="SECTION 24">16. RC vs RR 不应该只背定义</h1>
+<p>不要只记：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>RC
+→ 不可重复读
+
+RR
+→ 可重复读</code></pre></div>
+<p>应该进一步理解：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                  MVCC
+
+                   │
+          ┌────────┴────────┐
+          ↓                 ↓
+         RC                RR
+
+每条快照读语句          事务的一致性读取
+使用新的 Read View      保持稳定读取视角
+          ↓                 ↓
+可能看到新提交数据       通常继续看到原快照
+          ↓                 ↓
+不可重复读             可重复读</code></pre></div>
+<p>这才是完整的理解链路。</p>
+<hr>
+<h1 id="17-快照读与当前读" data-section="SECTION 25">17. 快照读与当前读</h1>
+<p>理解 MVCC 后，下一个非常关键的概念就是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>快照读
+vs
+当前读</code></pre></div>
+<hr>
+<h1 id="18-快照读" data-section="SECTION 26">18. 快照读</h1>
+<p>普通 SELECT：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT *
+FROM user
+WHERE id = 1;</code></pre></div>
+<p>在 InnoDB 的普通一致性读取场景下，通常属于：</p>
+<blockquote><p><strong>Snapshot Read（快照读）</strong></p></blockquote>
+<p>主要依赖：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MVCC
++
+Read View
++
+Undo Log</code></pre></div>
+<p>因此可以读取符合当前事务可见性规则的历史版本。</p>
+<p>目的之一：</p>
+<blockquote><p>减少普通读和写之间的锁竞争。</p></blockquote>
+<hr>
+<h1 id="19-当前读" data-section="SECTION 27">19. 当前读</h1>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT *
+FROM user
+WHERE id = 1
+FOR UPDATE;</code></pre></div>
+<p>以及：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE ...
+DELETE ...</code></pre></div>
+<p>需要围绕当前记录进行并发控制。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>数据库当前：
+
+age = 30</code></pre></div>
+<p>如果事务准备修改这条数据，却只拿到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>历史版本 age = 20</code></pre></div>
+<p>显然可能产生问题。</p>
+<p>因此：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>我要操作当前数据
+↓
+不能只依赖历史快照
+↓
+读取当前版本
+↓
+必要时加锁</code></pre></div>
+<p>这就是：</p>
+<blockquote><p><strong>Current Read（当前读）</strong></p></blockquote>
+<hr>
+<h1 id="20-快照读-vs-当前读的核心区别" data-section="SECTION 28">20. 快照读 vs 当前读的核心区别</h1>
+<p>可以记：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>快照读
+→ MVCC
+→ 主要解决：
+“当前事务应该看到哪个版本？”
+
+
+当前读
+→ Lock
+→ 主要解决：
+“并发事务能不能同时修改相关数据？”</code></pre></div>
+<p>这是后续理解 MySQL 锁的关键分界点。</p>
+<hr>
+<h1 id="21-select-for-update" data-section="SECTION 29">21. SELECT ... FOR UPDATE</h1>
+<p>这是高并发业务和面试中的重点。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+SELECT *
+FROM task
+WHERE id = 100
+FOR UPDATE;
+
+UPDATE task
+SET status = 'running'
+WHERE id = 100;
+
+COMMIT;</code></pre></div>
+<p>普通：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT *
+FROM task
+WHERE id = 100;</code></pre></div>
+<p>通常属于：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>快照读
+↓
+MVCC
+↓
+通常不需要给目标记录加排他锁</code></pre></div>
+<p>而：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT *
+FROM task
+WHERE id = 100
+FOR UPDATE;</code></pre></div>
+<p>属于：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>当前读
+↓
+需要进行锁定
+↓
+防止其他事务并发修改相关记录</code></pre></div>
+<hr>
+<h1 id="22-for-update-是不是一定只锁一行" data-section="SECTION 30">22. FOR UPDATE 是不是一定只锁一行？</h1>
+<p>不是。</p>
+<p>锁定范围与多个因素有关：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>索引
++
+查询条件
++
+隔离级别</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT *
+FROM orders
+WHERE amount &gt; 100
+FOR UPDATE;</code></pre></div>
+<p>这类范围查询在 RR 等场景下可能涉及：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Record Lock
+Gap Lock
+Next-Key Lock</code></pre></div>
+<p>所以不能简单回答：</p>
+<blockquote><p>FOR UPDATE 就是给查询结果加一把行锁。</p></blockquote>
+<p>更准确的理解是：</p>
+<blockquote><p>InnoDB 会根据索引访问方式、查询条件和隔离级别确定实际锁定的索引记录及可能的范围。</p></blockquote>
+<hr>
+<h1 id="23-record-lock-gap-lock-next-key-lock" data-section="SECTION 31">23. Record Lock、Gap Lock、Next-Key Lock</h1>
+<p>当前阶段需要知道概念和为什么存在，不需要研究所有极端边界 Case。</p>
+<h2 id="record-lock" data-section="SECTION 32">Record Lock</h2>
+<p>锁住具体的索引记录。</p>
+<p>可以简单理解成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>锁某条记录</code></pre></div>
+<hr>
+<h2 id="gap-lock" data-section="SECTION 33">Gap Lock</h2>
+<p>锁住索引记录之间的：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>间隙</code></pre></div>
+<p>目的之一是阻止其他事务在某个范围内插入新记录。</p>
+<hr>
+<h2 id="next-key-lock" data-section="SECTION 34">Next-Key Lock</h2>
+<p>可以先理解为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Next-Key Lock
+=
+Record Lock
++
+Gap Lock</code></pre></div>
+<p>即：</p>
+<blockquote><p>既锁记录，也保护相关索引范围。</p></blockquote>
+<p>InnoDB 在 RR 下的某些加锁读和范围操作中，会使用 Next-Key Lock 来防止范围内出现新的记录，从而处理很多幻读场景。</p>
+<hr>
+<h1 id="24-mvcc-和-lock-分别解决什么" data-section="SECTION 35">24. MVCC 和 Lock 分别解决什么？</h1>
+<p>这是整套知识最重要的理解之一：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                 MySQL 并发控制
+
+                       │
+             ┌─────────┴─────────┐
+             ↓                   ↓
+
+            MVCC                Lock
+             ↓                   ↓
+      Read View + Undo      Record / Gap /
+          版本链             Next-Key
+             ↓                   ↓
+       我应该看到哪个版本？   别人能不能同时修改？</code></pre></div>
+<p>一句话：</p>
+<blockquote><p><strong>MVCC 主要解决&quot;读哪个版本&quot;，锁主要解决&quot;并发事务能不能修改相关数据&quot;。</strong></p></blockquote>
+<hr>
+<h1 id="25-高并发业务为什么不能只会-for-update" data-section="SECTION 36">25. 高并发业务为什么不能只会 FOR UPDATE？</h1>
+<p>例如多个 Worker 同时抢一个 Agent Task。</p>
+<p>数据库：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>task:
+
+id = 100
+status = pending</code></pre></div>
+<p>多个 Worker：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Worker A
+Worker B
+Worker C</code></pre></div>
+<p>都想把：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>pending
+→
+running</code></pre></div>
+<p>一种方案是：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+SELECT *
+FROM agent_task
+WHERE id = 100
+FOR UPDATE;
+
+UPDATE agent_task
+SET status = 'running'
+WHERE id = 100;
+
+COMMIT;</code></pre></div>
+<p>但是很多场景还可以通过更简单的：</p>
+<blockquote><p><strong>条件 UPDATE / CAS</strong></p></blockquote>
+<p>解决。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE agent_task
+SET status = 'running',
+    worker_id = ?
+WHERE id = ?
+  AND status = 'pending';</code></pre></div>
+<p>判断：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>affected_rows = 1
+↓
+抢任务成功
+
+
+affected_rows = 0
+↓
+任务已经被其他 Worker 抢走</code></pre></div>
+<p>这类思维对高并发业务非常重要。</p>
+<hr>
+<h1 id="26-乐观锁-cas" data-section="SECTION 37">26. 乐观锁 / CAS</h1>
+<p>如果数据存在版本号：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>id = 1
+balance = 100
+version = 5</code></pre></div>
+<p>读取：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>version = 5</code></pre></div>
+<p>修改时：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE account
+SET balance = 80,
+    version = version + 1
+WHERE id = 1
+  AND version = 5;</code></pre></div>
+<p>如果：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>affected_rows = 1</code></pre></div>
+<p>说明：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>期间没人修改
+↓
+更新成功</code></pre></div>
+<p>如果：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>affected_rows = 0</code></pre></div>
+<p>说明：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>version 已经变化
+↓
+发生并发修改</code></pre></div>
+<p>这就是典型：</p>
+<blockquote><p><strong>Optimistic Lock / CAS 思维</strong></p></blockquote>
+<hr>
+<h1 id="27-原子-update-为什么重要" data-section="SECTION 38">27. 原子 UPDATE 为什么重要？</h1>
+<p>相比：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT
+↓
+应用层判断
+↓
+UPDATE</code></pre></div>
+<p>高并发业务中通常更应该优先考虑：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>条件直接写进 UPDATE</code></pre></div>
+<p>例如库存：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE product
+SET stock = stock - 1
+WHERE id = ?
+  AND stock &gt; 0;</code></pre></div>
+<p>数据库原子执行：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>判断 stock &gt; 0
++
+stock - 1</code></pre></div>
+<p>应用层只需要判断：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>affected_rows</code></pre></div>
+<p>这可以显著减少很多&quot;先查再改&quot;产生的竞态窗口。</p>
+<hr>
+<h1 id="28-mysql-事务相关面试需要掌握到什么程度" data-section="SECTION 39">28. MySQL 事务相关面试需要掌握到什么程度？</h1>
+<p>对于偏 AI 应用 / AI Agent / 全栈工程岗位，不需要深入到 DBA 或 InnoDB 源码级别。</p>
+<p>重点是：</p>
+<blockquote><p><strong>能解释核心原理 + 能处理真实高并发业务问题。</strong></p></blockquote>
+<p>建议掌握程度：</p>
+<div class="table-wrap"><table><thead><tr><th>知识点</th><th>程度</th><th>应该能回答</th></tr></thead><tbody><tr><td>ACID</td><td>★★★</td><td>四个特性</td></tr><tr><td>四种隔离级别</td><td>★★★★★</td><td>RU / RC / RR / Serializable</td></tr><tr><td>脏读 / 不可重复读 / 幻读</td><td>★★★★★</td><td>能举例</td></tr><tr><td>RC vs RR</td><td>★★★★★</td><td>为什么选择 RC / RR</td></tr><tr><td>MySQL 默认 RR</td><td>★★★★</td><td>为什么</td></tr><tr><td>MVCC</td><td>★★★★★</td><td>解决什么、基本原理</td></tr><tr><td>Undo Log</td><td>★★★★</td><td>为什么需要历史版本</td></tr><tr><td>Read View</td><td>★★★★</td><td>用来判断版本可见性</td></tr><tr><td>快照读 / 当前读</td><td>★★★★★</td><td>普通 SELECT vs FOR UPDATE</td></tr><tr><td>Record Lock</td><td>★★★★</td><td>基本作用</td></tr><tr><td>Gap Lock</td><td>★★★★</td><td>为什么锁间隙</td></tr><tr><td>Next-Key Lock</td><td>★★★★</td><td>Record + Gap 基本思想</td></tr><tr><td>SELECT FOR UPDATE</td><td>★★★★★</td><td>什么时候使用</td></tr><tr><td>乐观锁 / CAS</td><td>★★★★★</td><td>version / 条件 UPDATE</td></tr><tr><td>原子 UPDATE</td><td>★★★★★</td><td>为什么比先 SELECT 再 UPDATE 好</td></tr><tr><td>死锁</td><td>★★★★</td><td>为什么发生、怎么减少</td></tr><tr><td>Redo Log / Binlog</td><td>★★★</td><td>知道核心用途</td></tr><tr><td>InnoDB 源码</td><td>★</td><td>不需要</td></tr><tr><td>MVCC 源码实现</td><td>★</td><td>不需要</td></tr></tbody></table></div>
+<hr>
+<h1 id="29-面试最容易形成的追问链" data-section="SECTION 40">29. 面试最容易形成的追问链</h1>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MySQL 有哪些事务隔离级别？
+        ↓
+默认是什么？
+        ↓
+为什么默认 RR？
+        ↓
+RR 怎么实现可重复读？
+        ↓
+MVCC
+        ↓
+MVCC 怎么知道读哪个版本？
+        ↓
+Undo Log + Read View
+        ↓
+普通 SELECT 会不会加锁？
+        ↓
+快照读 vs 当前读
+        ↓
+SELECT ... FOR UPDATE 呢？
+        ↓
+Record / Gap / Next-Key Lock
+        ↓
+为什么会发生死锁？
+        ↓
+实际高并发业务如何设计？</code></pre></div>
+<p>因此不要把这些知识点独立背诵。</p>
+<p>应该把它们理解成：</p>
+<blockquote><p><strong>一条完整的 MySQL 并发控制知识链。</strong></p></blockquote>
+<hr>
+<h1 id="30-当前完整知识脑图" data-section="SECTION 41">30. 当前完整知识脑图</h1>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务隔离级别
+      │
+      ├── RU
+      ├── RC
+      ├── RR
+      └── Serializable
+      │
+      ↓
+     MVCC
+      │
+      ├─────────────┐
+      ↓             ↓
+  Undo Log       Read View
+      ↓             ↓
+   版本链        可见性判断
+      └──────┬──────┘
+             ↓
+           快照读
+             ↓
+         普通 SELECT
+             ↓
+        减少读写冲突
+
+
+但是：
+
+SELECT ... FOR UPDATE
+UPDATE
+DELETE
+             ↓
+           当前读
+             ↓
+            Lock
+             ↓
+      ┌──────┼──────┐
+      ↓      ↓      ↓
+   Record   Gap   Next-Key
+    Lock   Lock     Lock
+             ↓
+          锁竞争
+             ↓
+           死锁
+             ↓
+       高并发事务设计
+             ↓
+    ┌────────┼────────┐
+    ↓        ↓        ↓
+FOR UPDATE  CAS   原子 UPDATE</code></pre></div>
+<hr>
+<h1 id="31-学习边界" data-section="SECTION 42">31. 学习边界</h1>
+<h2 id="必须掌握" data-section="SECTION 43">必须掌握</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>ACID
+事务隔离级别
+RC vs RR
+脏读 / 不可重复读 / 幻读
+MVCC
+Undo Log
+Read View
+快照读 vs 当前读
+SELECT ... FOR UPDATE
+Record / Gap / Next-Key Lock
+乐观锁 / CAS
+原子 UPDATE
+死锁基本处理</code></pre></div>
+<hr>
+<h2 id="了解即可" data-section="SECTION 44">了解即可</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Redo Log
+Binlog
+两阶段提交
+复杂锁边界规则</code></pre></div>
+<hr>
+<h2 id="暂时不用投入大量时间" data-section="SECTION 45">暂时不用投入大量时间</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>InnoDB 源码
+MVCC 源码
+Buffer Pool 内部算法细节
+各种极端 Gap Lock Case</code></pre></div>
+<hr>
+<h1 id="32-推荐继续学习顺序" data-section="SECTION 46">32. 推荐继续学习顺序</h1>
+<p>当前已经学习到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务隔离级别
+      ↓
+MVCC
+      ↓
+Undo Log
+      ↓
+Read View
+      ↓
+快照读 / 当前读
+      ↓
+SELECT ... FOR UPDATE</code></pre></div>
+<p>下一阶段继续：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT ... FOR UPDATE
+        ↓
+Record Lock
+        ↓
+Gap Lock
+        ↓
+Next-Key Lock
+        ↓
+锁等待
+        ↓
+死锁
+        ↓
+如何排查死锁
+        ↓
+如何减少死锁
+        ↓
+高并发事务设计
+        ↓
+FOR UPDATE vs CAS vs 原子 UPDATE 如何选择</code></pre></div>
+<p>这条链掌握以后，MySQL 事务与并发控制相关的中高级工程面试知识就基本串起来了。</p>
+<hr>
+<h1 id="33-select-for-update-到底锁什么" data-section="SECTION 47">33. SELECT ... FOR UPDATE 到底锁什么？</h1>
+<p>继续沿着：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MVCC
+↓
+快照读 / 当前读
+↓
+SELECT ... FOR UPDATE
+↓
+Record Lock
+↓
+Gap Lock
+↓
+Next-Key Lock
+↓
+死锁
+↓
+高并发事务设计</code></pre></div>
+<p>这一阶段最重要的问题是：</p>
+<blockquote><p><strong>MySQL 为什么不能只锁查询结果里的那几行？</strong></p></blockquote>
+<p>假设订单表：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>CREATE TABLE orders (
+  id BIGINT PRIMARY KEY,
+  user_id BIGINT,
+  amount INT,
+  status VARCHAR(20),
+
+  INDEX idx_amount(amount)
+);</code></pre></div>
+<p>存在：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>id    amount
+--------------
+1     10
+2     20
+3     30
+4     40
+5     50</code></pre></div>
+<p>事务 A：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+SELECT *
+FROM orders
+WHERE id = 3
+FOR UPDATE;</code></pre></div>
+<p><code>id</code> 是主键，并且进行唯一等值查询，因此 InnoDB 可以非常明确地定位目标索引记录。</p>
+<p>这种场景通常对应比较明确的：</p>
+<blockquote><p><strong>Record Lock</strong></p></blockquote>
+<hr>
+<h1 id="34-record-lock" data-section="SECTION 48">34. Record Lock</h1>
+<p>Record Lock 可以先理解成：</p>
+<blockquote><p><strong>锁住一条具体的索引记录。</strong></p></blockquote>
+<p>例如事务 A：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+SELECT *
+FROM orders
+WHERE id = 3
+FOR UPDATE;</code></pre></div>
+<p>事务 A 尚未提交。</p>
+<p>事务 B：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE orders
+SET amount = 100
+WHERE id = 3;</code></pre></div>
+<p>此时：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A
+
+id = 3 🔒
+
+
+事务 B
+
+UPDATE id = 3
+↓
+等待</code></pre></div>
+<p>直到事务 A：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>COMMIT;</code></pre></div>
+<p>事务 B 才能继续。</p>
+<p>需要注意：</p>
+<blockquote><p><strong>InnoDB 的行锁本质上是基于索引实现的。</strong></p></blockquote>
+<hr>
+<h1 id="35-为什么范围查询不能只锁已有记录" data-section="SECTION 49">35. 为什么范围查询不能只锁已有记录？</h1>
+<p>事务 A：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT *
+FROM orders
+WHERE amount &gt;= 20
+  AND amount &lt;= 40
+FOR UPDATE;</code></pre></div>
+<p>查询结果：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>20
+30
+40</code></pre></div>
+<p>如果只锁：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>10    20    30    40    50
+      🔒    🔒    🔒</code></pre></div>
+<p>事务 B 仍然可能：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>INSERT INTO orders
+VALUES (6, 2, 25, 'pending');</code></pre></div>
+<p>也就是向：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>20 ~ 30</code></pre></div>
+<p>之间插入：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>25</code></pre></div>
+<p>如果允许成功，那么范围结果中就会出现一条新的记录。</p>
+<p>因此：</p>
+<blockquote><p><strong>只锁已经存在的记录，并不能阻止其他事务向查询范围内插入新记录。</strong></p></blockquote>
+<p>这就是 Gap Lock 出现的重要原因。</p>
+<hr>
+<h1 id="36-gap-lock" data-section="SECTION 50">36. Gap Lock</h1>
+<p>索引：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>10       20       30       40       50
+   gap      gap      gap      gap</code></pre></div>
+<p>其中存在：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>(10,20)
+(20,30)
+(30,40)
+(40,50)</code></pre></div>
+<p>这些索引间隙。</p>
+<p>Gap Lock：</p>
+<blockquote><p><strong>锁定索引记录之间的间隙，主要用于阻止其他事务向相关间隙插入新的索引记录。</strong></p></blockquote>
+<p>例如锁住：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>(20,30)</code></pre></div>
+<p>那么：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>INSERT ... amount = 25;</code></pre></div>
+<p>可能被阻塞。</p>
+<p>Gap Lock 的重点不是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>禁止别人修改 amount=20</code></pre></div>
+<p>而是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>限制别人向 20~30 之间插入新的索引记录</code></pre></div>
+<p>因此可以记：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Record Lock
+→ 防止已有索引记录被并发修改
+
+Gap Lock
+→ 防止相关索引范围出现新的记录</code></pre></div>
+<hr>
+<h1 id="37-next-key-lock" data-section="SECTION 51">37. Next-Key Lock</h1>
+<p>实际 InnoDB 中，Record Lock 和 Gap Lock 经常组合使用。</p>
+<p>可以先理解：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Next-Key Lock
+=
+Record Lock
++
+Gap Lock</code></pre></div>
+<p>例如索引：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>10
+20
+30</code></pre></div>
+<p>可以粗略理解一个 Next-Key 区间为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>(10,20]</code></pre></div>
+<p>其中：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>(10,20)
+→ Gap
+
+20
+→ Record</code></pre></div>
+<p>组合起来就是 Next-Key Lock。</p>
+<p>当前学习阶段不需要死背所有左右开闭边界。</p>
+<p>真正需要掌握的是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Record Lock
+→ 锁已有索引记录
+
+Gap Lock
+→ 锁索引间隙
+
+Next-Key Lock
+→ Record + Gap 的组合思想</code></pre></div>
+<hr>
+<h1 id="38-为什么普通-select-不需要这样锁" data-section="SECTION 52">38. 为什么普通 SELECT 不需要这样锁？</h1>
+<p>普通：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT *
+FROM orders
+WHERE amount BETWEEN 20 AND 40;</code></pre></div>
+<p>通常属于：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>快照读
+↓
+MVCC
+↓
+Read View
+↓
+读取对当前事务可见的数据版本</code></pre></div>
+<p>在 RR 的一致性读取场景中，即使其他事务后来插入：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>amount = 25</code></pre></div>
+<p>当前事务仍然可以通过 MVCC 保持自己的读取视角。</p>
+<p>因此普通快照读通常不需要为了保持读取一致性，把整个查询范围都锁住。</p>
+<p>而：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT ...
+FOR UPDATE;</code></pre></div>
+<p>属于：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>当前读
+↓
+读取并准备操作当前数据
+↓
+需要锁进行并发控制</code></pre></div>
+<hr>
+<h1 id="39-mysql-rr-如何处理幻读" data-section="SECTION 53">39. MySQL RR 如何处理幻读？</h1>
+<p>面试中经常会问：</p>
+<blockquote><p>SQL 标准里的 RR 仍然可能有幻读，为什么 MySQL InnoDB 又经常说可以避免很多幻读场景？</p></blockquote>
+<p>需要区分：</p>
+<h2 id="快照读" data-section="SECTION 54">快照读</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT ...</code></pre></div>
+<p>主要依靠：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MVCC
++
+Read View</code></pre></div>
+<p>维持事务的一致性读取视角。</p>
+<h2 id="当前读" data-section="SECTION 55">当前读</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT ... FOR UPDATE;
+
+UPDATE ...;
+
+DELETE ...;</code></pre></div>
+<p>在需要范围锁定的场景下，InnoDB 会通过：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Record Lock
++
+Gap Lock
++
+Next-Key Lock</code></pre></div>
+<p>限制其他事务向相关范围插入记录。</p>
+<p>因此可以记：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>             RR 下处理幻读
+
+                   │
+          ┌────────┴────────┐
+          ↓                 ↓
+
+        快照读              当前读
+          ↓                 ↓
+        MVCC          Next-Key Lock</code></pre></div>
+<p>这是一个非常适合面试表达的理解模型。</p>
+<hr>
+<h1 id="40-索引为什么会影响-for-update-的锁范围" data-section="SECTION 56">40. 索引为什么会影响 FOR UPDATE 的锁范围？</h1>
+<p>InnoDB 行锁是：</p>
+<blockquote><p><strong>基于索引实现的。</strong></p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT *
+FROM orders
+WHERE id = 100
+FOR UPDATE;</code></pre></div>
+<p><code>id</code> 是主键：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>主键 B+Tree
+↓
+精确定位 id=100
+↓
+锁定相关索引记录</code></pre></div>
+<p>锁范围通常非常明确。</p>
+<p>但如果：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT *
+FROM orders
+WHERE some_field = 'xxx'
+FOR UPDATE;</code></pre></div>
+<p>而：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>some_field 没有合适索引</code></pre></div>
+<p>数据库可能需要扫描大量记录。</p>
+<p>这会导致：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>扫描范围扩大
+↓
+锁影响范围可能扩大
+↓
+并发冲突增加</code></pre></div>
+<p>因此：</p>
+<blockquote><p><strong>FOR UPDATE 并不意味着永远只锁一行。</strong></p></blockquote>
+<p>锁范围取决于：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>索引
++
+查询条件
++
+隔离级别
++
+实际执行计划</code></pre></div>
+<hr>
+<h1 id="41-为什么主键-唯一索引等值查询更适合精确加锁" data-section="SECTION 57">41. 为什么主键 / 唯一索引等值查询更适合精确加锁？</h1>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT *
+FROM user
+WHERE id = 100
+FOR UPDATE;</code></pre></div>
+<p>其中：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>id = PRIMARY KEY</code></pre></div>
+<p>并且：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>id=100 确实存在</code></pre></div>
+<p>数据库可以精确定位目标记录。</p>
+<p>这种情况下通常能够形成比较明确的 Record Lock，而不需要保护很大的索引范围。</p>
+<p>所以高并发事务设计里，一个非常实用的原则是：</p>
+<blockquote><p><strong>尽量通过主键或合适的唯一索引精确定位需要锁定的数据。</strong></p></blockquote>
+<hr>
+<h1 id="42-什么是死锁" data-section="SECTION 58">42. 什么是死锁？</h1>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>id = 1
+id = 2</code></pre></div>
+<p>事务 A：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+UPDATE account
+SET balance = balance - 100
+WHERE id = 1;</code></pre></div>
+<p>A 持有：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>id=1 🔒</code></pre></div>
+<p>事务 B：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+UPDATE account
+SET balance = balance - 100
+WHERE id = 2;</code></pre></div>
+<p>B 持有：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>id=2 🔒</code></pre></div>
+<p>接下来 A：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE account
+SET balance = balance + 100
+WHERE id = 2;</code></pre></div>
+<p>A 等待 B。</p>
+<p>与此同时 B：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE account
+SET balance = balance + 100
+WHERE id = 1;</code></pre></div>
+<p>B 又等待 A。</p>
+<p>形成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A
+  │
+  │ 等待 id=2
+  ↓
+事务 B
+  │
+  │ 等待 id=1
+  ↓
+事务 A</code></pre></div>
+<p>也就是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>A 等 B
+B 等 A</code></pre></div>
+<p>形成资源等待环：</p>
+<blockquote><p><strong>Deadlock（死锁）</strong></p></blockquote>
+<hr>
+<h1 id="43-innodb-遇到死锁怎么办" data-section="SECTION 59">43. InnoDB 遇到死锁怎么办？</h1>
+<p>InnoDB 具备死锁检测能力。</p>
+<p>当发现事务之间形成等待环后，会选择其中一个事务作为 victim：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>检测到死锁
+↓
+回滚其中一个事务
+↓
+释放它持有的锁
+↓
+另一个事务继续</code></pre></div>
+<p>应用可能收到类似错误：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Deadlock found when trying to get lock;
+try restarting transaction</code></pre></div>
+<p>因此需要认识到：</p>
+<blockquote><p><strong>在高并发数据库系统中，死锁不一定代表代码存在简单 Bug，也可能是需要正常处理的并发现象。</strong></p></blockquote>
+<p>重要事务可以设计：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>死锁
+↓
+事务回滚
+↓
+有限次数重试</code></pre></div>
+<p>当然，重试必须有次数限制，避免无限循环。</p>
+<hr>
+<h1 id="44-如何降低死锁概率" data-section="SECTION 60">44. 如何降低死锁概率？</h1>
+<h2 id="44-1-统一加锁顺序" data-section="SECTION 61">44.1 统一加锁顺序</h2>
+<p>错误方式：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务 A：
+1 → 2
+
+事务 B：
+2 → 1</code></pre></div>
+<p>容易形成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>A 拿着 1 等 2
+B 拿着 2 等 1</code></pre></div>
+<p>改成所有业务统一：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>先锁较小 ID
+↓
+再锁较大 ID</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>A：1 → 2
+B：1 → 2</code></pre></div>
+<p>这样 B 一开始就等待 A 的 1，而不是先拿着 2 再等待 1。</p>
+<p>核心原则：</p>
+<blockquote><p><strong>统一资源访问 / 加锁顺序。</strong></p></blockquote>
+<hr>
+<h2 id="44-2-事务尽量短" data-section="SECTION 62">44.2 事务尽量短</h2>
+<p>不要：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN
+↓
+查询并加锁
+↓
+调用 HTTP
+↓
+调用 LLM
+↓
+等待 20 秒
+↓
+更新 DB
+↓
+COMMIT</code></pre></div>
+<p>因为这意味着数据库锁可能被持有：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>20 秒甚至更久</code></pre></div>
+<p>对于 Agent 系统尤其应该避免：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN
+
+SELECT task
+FOR UPDATE
+
+调用 LLM
+等待模型生成
+
+UPDATE task
+
+COMMIT</code></pre></div>
+<p>更好的思路：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>短事务：
+抢占任务
+↓
+COMMIT
+
+事务外：
+调用 LLM
+执行 Agent
+
+短事务：
+更新任务结果
+↓
+COMMIT</code></pre></div>
+<p>核心原则：</p>
+<blockquote><p><strong>不要把耗时外部调用包在数据库事务里。</strong></p></blockquote>
+<hr>
+<h2 id="44-3-正确设计索引" data-section="SECTION 63">44.3 正确设计索引</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE orders
+SET status = 'done'
+WHERE user_id = 100
+  AND status = 'pending';</code></pre></div>
+<p>如果没有合适索引：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>扫描范围扩大
+↓
+锁影响范围扩大
+↓
+锁竞争增加
+↓
+死锁概率增加</code></pre></div>
+<p>所以：</p>
+<blockquote><p><strong>慢 SQL 有时候不仅是性能问题，也会演变成并发锁问题。</strong></p></blockquote>
+<hr>
+<h2 id="44-4-单个事务不要锁太多数据" data-section="SECTION 64">44.4 单个事务不要锁太多数据</h2>
+<p>例如一个事务一次更新：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>100000 行</code></pre></div>
+<p>会导致：</p>
+<ul><li>锁数量增加</li><li>锁持有时间增加</li><li>冲突概率增加</li></ul>
+<p>如果业务允许，可以：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>分批处理
++
+缩短单次事务</code></pre></div>
+<hr>
+<h1 id="45-agent-多-worker-抢任务怎么设计" data-section="SECTION 65">45. Agent 多 Worker 抢任务怎么设计？</h1>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>agent_task
+
+id      status
+----------------
+100     pending</code></pre></div>
+<p>现在：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Worker A
+Worker B
+Worker C</code></pre></div>
+<p>同时准备执行任务 100。</p>
+<p>一种方案：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+SELECT *
+FROM agent_task
+WHERE id = 100
+FOR UPDATE;
+
+UPDATE agent_task
+SET status = 'running'
+WHERE id = 100;
+
+COMMIT;</code></pre></div>
+<p>这种方案可以工作。</p>
+<p>但是如果业务只是简单地：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>pending
+↓
+running</code></pre></div>
+<p>通常没必要先：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT
+↓
+加锁
+↓
+UPDATE</code></pre></div>
+<p>可以直接使用：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE agent_task
+SET status = 'running',
+    worker_id = ?
+WHERE id = ?
+  AND status = 'pending';</code></pre></div>
+<p>然后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>affected_rows = 1
+→ 抢任务成功
+
+affected_rows = 0
+→ 任务已经被其他 Worker 抢走</code></pre></div>
+<p>这就是：</p>
+<blockquote><p><strong>条件 UPDATE / CAS 思维</strong></p></blockquote>
+<hr>
+<h1 id="46-for-update-vs-cas-条件-update-怎么选" data-section="SECTION 66">46. FOR UPDATE vs CAS / 条件 UPDATE 怎么选？</h1>
+<p>这是实际工程中非常重要的判断。</p>
+<h2 id="简单状态竞争" data-section="SECTION 67">简单状态竞争</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>pending → running</code></pre></div>
+<p>业务条件可以直接写进一条 SQL：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE agent_task
+SET status = 'running'
+WHERE id = ?
+  AND status = 'pending';</code></pre></div>
+<p>优先考虑：</p>
+<blockquote><p><strong>原子条件 UPDATE / CAS</strong></p></blockquote>
+<p>因为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>一次 SQL
+↓
+判断 + 修改
+↓
+完成</code></pre></div>
+<p>事务窗口很小。</p>
+<hr>
+<h2 id="复杂-读取-判断-修改" data-section="SECTION 68">复杂&quot;读取 → 判断 → 修改&quot;</h2>
+<p>例如转账：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>读取账户 A
+↓
+读取账户 B
+↓
+检查余额 / 状态
+↓
+执行复杂业务判断
+↓
+修改账户 A
+↓
+修改账户 B</code></pre></div>
+<p>这类业务可能需要：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>数据库事务
++
+SELECT ... FOR UPDATE</code></pre></div>
+<p>以保证业务判断期间相关数据不会被其他事务并发修改。</p>
+<p>因此可以记：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>简单状态竞争
+↓
+CAS / 条件 UPDATE
+
+
+复杂读取 → 判断 → 修改
+↓
+事务 + FOR UPDATE</code></pre></div>
+<hr>
+<h1 id="47-乐观锁-vs-悲观锁的初步理解" data-section="SECTION 69">47. 乐观锁 vs 悲观锁的初步理解</h1>
+<h2 id="悲观锁" data-section="SECTION 70">悲观锁</h2>
+<p>代表：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>SELECT ...
+FOR UPDATE;</code></pre></div>
+<p>思想：</p>
+<blockquote><p>我认为并发冲突可能发生，因此先把相关数据锁住，再执行业务逻辑。</p></blockquote>
+<p>特点：</p>
+<ul><li>冲突高时比较直接</li><li>会产生锁等待</li><li>事务必须尽量短</li></ul>
+<hr>
+<h2 id="乐观锁" data-section="SECTION 71">乐观锁</h2>
+<p>典型：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>version
+CAS
+条件 UPDATE</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE account
+SET balance = 80,
+    version = version + 1
+WHERE id = 1
+  AND version = 5;</code></pre></div>
+<p>思想：</p>
+<blockquote><p>我先假设冲突不会发生，提交修改时再判断数据是否已经被其他事务修改。</p></blockquote>
+<p>特点：</p>
+<ul><li>不需要长时间持有悲观锁</li><li>冲突低时非常合适</li><li>冲突高时可能产生大量失败与重试</li></ul>
+<hr>
+<h1 id="48-当前-mysql-并发控制完整知识链" data-section="SECTION 72">48. 当前 MySQL 并发控制完整知识链</h1>
+<p>现在已经可以从隔离级别一路串到实际高并发设计：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务隔离级别
+       ↓
+      MVCC
+       ↓
+┌──────┴──────┐
+↓             ↓
+Undo Log    Read View
+↓             ↓
+版本链       可见性判断
+└──────┬──────┘
+       ↓
+     快照读
+       ↓
+普通 SELECT
+
+
+需要操作当前数据
+       ↓
+     当前读
+       ↓
+SELECT ... FOR UPDATE
+UPDATE / DELETE
+       ↓
+      Lock
+       ↓
+┌──────┼──────────┐
+↓      ↓          ↓
+Record Gap     Next-Key
+Lock   Lock      Lock
+       ↓
+    锁竞争
+       ↓
+     死锁
+       ↓
+┌──────┴──────────────┐
+↓                     ↓
+减少锁冲突           正确业务设计
+↓                     ↓
+统一锁顺序           CAS
+短事务               条件 UPDATE
+正确索引             FOR UPDATE
+分批处理             乐观锁</code></pre></div>
+<hr>
+<h1 id="49-下一阶段学习路线-从单库事务走向分布式一致性" data-section="SECTION 73">49. 下一阶段学习路线：从单库事务走向分布式一致性</h1>
+<p>完成 MySQL 锁与死锁后，下一阶段建议进入：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>库存扣减怎么做？
+        ↓
+账户转账怎么做？
+        ↓
+Agent Task 多 Worker 抢任务怎么做？
+        ↓
+CAS vs FOR UPDATE 怎么选？
+        ↓
+乐观锁 vs 悲观锁怎么选？
+        ↓
+数据库事务提交成功，但 MQ 发送失败怎么办？
+        ↓
+DB + MQ 一致性
+        ↓
+Outbox Pattern</code></pre></div>
+<p>这一步会把：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MySQL 本地事务</code></pre></div>
+<p>连接到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>消息队列
++
+分布式系统
++
+Agent 异步任务架构</code></pre></div>
+<p>也是从 MySQL 面试八股进入真实系统设计的重要过渡。</p>
+<hr>
+<h1 id="50-从-mysql-本地事务进入分布式一致性" data-section="SECTION 74">50. 从 MySQL 本地事务进入分布式一致性</h1>
+<p>前面的学习主线已经走到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MySQL 事务
+→ 原子 UPDATE / CAS / FOR UPDATE
+→ 高并发事务设计</code></pre></div>
+<p>下一步需要解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>数据库事务提交成功
+↓
+但 MQ 消息发送失败怎么办？</code></pre></div>
+<p>这就进入：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB + MQ 一致性
+→ Transactional Outbox
+→ At-Least-Once
+→ 幂等消费
+→ Inbox / 去重
+→ Retry / DLQ</code></pre></div>
+<hr>
+<h1 id="51-为什么-db-commit-mq-send-有问题" data-section="SECTION 75">51. 为什么 DB COMMIT → MQ SEND 有问题？</h1>
+<p>例如创建 Agent Task：</p>
+<div class="code-card"><div class="code-head"><span>js</span><button class="copy-button" type="button">复制</button></div><pre><code>await db.transaction(async (tx) =&gt; {
+  await tx.agentTask.create({
+    id: 100,
+    status: &quot;pending&quot;,
+  });
+});
+
+await mq.send({
+  type: &quot;AgentTaskCreated&quot;,
+  taskId: 100,
+});</code></pre></div>
+<p>正常流程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>INSERT task
+↓
+COMMIT
+↓
+MQ SEND
+↓
+Worker 执行</code></pre></div>
+<p>但如果：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB COMMIT 成功
+↓
+服务进程崩溃
+↓
+MQ.send 没执行</code></pre></div>
+<p>最终：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB：
+task=100
+status=pending
+
+MQ：
+没有消息</code></pre></div>
+<p>任务可能永久没人处理。</p>
+<p>根本原因：</p>
+<blockquote><p><strong>MySQL 和 MQ 是两个独立系统，本地数据库事务无法天然保证两个系统一起成功。</strong></p></blockquote>
+<hr>
+<h1 id="52-为什么不能把-mq-send-放进数据库事务" data-section="SECTION 76">52. 为什么不能把 MQ SEND 放进数据库事务？</h1>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>js</span><button class="copy-button" type="button">复制</button></div><pre><code>await db.transaction(async (tx) =&gt; {
+  await tx.agentTask.create(...);
+
+  await mq.send(...);
+});</code></pre></div>
+<p>看起来：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN
+↓
+INSERT task
+↓
+MQ SEND
+↓
+COMMIT</code></pre></div>
+<p>但仍然存在：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MQ SEND 成功
+↓
+MQ 已经收到消息
+↓
+数据库 COMMIT 失败</code></pre></div>
+<p>最终：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MQ 有 AgentTaskCreated
+
+但 DB 没有 task</code></pre></div>
+<p>仍然不一致。</p>
+<p>而且还有一个严重工程问题：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>数据库事务打开
+↓
+持有锁
+↓
+等待 MQ 网络请求</code></pre></div>
+<p>如果 MQ 卡住几秒，数据库事务也被拉长。</p>
+<p>所以仍然遵循前面的原则：</p>
+<blockquote><p><strong>HTTP、MQ、RPC、LLM 等耗时外部调用，不要放在数据库事务中等待。</strong></p></blockquote>
+<hr>
+<h1 id="53-transactional-outbox-pattern" data-section="SECTION 77">53. Transactional Outbox Pattern</h1>
+<p>Outbox 的核心不是保证：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB
++
+MQ</code></pre></div>
+<p>直接原子提交。</p>
+<p>而是保证：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>业务数据
++
+“需要发送 MQ”这件事</code></pre></div>
+<p>一起持久化。</p>
+<p>例如建立：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>CREATE TABLE outbox_event (
+    id BIGINT PRIMARY KEY,
+    event_type VARCHAR(100),
+    aggregate_id BIGINT,
+    payload JSON,
+    status VARCHAR(20),
+    created_at DATETIME
+);</code></pre></div>
+<p>创建 Agent Task：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+INSERT INTO agent_task (
+    id,
+    status
+)
+VALUES (
+    100,
+    'pending'
+);
+
+INSERT INTO outbox_event (
+    id,
+    event_type,
+    aggregate_id,
+    payload,
+    status
+)
+VALUES (
+    10001,
+    'AgentTaskCreated',
+    100,
+    '{&quot;taskId&quot;:100}',
+    'pending'
+);
+
+COMMIT;</code></pre></div>
+<p>这样 MySQL 可以保证：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>agent_task
++
+outbox_event</code></pre></div>
+<p>要么一起成功，要么一起失败。</p>
+<p>也就是说：</p>
+<blockquote><p><strong>不会出现任务创建成功，但系统完全忘记应该发送事件的情况。</strong></p></blockquote>
+<hr>
+<h1 id="54-outbox-publisher" data-section="SECTION 78">54. Outbox Publisher</h1>
+<p>Outbox 记录还没有真正发送到 MQ，因此需要后台 Publisher：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>扫描 outbox_event
+↓
+找到 pending
+↓
+发送 MQ
+↓
+成功后标记 sent</code></pre></div>
+<p>伪代码：</p>
+<div class="code-card"><div class="code-head"><span>js</span><button class="copy-button" type="button">复制</button></div><pre><code>const events = await db.query(`
+  SELECT *
+  FROM outbox_event
+  WHERE status = 'pending'
+  LIMIT 100
+`);
+
+for (const event of events) {
+  await mq.send(event);
+
+  await db.execute(`
+    UPDATE outbox_event
+    SET status = 'sent'
+    WHERE id = ?
+  `, [event.id]);
+}</code></pre></div>
+<p>如果业务服务崩溃：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Outbox Event 仍然存在于数据库
+↓
+Publisher 恢复后继续发送</code></pre></div>
+<p>这样可以大幅降低消息丢失风险。</p>
+<hr>
+<h1 id="55-为什么-outbox-仍然可能重复发送" data-section="SECTION 79">55. 为什么 Outbox 仍然可能重复发送？</h1>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Publisher
+↓
+读取 event 10001
+↓
+MQ.send 成功</code></pre></div>
+<p>但是就在：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE outbox_event
+SET status='sent'</code></pre></div>
+<p>之前 Publisher 崩溃。</p>
+<p>数据库里仍然：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>status = pending</code></pre></div>
+<p>重启之后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Publisher 再次扫描
+↓
+再次发送 event 10001</code></pre></div>
+<p>于是 MQ 收到两次相同消息。</p>
+<p>因此 Outbox 通常带来的是：</p>
+<blockquote><p><strong>At-Least-Once Delivery</strong></p></blockquote>
+<p>也就是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>消息至少送达一次</code></pre></div>
+<p>它可能到达：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>1 次
+2 次
+3 次</code></pre></div>
+<p>因此不能假设消费者永远只收到一次。</p>
+<hr>
+<h1 id="56-at-least-once-与幂等" data-section="SECTION 80">56. At-Least-Once 与幂等</h1>
+<p>工程思维应该从：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>如何保证消息绝不重复？</code></pre></div>
+<p>转向：</p>
+<blockquote><p><strong>即使重复，业务结果还能否保持正确？</strong></p></blockquote>
+<p>这就是：</p>
+<blockquote><p><strong>Idempotency，幂等</strong></p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>SET status = completed</code></pre></div>
+<p>重复执行通常仍然：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>completed</code></pre></div>
+<p>但：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>stock = stock - 1</code></pre></div>
+<p>执行两次就会扣两次库存，因此不是天然幂等。</p>
+<hr>
+<h1 id="57-eventid-unique-实现消费者去重" data-section="SECTION 81">57. event_id + UNIQUE 实现消费者去重</h1>
+<p>消息可以带：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  &quot;eventId&quot;: &quot;evt-10001&quot;,
+  &quot;type&quot;: &quot;OrderCreated&quot;,
+  &quot;orderId&quot;: 100
+}</code></pre></div>
+<p>消费者维护：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>processed_event
+
+event_id
+----------------
+evt-10001</code></pre></div>
+<p>并对：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>event_id</code></pre></div>
+<p>建立 UNIQUE。</p>
+<p>但不能简单：</p>
+<div class="code-card"><div class="code-head"><span>js</span><button class="copy-button" type="button">复制</button></div><pre><code>if (await hasProcessed(eventId)) return;
+
+await handleBusiness();
+await markProcessed(eventId);</code></pre></div>
+<p>因为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>handleBusiness 成功
+↓
+服务崩溃
+↓
+markProcessed 没执行</code></pre></div>
+<p>重启后仍然会重复执行业务。</p>
+<hr>
+<h1 id="58-消费记录-业务修改必须同事务" data-section="SECTION 82">58. 消费记录 + 业务修改必须同事务</h1>
+<p>更可靠的方式：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+INSERT INTO processed_event(event_id)
+VALUES ('evt-10001');
+
+UPDATE product
+SET stock = stock - 1
+WHERE id = 10
+  AND stock &gt; 0;
+
+COMMIT;</code></pre></div>
+<p>第一次：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>INSERT processed_event ✅
+UPDATE business ✅
+COMMIT ✅</code></pre></div>
+<p>第二次相同消息：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>INSERT processed_event
+↓
+Duplicate Key</code></pre></div>
+<p>即可识别：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>这条事件已经处理</code></pre></div>
+<p>这就是非常重要的原则：</p>
+<blockquote><p><strong>记录&quot;已消费&quot;与真正的业务副作用，尽量放进同一个本地数据库事务。</strong></p></blockquote>
+<hr>
+<h1 id="59-inbox-pattern" data-section="SECTION 83">59. Inbox Pattern</h1>
+<p>生产者：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>业务数据
++
+Outbox Event
+↓
+同一个本地事务</code></pre></div>
+<p>消费者：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Inbox / processed_event
++
+业务修改
+↓
+同一个本地事务</code></pre></div>
+<p>可以画成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>        Producer
+
+业务表 ───── Outbox
+       本地事务
+             ↓
+         Publisher
+             ↓
+            MQ
+             ↓
+         Consumer
+             ↓
+Inbox ────── 业务表
+       本地事务</code></pre></div>
+<p>Outbox 更偏：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>保证事件不会因为中途崩溃而永久丢失</code></pre></div>
+<p>Inbox / 幂等更偏：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>保证重复事件不会造成重复业务副作用</code></pre></div>
+<hr>
+<h1 id="60-在-agent-workflow-中如何使用-outbox" data-section="SECTION 84">60. 在 Agent Workflow 中如何使用 Outbox？</h1>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD Agent
+↓
+PRD 节点完成
+↓
+需要触发 RFC Agent</code></pre></div>
+<p>不要简单：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE PRD status=completed
+↓
+直接调用 RFC Agent</code></pre></div>
+<p>否则：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD completed 成功
+↓
+服务崩溃
+↓
+RFC Agent 没触发</code></pre></div>
+<p>可以：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+UPDATE workspace_node
+SET status = 'completed'
+WHERE id = 'prd';
+
+INSERT INTO outbox_event (
+  event_id,
+  event_type,
+  payload
+)
+VALUES (
+  'evt-001',
+  'PRD_COMPLETED',
+  '{...}'
+);
+
+COMMIT;</code></pre></div>
+<p>然后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Outbox Publisher
+↓
+MQ
+↓
+RFC Agent Worker</code></pre></div>
+<p>这样业务状态变化与&quot;需要触发下一节点&quot;可以一起落库。</p>
+<hr>
+<h1 id="61-agent-worker-为什么也必须幂等" data-section="SECTION 85">61. Agent Worker 为什么也必须幂等？</h1>
+<p>MQ 可能重复：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD_COMPLETED
+PRD_COMPLETED</code></pre></div>
+<p>如果 Worker 每次都：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>启动 RFC Agent</code></pre></div>
+<p>可能生成两份 RFC。</p>
+<p>可以再次使用前面学过的 CAS：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE workspace_node
+SET status = 'running'
+WHERE id = 'rfc'
+  AND status = 'pending';</code></pre></div>
+<p>判断：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>affected_rows = 1
+→ 获得执行权
+
+affected_rows = 0
+→ 已经有人执行或已经完成</code></pre></div>
+<p>因此知识形成闭环：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Outbox
+↓
+可能重复发送
+↓
+At-Least-Once
+↓
+消费者幂等
+↓
+UNIQUE / CAS</code></pre></div>
+<hr>
+<h1 id="62-retry-exponential-backoff-与-jitter" data-section="SECTION 86">62. Retry、Exponential Backoff 与 Jitter</h1>
+<p>如果 Agent 调用模型 API 出现：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Timeout
+HTTP 429
+HTTP 500
+网络错误</code></pre></div>
+<p>通常属于可恢复错误，可以重试。</p>
+<p>重试不应该：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>失败
+↓
+立即疯狂重试</code></pre></div>
+<p>而应该采用：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第一次：1 秒
+第二次：2 秒
+第三次：4 秒
+第四次：8 秒
+第五次：16 秒</code></pre></div>
+<p>也就是：</p>
+<blockquote><p><strong>Exponential Backoff</strong></p></blockquote>
+<p>可以理解：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>delay ≈ base × 2^retry_count</code></pre></div>
+<p>再加：</p>
+<blockquote><p><strong>Jitter</strong></p></blockquote>
+<p>让大量任务不要在同一毫秒一起恢复，例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>7.4 秒
+8.2 秒
+9.0 秒</code></pre></div>
+<p>用于减少：</p>
+<blockquote><p>Retry Storm / Thundering Herd</p></blockquote>
+<hr>
+<h1 id="63-retryable-error-vs-non-retryable-error" data-section="SECTION 87">63. Retryable Error vs Non-Retryable Error</h1>
+<p>不是所有错误都应该重试。</p>
+<p>通常可以考虑重试：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>网络超时
+HTTP 429
+HTTP 500
+临时数据库连接异常
+临时 MQ 异常</code></pre></div>
+<p>通常不应该机械重试：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>参数格式错误
+业务数据缺失
+权限不足
+模型名称错误
+业务规则明确拒绝</code></pre></div>
+<p>因此生产系统应区分：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Retryable Error
+vs
+Non-Retryable Error</code></pre></div>
+<p>而不是简单：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>所有错误统一重试 3 次</code></pre></div>
+<hr>
+<h1 id="64-dlq-failed-state" data-section="SECTION 88">64. DLQ / Failed State</h1>
+<p>重试必须存在上限：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>max_retry = 5</code></pre></div>
+<p>超过上限：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>failed</code></pre></div>
+<p>或者进入：</p>
+<blockquote><p><strong>DLQ（Dead Letter Queue，死信队列）</strong></p></blockquote>
+<p>然后配合：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>告警
+人工处理
+重新驱动
+问题排查</code></pre></div>
+<p>完整流程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>消息 / Task
+↓
+Worker
+↓
+失败
+↓
+Retry #1
+↓
+Retry #2
+↓
+...
+↓
+超过 max_retry
+↓
+DLQ / failed</code></pre></div>
+<hr>
+<h1 id="65-db-mq-面试回答模板" data-section="SECTION 89">65. DB + MQ 面试回答模板</h1>
+<h2 id="问-db-成功但-mq-失败怎么办" data-section="SECTION 90">问：DB 成功但 MQ 失败怎么办？</h2>
+<p>可以回答：</p>
+<blockquote><p>使用 Transactional Outbox。业务数据和 Outbox Event 在同一个本地数据库事务中提交，后台 Publisher 异步扫描 Outbox 并发送 MQ。Publisher 发送过程允许重试，因此消息可能重复，所以消费者需要通过 event_id、唯一键或 Inbox/processed_event 实现幂等消费。</p></blockquote>
+<h2 id="问-mq-重复消费怎么办" data-section="SECTION 91">问：MQ 重复消费怎么办？</h2>
+<p>可以回答：</p>
+<blockquote><p>我会按 At-Least-Once 来设计消费者，每条消息带唯一 event_id，消费者通过唯一键或 Inbox 表判断是否处理过，并且尽量把&quot;消费去重记录&quot;和&quot;实际业务修改&quot;放在同一个本地数据库事务中，避免业务已经成功但消费记录没落库导致再次重复执行。</p></blockquote>
+<hr>
+<h1 id="66-从-outbox-进入可靠-agent-worker" data-section="SECTION 92">66. 从 Outbox 进入可靠 Agent Worker</h1>
+<p>完成 DB + MQ 一致性之后，下一层问题变成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Agent Task 已经被 Worker 拿到
+↓
+Worker 执行 2 分钟
+↓
+Worker 中途崩溃怎么办？</code></pre></div>
+<p>如果任务只有：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>status = running</code></pre></div>
+<p>Worker 崩溃后任务会永久卡在 running。</p>
+<p>因此需要：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Lease
+Heartbeat
+Timeout
+Retry
+Idempotency
+Fencing Token</code></pre></div>
+<hr>
+<h1 id="67-为什么-agent-长任务不能一直持有数据库锁" data-section="SECTION 93">67. 为什么 Agent 长任务不能一直持有数据库锁？</h1>
+<p>错误方案：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN
+↓
+SELECT task FOR UPDATE
+↓
+调用 LLM
+↓
+调用 Tool
+↓
+执行 5 分钟
+↓
+UPDATE result
+↓
+COMMIT</code></pre></div>
+<p>这意味着：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>数据库锁可能持有 5 分钟</code></pre></div>
+<p>会严重影响并发能力。</p>
+<p>正确思路：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>短事务
+↓
+Claim Task
+↓
+COMMIT
+
+----------------
+
+事务外执行 Agent / LLM / Tool
+
+----------------
+
+短事务
+↓
+写入结果
+↓
+COMMIT</code></pre></div>
+<p>因此：</p>
+<blockquote><p><strong>数据库事务只保护短时间的状态竞争，不负责保护整个长时间 Agent 执行过程。</strong></p></blockquote>
+<hr>
+<h1 id="68-lease-临时执行权" data-section="SECTION 94">68. Lease：临时执行权</h1>
+<p>Agent Task 表可以增加：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>id
+status
+worker_id
+lease_until
+retry_count
+next_retry_at
+execution_version
+result
+error_message</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>id            100
+status        running
+worker_id     worker-A
+lease_until   10:30:00
+retry_count   0</code></pre></div>
+<p>含义：</p>
+<blockquote><p>task 100 当前由 worker-A 执行，但只拥有到 10:30 的执行权。</p></blockquote>
+<p>如果：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>NOW() &gt; lease_until</code></pre></div>
+<p>可以认为执行权已经过期，允许其他 Worker 接管。</p>
+<p>这就是：</p>
+<blockquote><p><strong>Lease</strong></p></blockquote>
+<hr>
+<h1 id="69-claim-task-抢任务仍然使用-cas" data-section="SECTION 95">69. Claim Task：抢任务仍然使用 CAS</h1>
+<p>简单状态抢占：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE agent_task
+SET status = 'running',
+    worker_id = ?
+WHERE id = ?
+  AND status = 'pending';</code></pre></div>
+<p>判断：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>affected_rows = 1
+→ Claim 成功
+
+affected_rows = 0
+→ 已被其他 Worker 抢走</code></pre></div>
+<p>如果允许重新接管过期任务，可以把条件扩展成：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE agent_task
+SET
+  status = 'running',
+  worker_id = ?,
+  lease_until = ?
+WHERE id = ?
+  AND (
+    status = 'pending'
+    OR (
+      status = 'running'
+      AND lease_until &lt; NOW()
+    )
+  );</code></pre></div>
+<p>这样：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Worker A 崩溃
+↓
+Lease 过期
+↓
+Worker B 可以重新 Claim</code></pre></div>
+<hr>
+<h1 id="70-heartbeat-执行中的-worker-如何续租" data-section="SECTION 96">70. Heartbeat：执行中的 Worker 如何续租？</h1>
+<p>如果 Agent 执行需要：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>10 分钟</code></pre></div>
+<p>而 Lease 只有：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>30 秒</code></pre></div>
+<p>正常 Worker 还没完成，Lease 就会过期。</p>
+<p>因此需要：</p>
+<blockquote><p><strong>Heartbeat</strong></p></blockquote>
+<p>Worker 每隔一段时间续租：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE agent_task
+SET lease_until = NOW() + INTERVAL 30 SECOND
+WHERE id = ?
+  AND worker_id = ?
+  AND status = 'running';</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>10:00:00 lease → 10:00:30
+
+10:00:10 heartbeat
+↓
+lease → 10:00:40
+
+10:00:20 heartbeat
+↓
+lease → 10:00:50</code></pre></div>
+<p>只要 Worker 正常运行：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Lease 持续延长</code></pre></div>
+<p>如果 Worker 崩溃：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Heartbeat 停止
+↓
+Lease 到期
+↓
+其他 Worker 接管</code></pre></div>
+<hr>
+<h1 id="71-stale-worker-split-brain-问题" data-section="SECTION 97">71. Stale Worker / Split Brain 问题</h1>
+<p>可能出现：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Worker A 因网络抖动暂时失联
+↓
+Lease 过期
+↓
+Worker B 接管任务
+↓
+Worker A 又恢复</code></pre></div>
+<p>此时：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Worker A
+Worker B</code></pre></div>
+<p>可能同时在执行。</p>
+<p>因此旧 Worker 不能无条件提交结果。</p>
+<hr>
+<h1 id="72-提交结果时也要-cas" data-section="SECTION 98">72. 提交结果时也要 CAS</h1>
+<p>Worker A 完成任务：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE agent_task
+SET
+  status = 'completed',
+  result = ?
+WHERE id = 100
+  AND worker_id = 'worker-A'
+  AND status = 'running';</code></pre></div>
+<p>如果任务已经被 Worker B 接管：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>worker_id = worker-B</code></pre></div>
+<p>那么 Worker A：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>affected_rows = 0</code></pre></div>
+<p>旧 Worker 无法覆盖新 Worker 的执行状态。</p>
+<p>因此必须记：</p>
+<blockquote><p><strong>Claim 时需要 CAS，提交结果时同样需要验证执行权。</strong></p></blockquote>
+<hr>
+<h1 id="73-fencing-token-executionversion" data-section="SECTION 99">73. Fencing Token / execution_version</h1>
+<p>比单纯 worker_id 更稳的方式之一，是增加递增的：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>execution_version</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Worker A 首次 Claim
+execution_version = 1</code></pre></div>
+<p>Lease 过期后 Worker B 接管：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>execution_version = 2</code></pre></div>
+<p>Worker A 恢复后仍携带：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>version = 1</code></pre></div>
+<p>写结果：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE agent_task
+SET status = 'completed'
+WHERE id = 100
+  AND execution_version = 1;</code></pre></div>
+<p>数据库当前已经：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>execution_version = 2</code></pre></div>
+<p>所以更新失败。</p>
+<p>这种递增执行令牌可以理解成：</p>
+<blockquote><p><strong>Fencing Token</strong></p></blockquote>
+<p>作用：</p>
+<blockquote><p><strong>拒绝已经失效的旧执行者继续污染新状态。</strong></p></blockquote>
+<hr>
+<h1 id="74-agent-task-retry" data-section="SECTION 100">74. Agent Task Retry</h1>
+<p>Agent 执行失败后不能一概立即永久失败。</p>
+<p>任务表可维护：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>retry_count
+max_retry
+next_retry_at</code></pre></div>
+<p>可重试失败：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>status = retry_wait
+retry_count += 1
+next_retry_at = backoff + jitter</code></pre></div>
+<p>到时间后重新进入可 Claim 状态。</p>
+<p>不可重试失败：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>status = failed</code></pre></div>
+<p>超过最大重试次数：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>failed / DLQ</code></pre></div>
+<hr>
+<h1 id="75-为什么重试必然要求副作用幂等" data-section="SECTION 101">75. 为什么重试必然要求副作用幂等？</h1>
+<p>假设任务是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>发送邮件</code></pre></div>
+<p>Worker A：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>邮件发送成功</code></pre></div>
+<p>但是在：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE task
+SET status='completed'</code></pre></div>
+<p>之前崩溃。</p>
+<p>Lease 到期后 Worker B 重试：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>再次发送邮件</code></pre></div>
+<p>用户会收到两封。</p>
+<p>所以：</p>
+<blockquote><p><strong>只要系统允许 Retry / Lease Recovery，就必须考虑重复执行副作用的问题。</strong></p></blockquote>
+<hr>
+<h1 id="76-agent-tool-call-的-operationid" data-section="SECTION 102">76. Agent Tool Call 的 operation_id</h1>
+<p>对于有副作用的 Tool：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>create_order
+refund_order
+send_email
+create_ticket</code></pre></div>
+<p>应该尽量携带稳定的：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>operation_id</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>operation_id =
+task_id + node_id + logical_operation</code></pre></div>
+<p>调用：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  &quot;operationId&quot;: &quot;task100-refund&quot;,
+  &quot;orderId&quot;: &quot;order888&quot;
+}</code></pre></div>
+<p>下游建立：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>operation_id UNIQUE</code></pre></div>
+<p>如果重复请求到来：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>已经执行过
+↓
+直接返回第一次执行结果</code></pre></div>
+<p>这就是：</p>
+<blockquote><p><strong>业务层幂等</strong></p></blockquote>
+<p>系统即使是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>At-Least-Once Execution</code></pre></div>
+<p>也能尽量做到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>最终业务副作用只发生一次</code></pre></div>
+<hr>
+<h1 id="77-workflow-node-也需要稳定身份" data-section="SECTION 103">77. Workflow Node 也需要稳定身份</h1>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD Agent
+↓
+RFC Agent
+↓
+Frontend Agent
+↓
+Backend Agent
+↓
+Review Agent</code></pre></div>
+<p>如果 RFC Agent 已经生成 RFC，但节点状态还没成功写成 completed，就可能重新执行。</p>
+<p>因此节点状态建议至少能标识：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>workflow_id
+node_id
+execution_version
+output_version
+status</code></pre></div>
+<p>恢复时可以判断：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>这个逻辑节点是否已经产生产物？
+↓
+是否应该复用？
+↓
+是否真的需要重新执行？</code></pre></div>
+<p>而不是无脑重新调用模型。</p>
+<hr>
+<h1 id="78-可靠-agent-worker-状态机" data-section="SECTION 104">78. 可靠 Agent Worker 状态机</h1>
+<p>一个比较完整的状态机：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                pending
+                   │
+                 claim
+                   ↓
+                running
+               /       \
+        success         temporary error
+           ↓                   ↓
+       completed           retry_wait
+                               │
+                         next_retry_at
+                               ↓
+                            pending
+
+running
+   │
+lease expired
+   ↓
+允许重新 claim
+
+permanent error
+或超过 max_retry
+   ↓
+failed / DLQ</code></pre></div>
+<hr>
+<h1 id="79-一个较完整的-agent-task-表" data-section="SECTION 105">79. 一个较完整的 Agent Task 表</h1>
+<p>示例：</p>
+<div class="code-card"><div class="code-head"><span>sql</span><button class="copy-button" type="button">复制</button></div><pre><code>CREATE TABLE agent_task (
+    id BIGINT PRIMARY KEY,
+
+    workflow_id BIGINT,
+    node_id VARCHAR(100),
+
+    status VARCHAR(20),
+
+    worker_id VARCHAR(100),
+
+    execution_version BIGINT NOT NULL DEFAULT 0,
+
+    lease_until DATETIME,
+
+    retry_count INT NOT NULL DEFAULT 0,
+    max_retry INT NOT NULL DEFAULT 5,
+    next_retry_at DATETIME,
+
+    input JSON,
+    result JSON,
+
+    error_code VARCHAR(100),
+    error_message TEXT,
+
+    created_at DATETIME,
+    updated_at DATETIME
+);</code></pre></div>
+<p>不要求实际项目完全照抄字段。</p>
+<p>更重要的是理解每个字段在解决什么问题：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>status
+→ 当前任务状态
+
+worker_id
+→ 当前谁在执行
+
+lease_until
+→ 执行权什么时候过期
+
+execution_version
+→ 防止旧 Worker 写回
+
+retry_count
+→ 已重试几次
+
+next_retry_at
+→ 下次什么时候允许执行
+
+result / error
+→ 可观测和恢复</code></pre></div>
+<hr>
+<h1 id="80-agent-worker-完整执行流程" data-section="SECTION 106">80. Agent Worker 完整执行流程</h1>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>1. 找候选任务
+
+pending
+retry_wait 到期
+running 但 lease 已过期
+
+
+2. CAS Claim
+
+status = running
+worker_id = A
+execution_version += 1
+lease_until = now + 30s
+
+
+3. 执行期间
+
+Heartbeat
+↓
+持续续租
+
+
+4. 调用 LLM / Tool
+
+副作用尽量携带 operation_id
+保证幂等
+
+
+5. 成功
+
+CAS 更新 completed
+并校验 worker_id / execution_version
+
+
+6. 失败
+
+判断 Retryable / Non-Retryable
+
+
+7. 可重试
+
+retry_count += 1
+next_retry_at = backoff + jitter
+status = retry_wait
+
+
+8. 不可重试 / 超过上限
+
+status = failed
+或 DLQ</code></pre></div>
+<hr>
+<h1 id="81-db-与-mq-在-agent-系统里的职责" data-section="SECTION 107">81. DB 与 MQ 在 Agent 系统里的职责</h1>
+<p>可以这样分工：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MySQL / PostgreSQL
+↓
+Source of Truth
+↓
+任务状态
+Workflow 状态
+Lease
+Retry 状态
+执行结果
+错误信息
+
+
+MQ
+↓
+Delivery / Wake-up Mechanism
+↓
+告诉 Worker：
+“有任务可以处理”</code></pre></div>
+<p>所以：</p>
+<blockquote><p><strong>数据库保存事实状态，MQ 负责异步分发和解耦。</strong></p></blockquote>
+<p>不要简单把 MQ 当成唯一的任务状态存储。</p>
+<hr>
+<h1 id="82-langgraph-与-worker-可靠性层的关系" data-section="SECTION 108">82. LangGraph 与 Worker 可靠性层的关系</h1>
+<p>可以理解：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>LangGraph
+↓
+Workflow 编排层
+↓
+Graph
+State
+Checkpoint
+Interrupt
+Resume
+
+
+Task Worker / DB / MQ
+↓
+执行可靠性层
+↓
+Claim
+Lease
+Heartbeat
+Retry
+Idempotency
+Fencing</code></pre></div>
+<p>LangGraph 解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>流程怎么走
+状态怎么传
+节点怎么恢复</code></pre></div>
+<p>可靠 Worker 层解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>谁真正执行
+Worker 挂了怎么办
+任务重复怎么办
+外部副作用怎么办</code></pre></div>
+<p>两者并不互相替代。</p>
+<hr>
+<h1 id="83-agent-worker-崩溃怎么办-面试回答" data-section="SECTION 109">83. Agent Worker 崩溃怎么办？面试回答</h1>
+<p>可以回答：</p>
+<blockquote><p>Agent 长任务不能通过一直持有数据库锁来保证执行权。我会通过任务表中的 status、worker_id、lease_until 建立租约机制，Worker Claim 时用 CAS 原子抢占，执行过程中 Heartbeat 续租。Worker 崩溃后 Lease 到期，允许其他 Worker 重新 Claim。为了防止旧 Worker 恢复后写回旧结果，还会通过 worker_id 或递增的 execution_version / fencing token 验证执行权。临时错误通过 Retry + Exponential Backoff + Jitter 处理，所有有副作用的 Tool 调用需要尽量支持 operation_id 幂等。</p></blockquote>
+<hr>
+<h1 id="84-这一阶段必须掌握的核心概念" data-section="SECTION 110">84. 这一阶段必须掌握的核心概念</h1>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Transactional Outbox
+→ DB 与“待发送事件”同事务
+
+
+At-Least-Once
+→ 消息可能重复，但尽量不能丢
+
+
+Idempotency
+→ 重复执行不能产生重复副作用
+
+
+Inbox / processed_event
+→ 消费去重
+
+
+Retry + Backoff + Jitter
+→ 处理临时故障
+
+
+DLQ
+→ 持续失败最终可观测
+
+
+CAS
+→ 原子抢任务
+
+
+Lease
+→ 执行权有期限
+
+
+Heartbeat
+→ 正常 Worker 续租
+
+
+Fencing Token
+→ 旧 Worker 不能覆盖新状态
+
+
+operation_id
+→ Tool 副作用幂等</code></pre></div>
+<hr>
+<h1 id="85-当前完整学习链" data-section="SECTION 111">85. 当前完整学习链</h1>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务隔离级别
+      ↓
+MVCC
+      ↓
+Undo Log + Read View
+      ↓
+快照读 / 当前读
+      ↓
+FOR UPDATE
+      ↓
+Record / Gap / Next-Key Lock
+      ↓
+死锁
+      ↓
+原子 UPDATE / CAS
+      ↓
+乐观锁 / 悲观锁
+      ↓
+短事务原则
+      ↓
+DB + MQ 一致性
+      ↓
+Transactional Outbox
+      ↓
+At-Least-Once
+      ↓
+Inbox / 幂等消费
+      ↓
+Retry / Backoff / DLQ
+      ↓
+Agent Task Claim
+      ↓
+Lease / Heartbeat
+      ↓
+Fencing Token
+      ↓
+Tool Idempotency
+      ↓
+可靠 Agent Worker</code></pre></div>
+<p>下一阶段可以继续：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>可靠 Agent Worker
+↓
+Workflow Checkpoint
+↓
+Node State
+↓
+Resume
+↓
+Human-in-the-loop
+↓
+生产级 LangGraph / Workspace 编排</code></pre></div>
+<hr>
+<h1 id="86-从可靠-worker-进入-durable-agent-workflow" data-section="SECTION 112">86. 从可靠 Worker 进入 Durable Agent Workflow</h1>
+<p>前面的学习已经解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Agent Task
+↓
+CAS Claim
+↓
+Lease
+↓
+Heartbeat
+↓
+Retry
+↓
+Fencing Token
+↓
+Tool Idempotency
+↓
+可靠 Agent Worker</code></pre></div>
+<p>下一层需要解决：</p>
+<blockquote><p><strong>整个 Workflow 执行到一半时服务中断，系统应该从哪里继续？</strong></p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>用户需求
+↓
+PRD Agent
+↓
+RFC Agent
+↓
+Frontend Agent
+↓
+Backend Agent
+↓
+Review Agent</code></pre></div>
+<p>执行状态：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD       completed
+RFC       completed
+Frontend  completed
+Backend   running
+Review    pending</code></pre></div>
+<p>如果 Backend Agent 执行期间服务宕机，恢复后不应该重新执行整个 Workflow。</p>
+<p>因此需要：</p>
+<blockquote><p><strong>Checkpoint + Resume</strong></p></blockquote>
+<hr>
+<h1 id="87-checkpoint-是什么" data-section="SECTION 113">87. Checkpoint 是什么？</h1>
+<p>Checkpoint 的本质：</p>
+<blockquote><p><strong>持久化 Workflow 当前执行状态，使长生命周期 Workflow 可以在中断后恢复。</strong></p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  &quot;workflowId&quot;: &quot;wf-100&quot;,
+  &quot;currentNode&quot;: &quot;backend&quot;,
+  &quot;state&quot;: {
+    &quot;prdId&quot;: &quot;prd-001&quot;,
+    &quot;rfcId&quot;: &quot;rfc-001&quot;,
+    &quot;frontendResult&quot;: &quot;...&quot;,
+    &quot;backendResult&quot;: null
+  }
+}</code></pre></div>
+<p>服务恢复：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Load Checkpoint
+↓
+发现：
+
+PRD completed
+RFC completed
+Frontend completed
+Backend 未完成
+↓
+从 Backend 附近继续</code></pre></div>
+<p>而不是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD
+↓
+RFC
+↓
+Frontend
+↓
+全部重新执行</code></pre></div>
+<hr>
+<h1 id="88-为什么-agent-workflow-特别需要-checkpoint" data-section="SECTION 114">88. 为什么 Agent Workflow 特别需要 Checkpoint？</h1>
+<p>传统 HTTP 请求可能只有：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Request
+↓
+100ms
+↓
+Response</code></pre></div>
+<p>失败后重新请求即可。</p>
+<p>但 Agent Workflow 可能：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD Agent        30s
+↓
+RFC Agent        60s
+↓
+Frontend Agent   3min
+↓
+Backend Agent    3min
+↓
+Review Agent     1min</code></pre></div>
+<p>整个流程可能持续：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>几分钟
+几十分钟
+甚至几小时 / 几天</code></pre></div>
+<p>期间还可能：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>等待人工审批
+等待外部 API
+等待异步任务
+等待其他 Agent</code></pre></div>
+<p>因此不能假设：</p>
+<blockquote><p><strong>整个 Workflow 一定会在同一个进程生命周期中一次执行到底。</strong></p></blockquote>
+<p>Checkpoint 是 Durable Workflow 的基础能力。</p>
+<hr>
+<h1 id="89-checkpoint-需要保存什么" data-section="SECTION 115">89. Checkpoint 需要保存什么？</h1>
+<p>至少需要区分三类信息。</p>
+<h2 id="89-1-workflow-state" data-section="SECTION 116">89.1 Workflow State</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  &quot;requirement&quot;: &quot;...&quot;,
+  &quot;prdId&quot;: &quot;prd-001&quot;,
+  &quot;rfcId&quot;: &quot;rfc-001&quot;,
+  &quot;repo&quot;: &quot;xxx&quot;,
+  &quot;branch&quot;: &quot;feature/xxx&quot;
+}</code></pre></div>
+<p>它回答：</p>
+<blockquote><p><strong>后续节点继续运行需要哪些上下文？</strong></p></blockquote>
+<hr>
+<h2 id="89-2-node-state" data-section="SECTION 117">89.2 Node State</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>node_id = backend_agent
+status = running
+attempt = 2
+started_at = ...
+completed_at = null</code></pre></div>
+<p>它回答：</p>
+<blockquote><p><strong>每个节点当前执行到什么状态？</strong></p></blockquote>
+<hr>
+<h2 id="89-3-execution-metadata" data-section="SECTION 118">89.3 Execution Metadata</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>workflow_id
+execution_id
+checkpoint_version
+execution_version</code></pre></div>
+<p>主要用于：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>恢复
+并发控制
+执行追踪
+防止旧执行覆盖新执行</code></pre></div>
+<hr>
+<h1 id="90-node-状态机" data-section="SECTION 119">90. Node 状态机</h1>
+<p>Agent Node 不应该只理解成一个函数调用。</p>
+<p>更适合把它理解成一个小状态机：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>              pending
+                 │
+              execute
+                 ↓
+              running
+              /     \
+             ↓       ↓
+       completed    failed
+                       │
+                     retry
+                       ↓
+                    running</code></pre></div>
+<p>如果支持人工介入：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>running
+↓
+waiting_human
+↓
+running</code></pre></div>
+<p>如果等待外部系统：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>running
+↓
+waiting_external
+↓
+running</code></pre></div>
+<p>实际系统可能包含：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>pending
+running
+completed
+failed
+retry_wait
+waiting_human
+waiting_external
+cancelled</code></pre></div>
+<p>不要求所有项目都实现全部状态。</p>
+<p>核心是：</p>
+<blockquote><p><strong>Workflow Node 要有明确状态机，而不是只靠内存里的函数调用关系。</strong></p></blockquote>
+<hr>
+<h1 id="91-checkpoint-并不能自动解决副作用重复" data-section="SECTION 120">91. Checkpoint 并不能自动解决副作用重复</h1>
+<p>假设 Backend Agent：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>1. 修改 Git 仓库代码
+2. UPDATE node status = completed</code></pre></div>
+<p>执行过程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Git 修改成功
+↓
+服务崩溃
+↓
+completed 没写入数据库</code></pre></div>
+<p>数据库仍然：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>backend node = running</code></pre></div>
+<p>恢复以后系统可能认为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Backend 没执行完</code></pre></div>
+<p>于是再次执行：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Backend Agent
+↓
+再次修改代码</code></pre></div>
+<p>因此：</p>
+<blockquote><p><strong>Checkpoint ≠ Idempotency。</strong></p></blockquote>
+<p>Checkpoint 只能告诉系统：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>最后可靠记录到哪里</code></pre></div>
+<p>但如果：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>外部副作用成功
+↓
+Checkpoint 更新失败</code></pre></div>
+<p>仍然存在重复执行窗口。</p>
+<hr>
+<h1 id="92-node-必须尽量设计成幂等" data-section="SECTION 121">92. Node 必须尽量设计成幂等</h1>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>generate_rfc</code></pre></div>
+<p>不要每次恢复都：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>INSERT 一个新的 RFC</code></pre></div>
+<p>可以为逻辑节点建立稳定身份：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>workflow_id
++
+node_id
++
+logical_execution_id</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>artifact_key = wf-100:rfc</code></pre></div>
+<p>第一次：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>生成 RFC
+↓
+保存 artifact_key = wf-100:rfc</code></pre></div>
+<p>恢复后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>查询 artifact_key
+↓
+发现产物已经存在
+↓
+复用已有结果</code></pre></div>
+<p>而不是重新生成。</p>
+<p>这就是：</p>
+<blockquote><p><strong>Idempotent Node</strong></p></blockquote>
+<hr>
+<h1 id="93-executionkey-与-operationid-是同一个思想" data-section="SECTION 122">93. execution_key 与 operation_id 是同一个思想</h1>
+<p>上一阶段 Tool Call 使用：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>operation_id</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>task100-refund</code></pre></div>
+<p>Workflow Node 可以使用：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>execution_key</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>wf100-rfc</code></pre></div>
+<p>它们本质都是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>一个逻辑动作
+↓
+拥有稳定唯一身份
+↓
+重复请求 / Retry / Resume
+↓
+识别是否已经执行</code></pre></div>
+<p>因此一个非常重要的 Agent 工程原则：</p>
+<blockquote><p><strong>任何可能 Retry / Resume 的动作，都必须考虑重复执行是否安全。</strong></p></blockquote>
+<hr>
+<h1 id="94-workflow-resume-如何工作" data-section="SECTION 123">94. Workflow Resume 如何工作？</h1>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD        completed
+RFC        completed
+Frontend   completed
+Backend    running
+Review     pending</code></pre></div>
+<p>系统恢复：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Load Checkpoint
+↓
+加载 Workflow State
+↓
+加载 Node State</code></pre></div>
+<p>发现：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Backend = running</code></pre></div>
+<p>但它原来的 Worker：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Lease 已过期</code></pre></div>
+<p>因此：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>running
++
+lease expired
+↓
+上一次执行权失效</code></pre></div>
+<p>然后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>检查 Backend execution_key / artifact</code></pre></div>
+<p>如果：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>产物实际上已经存在</code></pre></div>
+<p>则：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>恢复已有结果
+↓
+修正 Node State
+↓
+completed</code></pre></div>
+<p>如果：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>产物不存在</code></pre></div>
+<p>则：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>重新 Claim
+↓
+重新执行 Backend Node</code></pre></div>
+<p>完整恢复：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Load Checkpoint
+       ↓
+找到未完成 Node
+       ↓
+检查 Lease / Execution
+       ↓
+检查副作用 / Artifact
+       ↓
+┌──────┴──────┐
+↓             ↓
+已完成        未完成
+↓             ↓
+恢复结果      重新执行
+↓             ↓
+└──────┬──────┘
+       ↓
+继续 Workflow</code></pre></div>
+<hr>
+<h1 id="95-checkpoint-什么时候保存" data-section="SECTION 124">95. Checkpoint 什么时候保存？</h1>
+<p>最简单和常见的方式：</p>
+<blockquote><p><strong>在 Node 边界保存 Checkpoint。</strong></p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD Agent
+↓
+completed
+↓
+Checkpoint
+↓
+RFC Agent</code></pre></div>
+<p>然后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>RFC Agent
+↓
+completed
+↓
+Checkpoint
+↓
+Frontend Agent</code></pre></div>
+<p>这样每个重要节点成功后，都有一个可靠恢复点。</p>
+<hr>
+<h1 id="96-长-node-内部如何-checkpoint" data-section="SECTION 125">96. 长 Node 内部如何 Checkpoint？</h1>
+<p>例如 Backend Agent：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>读取代码
+↓
+生成方案
+↓
+修改文件
+↓
+运行测试
+↓
+修复
+↓
+提交</code></pre></div>
+<p>整个 Node 可能执行 10 分钟。</p>
+<p>如果只在 Node 最后 Checkpoint：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第 9 分钟服务挂掉</code></pre></div>
+<p>可能需要重新执行整个 Backend Node。</p>
+<p>有两种主要设计。</p>
+<h2 id="方案-a-接受-node-重跑" data-section="SECTION 126">方案 A：接受 Node 重跑</h2>
+<p>适合：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Node 足够幂等
++
+重跑成本可以接受</code></pre></div>
+<p>优点：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>架构简单</code></pre></div>
+<p>通常应该优先考虑。</p>
+<h2 id="方案-b-拆成更小的-node" data-section="SECTION 127">方案 B：拆成更小的 Node</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Analyze Code
+↓
+Checkpoint
+
+Generate Patch
+↓
+Checkpoint
+
+Run Tests
+↓
+Checkpoint
+
+Fix
+↓
+Checkpoint</code></pre></div>
+<p>恢复粒度更细。</p>
+<p>但代价：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Workflow 状态更多
+编排更复杂
+维护成本更高</code></pre></div>
+<p>所以原则：</p>
+<blockquote><p><strong>Checkpoint 粒度是在恢复成本和系统复杂度之间取平衡。</strong></p></blockquote>
+<p>不要为了&quot;绝不重跑一步&quot;把 Workflow 无限拆碎。</p>
+<hr>
+<h1 id="97-human-in-the-loop-为什么依赖-checkpoint" data-section="SECTION 128">97. Human-in-the-loop 为什么依赖 Checkpoint？</h1>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD Agent
+↓
+生成 PRD
+↓
+等待产品经理确认</code></pre></div>
+<p>错误方式是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Worker 一直运行
+↓
+等待用户几小时</code></pre></div>
+<p>正确方式：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD Agent
+↓
+生成结果
+↓
+Checkpoint
+↓
+status = waiting_human
+↓
+释放 Worker</code></pre></div>
+<p>Workflow 可以暂停：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>10 分钟
+1 小时
+1 天</code></pre></div>
+<p>用户点击：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Approve</code></pre></div>
+<p>系统收到事件：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Human Event
+↓
+Load Checkpoint
+↓
+更新 Workflow State
+↓
+Resume
+↓
+继续 RFC Agent</code></pre></div>
+<p>这就是：</p>
+<blockquote><p><strong>Durable Human-in-the-loop</strong></p></blockquote>
+<hr>
+<h1 id="98-workspace-中的-human-in-the-loop" data-section="SECTION 129">98. Workspace 中的 Human-in-the-loop</h1>
+<p>例如 Workspace：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>需求创建
+↓
+Product Agent
+↓
+PRD
+↓
+Human Review
+↓
+Full-stack Agent
+↓
+Code
+↓
+Test Agent
+↓
+Human Review
+↓
+Merge</code></pre></div>
+<p>可以设计：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Product Agent
+↓
+Checkpoint
+↓
+waiting_human
+↓
+产品确认
+↓
+Resume
+↓
+Full-stack Agent
+↓
+Checkpoint
+↓
+Test Agent</code></pre></div>
+<p>这样 Workflow 生命周期可以跨：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>分钟
+小时
+甚至几天</code></pre></div>
+<p>而不需要一直占用一个 Worker 或进程。</p>
+<hr>
+<h1 id="99-checkpoint-应该放-redis-吗" data-section="SECTION 130">99. Checkpoint 应该放 Redis 吗？</h1>
+<p>如果 Checkpoint 是：</p>
+<blockquote><p><strong>Workflow 恢复所依赖的事实状态</strong></p></blockquote>
+<p>通常不应该只存在 Redis。</p>
+<p>Redis 更适合：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Cache
+临时状态
+Lease
+分布式协调
+高性能读取</code></pre></div>
+<p>而 Workflow Checkpoint 需要：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>可靠持久化
+恢复
+审计
+长期保存</code></pre></div>
+<p>因此通常更适合：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PostgreSQL / MySQL</code></pre></div>
+<p>作为 Source of Truth。</p>
+<p>可以：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PostgreSQL / MySQL
+↓
+Workflow State
+Checkpoint
+Node State
+
+Redis
+↓
+Cache
+Lease
+Coordination</code></pre></div>
+<p>仍然符合之前的原则：</p>
+<blockquote><p><strong>DB 保存事实，Redis 负责性能和协调。</strong></p></blockquote>
+<hr>
+<h1 id="100-workflow-runtime-business-artifact-knowledge-要分开" data-section="SECTION 131">100. Workflow Runtime、Business Artifact、Knowledge 要分开</h1>
+<p>Workspace 中至少存在三类完全不同的数据。</p>
+<h2 id="100-1-workflow-runtime-state" data-section="SECTION 132">100.1 Workflow Runtime State</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Checkpoint
+Node Status
+Retry
+Lease
+Execution
+Human Interrupt</code></pre></div>
+<p>解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>流程现在运行到哪里？</code></pre></div>
+<hr>
+<h2 id="100-2-business-artifact" data-section="SECTION 133">100.2 Business Artifact</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD
+Summary
+生成代码
+测试结果
+业务文档</code></pre></div>
+<p>解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>这个迭代真正产出了什么？</code></pre></div>
+<hr>
+<h2 id="100-3-knowledge" data-section="SECTION 134">100.3 Knowledge</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>归档 PRD
+Summary
+Embedding
+Vector DB</code></pre></div>
+<p>解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>未来 Agent 如何检索历史知识？</code></pre></div>
+<p>三者不要混在一起。</p>
+<p>尤其：</p>
+<blockquote><p><strong>Vector DB 不是 Workflow Checkpoint Store。</strong></p></blockquote>
+<hr>
+<h1 id="101-langgraph-checkpoint-需要掌握到什么程度" data-section="SECTION 135">101. LangGraph Checkpoint 需要掌握到什么程度？</h1>
+<p>针对 AI Application / Agent 工程方向：</p>
+<h2 id="必须掌握-2" data-section="SECTION 136">必须掌握</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>State
+Checkpoint
+Execution / Thread Identity
+Node
+Interrupt
+Resume</code></pre></div>
+<p>并且能够回答：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>为什么长 Workflow 需要持久化？
+为什么不能失败后全部从头执行？
+为什么 Node 需要幂等？
+Human-in-the-loop 为什么需要持久化暂停？
+Worker 崩溃与 Workflow Resume 是什么关系？</code></pre></div>
+<h2 id="理解即可" data-section="SECTION 137">理解即可</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>LangGraph Checkpointer 的基本使用方式
+Checkpoint Store 的可替换性
+Thread / Run 的基本关系</code></pre></div>
+<h2 id="暂时不用深挖" data-section="SECTION 138">暂时不用深挖</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>LangGraph Checkpointer 源码
+内部序列化实现
+底层调度源码</code></pre></div>
+<p>对于当前目标：</p>
+<blockquote><p><strong>系统设计能力比背 LangGraph API 更重要。</strong></p></blockquote>
+<hr>
+<h1 id="102-worker-recovery-与-workflow-resume-不要混淆" data-section="SECTION 139">102. Worker Recovery 与 Workflow Resume 不要混淆</h1>
+<p>这是非常重要的分层。</p>
+<h2 id="worker-recovery" data-section="SECTION 140">Worker Recovery</h2>
+<p>解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>某个 Task 正在执行
+↓
+Worker 挂了
+↓
+谁接手？</code></pre></div>
+<p>核心机制：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Lease
+Heartbeat
+Retry
+Fencing Token
+Idempotency</code></pre></div>
+<hr>
+<h2 id="workflow-resume" data-section="SECTION 141">Workflow Resume</h2>
+<p>解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>整个流程执行了一半
+↓
+服务中断 / 等待人工
+↓
+从哪个 Node 继续？</code></pre></div>
+<p>核心机制：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Checkpoint
+Workflow State
+Node State
+Resume
+Interrupt</code></pre></div>
+<p>所以：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>            Production Agent
+
+                  │
+       ┌──────────┴──────────┐
+       ↓                     ↓
+
+ Worker Reliability     Workflow Durability
+
+       ↓                     ↓
+
+ Lease                  Checkpoint
+ Heartbeat              State
+ Retry                  Resume
+ Fencing                Interrupt
+ Idempotency            Human-in-loop</code></pre></div>
+<p>这两个层次不能混成一个概念。</p>
+<hr>
+<h1 id="103-durable-agent-workflow-完整架构" data-section="SECTION 142">103. Durable Agent Workflow 完整架构</h1>
+<p>现在整个系统可以理解为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                    API / User
+                        │
+                        ↓
+                Workflow Engine
+                   LangGraph
+                        │
+            ┌───────────┼───────────┐
+            ↓           ↓           ↓
+        Node State   Checkpoint    HITL
+            │
+            ↓
+               Task Scheduler
+                    │
+                    ↓
+                    MQ
+                    │
+          ┌─────────┼─────────┐
+          ↓         ↓         ↓
+       Worker A  Worker B  Worker C
+          │
+          ↓
+     Lease / Heartbeat
+     Retry / Fencing
+     Idempotency
+          │
+          ↓
+       LLM / Tools
+          │
+          ↓
+     PostgreSQL / MySQL
+          │
+     Source of Truth</code></pre></div>
+<p>旁边还可以存在：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Redis
+↓
+Cache / Coordination / Lease
+
+
+Vector DB
+↓
+RAG Knowledge
+
+
+Git / Object Storage
+↓
+Code / Large Artifact</code></pre></div>
+<p>这样：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MySQL
+Redis
+MQ
+LangGraph
+Agent
+RAG</code></pre></div>
+<p>不再是几个独立技术点，而是一套完整系统中的不同层。</p>
+<hr>
+<h1 id="104-checkpoint-resume-面试回答" data-section="SECTION 143">104. Checkpoint / Resume 面试回答</h1>
+<p>如果面试官问：</p>
+<blockquote><p>Agent Workflow 执行到一半服务挂了怎么办？</p></blockquote>
+<p>可以回答：</p>
+<blockquote><p>对于长生命周期 Agent Workflow，我不会依赖进程内状态，而是持久化 Workflow State 和 Node State，通过 Checkpoint 记录可靠执行点。服务恢复后加载 Checkpoint，找到未完成节点，并结合 Task Lease 判断上一次 Worker 是否已经失效。对于可能重复执行的节点，还需要通过稳定的 execution key、artifact key 或 Tool operation_id 做幂等，避免外部副作用已经成功但 Checkpoint 尚未更新时重复执行。如果流程需要人工审批，则在节点完成后持久化 Checkpoint，将 Workflow 置为 waiting_human 并释放 Worker，收到人工事件后再 Resume。</p></blockquote>
+<hr>
+<h1 id="105-这一站必须记住的六句话" data-section="SECTION 144">105. 这一站必须记住的六句话</h1>
+<h2 id="1-checkpoint-的本质" data-section="SECTION 145">1. Checkpoint 的本质</h2>
+<blockquote><p><strong>持久化 Workflow 执行状态，使长流程能够断点恢复。</strong></p></blockquote>
+<h2 id="2-checkpoint-不等于幂等" data-section="SECTION 146">2. Checkpoint 不等于幂等</h2>
+<blockquote><p><strong>外部副作用成功但 Checkpoint 写入失败时，仍然可能发生重复执行。</strong></p></blockquote>
+<h2 id="3-可重试-node-必须考虑幂等" data-section="SECTION 147">3. 可重试 Node 必须考虑幂等</h2>
+<blockquote><p><strong>一个逻辑 Node / Tool Operation 最好拥有稳定 execution key / operation_id。</strong></p></blockquote>
+<h2 id="4-worker-recovery-与-workflow-resume-是两层问题" data-section="SECTION 148">4. Worker Recovery 与 Workflow Resume 是两层问题</h2>
+<blockquote><p><strong>Worker 用 Lease / Heartbeat / Retry；Workflow 用 State / Checkpoint / Resume。</strong></p></blockquote>
+<h2 id="5-human-in-the-loop-不应该一直占-worker" data-section="SECTION 149">5. Human-in-the-loop 不应该一直占 Worker</h2>
+<blockquote><p><strong>Checkpoint → waiting_human → 释放 Worker → Human Event → Resume。</strong></p></blockquote>
+<h2 id="6-db-是-runtime-state-的-source-of-truth" data-section="SECTION 150">6. DB 是 Runtime State 的 Source of Truth</h2>
+<blockquote><p><strong>Redis 可以辅助缓存与协调，但可靠 Workflow Checkpoint 应持久化。</strong></p></blockquote>
+<hr>
+<h1 id="106-当前完整学习链" data-section="SECTION 151">106. 当前完整学习链</h1>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>事务隔离级别
+↓
+MVCC
+↓
+Undo Log + Read View
+↓
+快照读 / 当前读
+↓
+SELECT ... FOR UPDATE
+↓
+Record / Gap / Next-Key Lock
+↓
+死锁
+↓
+原子 UPDATE / CAS
+↓
+乐观锁 / 悲观锁
+↓
+短事务原则
+↓
+DB + MQ 一致性
+↓
+Transactional Outbox
+↓
+At-Least-Once
+↓
+Inbox / 幂等消费
+↓
+Retry / Backoff / DLQ
+↓
+Agent Task Claim
+↓
+Lease / Heartbeat
+↓
+Fencing Token
+↓
+Tool Idempotency
+↓
+可靠 Agent Worker
+↓
+Workflow State
+↓
+Checkpoint
+↓
+Idempotent Node
+↓
+Resume
+↓
+Human-in-the-loop
+↓
+Durable Agent Workflow</code></pre></div>
+<p>下一阶段可以继续进入：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Durable Agent Workflow
+↓
+并发编排
+↓
+Fan-out / Fan-in
+↓
+Join
+↓
+部分成功 / 部分失败
+↓
+多 Agent 并行执行</code></pre></div></article>
+  </main>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+  <footer>MySQL 事务隔离、MVCC 与并发控制学习笔记</footer>
+  <script src="../assets/answer-pages.js"></script>
+</body>
+</html>

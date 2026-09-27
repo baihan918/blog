@@ -1,0 +1,324 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - text: MEM
+        - text: ORY
+      - generic [ref=e6]: 历史消息与 Memory · 两层摘要
+    - generic [ref=e7]:
+      - link "查看完整流程" [ref=e8] [cursor=pointer]:
+        - /url: "#flow"
+      - button "切换主题" [ref=e9] [cursor=pointer]: ◐ 主题
+  - main [ref=e10]:
+    - generic [ref=e11]:
+      - generic [ref=e12]: LANGGRAPH · CONTEXT COMPACTION · LONG-TERM MEMORY
+      - heading "对话太长以后，系统如何既能继续聊，又能想起过去？" [level=1] [ref=e13]
+      - paragraph [ref=e14]:
+        - text: 答案不是“只保留一份越来越模糊的摘要”，而是把职责拆开：
+        - strong [ref=e15]: 滚动总摘要负责当前上下文，分段摘要负责历史检索，原始消息负责事实还原。
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: 1 份
+          - generic [ref=e19]: 当前滚动总摘要
+        - generic [ref=e20]:
+          - generic [ref=e21]: N 份
+          - generic [ref=e22]: 永久分段摘要
+        - generic [ref=e23]:
+          - generic [ref=e24]: ALL
+          - generic [ref=e25]: 完整原始消息
+        - generic [ref=e26]:
+          - generic [ref=e27]: TOP-K
+          - generic [ref=e28]: 按需召回旧历史
+      - text: MEMORY
+    - generic [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e32]: 压缩 ≠ 删除
+        - generic [ref=e33]: 只压缩送给模型的活跃上下文，原始消息仍持久化。
+      - generic [ref=e34]:
+        - generic [ref=e35]: 摘要 ≠ 检索
+        - generic [ref=e36]: 摘要负责提炼内容，向量索引负责按当前问题找到它。
+      - generic [ref=e37]:
+        - generic [ref=e38]: Memory ≠ Messages
+        - generic [ref=e39]: 记忆是筛选后的长期信息，消息是可追溯的事实档案。
+    - generic [ref=e40]:
+      - navigation "页面目录" [ref=e41]:
+        - generic [ref=e42]: CONTENTS
+        - link "01 为什么要两层摘要" [ref=e43] [cursor=pointer]:
+          - /url: "#why"
+        - link "02 四层数据职责" [ref=e44] [cursor=pointer]:
+          - /url: "#layers"
+        - link "03 多次压缩怎么做" [ref=e45] [cursor=pointer]:
+          - /url: "#repeat"
+        - link "04 分段摘要生成时机" [ref=e46] [cursor=pointer]:
+          - /url: "#timing"
+        - link "05 历史检索完整流程" [ref=e47] [cursor=pointer]:
+          - /url: "#flow"
+        - link "06 两类摘要的区别" [ref=e48] [cursor=pointer]:
+          - /url: "#compare"
+        - link "07 LangGraph 状态设计" [ref=e49] [cursor=pointer]:
+          - /url: "#state"
+        - link "08 失败模式" [ref=e50] [cursor=pointer]:
+          - /url: "#failure"
+        - link "09 落地检查表" [ref=e51] [cursor=pointer]:
+          - /url: "#check"
+      - article [ref=e52]:
+        - generic [ref=e53]:
+          - generic [ref=e54]: 01 · WHY TWO LEVELS
+          - heading "一份摘要，同时承担两个任务，会顾此失彼" [level=2] [ref=e55]
+          - paragraph [ref=e56]: 当前对话需要一个简短、连续的“剧情提要”；历史搜索需要许多边界清楚、能独立命中的“章节目录”。两者目标不同，所以应该拆开。
+          - generic [ref=e57]:
+            - generic [ref=e58]:
+              - generic [ref=e59]: 🧭
+              - heading "滚动总摘要" [level=3] [ref=e60]
+              - paragraph [ref=e61]: 像电视剧开头的“前情提要”。每次发给模型，帮助它快速接上当前会话主线。
+              - list [ref=e62]:
+                - listitem [ref=e63]: 短、全局、会持续更新
+                - listitem [ref=e64]: 旧摘要 + 新归档段 → 新摘要
+                - listitem [ref=e65]: 通常当前 State 只保留最新版
+            - generic [ref=e66]:
+              - generic [ref=e67]: 🗂️
+              - heading "分段摘要" [level=3] [ref=e68]
+              - paragraph [ref=e69]: 像一本书的章节目录。每段独立保存，需要回忆时按语义搜索命中。
+              - list [ref=e70]:
+                - listitem [ref=e71]: 多份、局部、永久保存
+                - listitem [ref=e72]: 记录消息范围和来源 ID
+                - listitem [ref=e73]: 适合建立向量与关键词索引
+          - generic [ref=e74]:
+            - strong [ref=e75]: 通俗比喻：
+            - text: 滚动总摘要是你脑中的“最近在忙什么”；分段摘要是电脑里的“文件目录”；原始消息是文件正文。目录帮你找到文件，但不能代替文件本身。
+        - generic [ref=e76]:
+          - generic [ref=e77]: 02 · DATA LAYERS
+          - heading "真正完整的是四层，而不是只有摘要" [level=2] [ref=e78]
+          - paragraph [ref=e79]: 不同数据放在不同位置，是为了同时解决 token、检索、准确性和可追溯性。
+          - generic [ref=e80]:
+            - generic [ref=e81]:
+              - generic [ref=e82]: 最近原始消息
+              - paragraph [ref=e83]: 保留当前正在讨论的细节、指代和语气，直接进入模型上下文。
+              - code [ref=e84]: LangGraph State.messages
+            - generic [ref=e85]:
+              - generic [ref=e86]: 滚动总摘要
+              - paragraph [ref=e87]: 浓缩已经退出活跃上下文的主线、决定、约束和未完成事项。
+              - code [ref=e88]: State.rolling_summary
+            - generic [ref=e89]:
+              - generic [ref=e90]: 分段摘要
+              - paragraph [ref=e91]: 按语义完整的历史段落独立保存，是后续历史语义检索的主要入口。
+              - code [ref=e92]: Vector / Search Index
+            - generic [ref=e93]:
+              - generic [ref=e94]: 原始消息档案
+              - paragraph [ref=e95]: 完整保存每条消息。检索命中摘要后，用 source_message_ids 回查现场。
+              - code [ref=e96]: PostgreSQL / MongoDB
+          - generic [ref=e97]:
+            - strong [ref=e98]: 核心原则：
+            - text: 向量库负责“找到线索”，原始消息库负责“确认事实”，当前 State 负责“控制本轮模型能看到什么”。
+        - generic [ref=e99]:
+          - generic [ref=e100]: 03 · REPEATED COMPACTION
+          - heading "第二次达到阈值，不是重新总结全部历史" [level=2] [ref=e101]
+          - paragraph [ref=e102]: 每次只处理“上次压缩之后新增、且现在准备退出活跃上下文的那一段”。滚动摘要继续更新，分段摘要继续追加。
+          - generic [ref=e103]:
+            - generic [ref=e104]:
+              - generic [ref=e105]:
+                - text: 第 1 次压缩
+                - text: 消息 1～60
+              - generic [ref=e106]:
+                - generic [ref=e107]: 原始消息 1～60
+                - generic [ref=e108]: →
+                - generic [ref=e109]: Chunk Summary 1
+                - generic [ref=e110]: +
+                - generic [ref=e111]: Rolling Summary V1
+                - generic [ref=e112]: 保留 61～80
+              - text: ↓ 继续对话，达到下一次阈值
+            - generic [ref=e113]:
+              - generic [ref=e114]:
+                - text: 第 2 次压缩
+                - text: 消息 61～120
+              - generic [ref=e115]:
+                - generic [ref=e116]: 原始消息 61～120
+                - generic [ref=e117]: →
+                - generic [ref=e118]: Chunk Summary 2
+                - generic [ref=e119]: +
+                - generic [ref=e120]: V1 + Chunk 2 → V2
+                - generic [ref=e121]: 保留 121～140
+              - text: ↓ 继续对话，达到下一次阈值
+            - generic [ref=e122]:
+              - generic [ref=e123]:
+                - text: 第 3 次压缩
+                - text: 消息 121～180
+              - generic [ref=e124]:
+                - generic [ref=e125]: 原始消息 121～180
+                - generic [ref=e126]: →
+                - generic [ref=e127]: Chunk Summary 3
+                - generic [ref=e128]: +
+                - generic [ref=e129]: V2 + Chunk 3 → V3
+                - generic [ref=e130]: 保留 181～200
+          - generic [ref=e131]:
+            - strong [ref=e132]: 为什么不把 V1、V2、V3 全塞进上下文？
+            - text: 因为后一个版本已经包含前一个版本，会产生重复；模型当前只需要 V3。但数据库仍保留 Chunk 1、2、3，避免滚动摘要反复压缩后的信息衰减。
+        - generic [ref=e133]:
+          - generic [ref=e134]: 04 · WHEN TO SUMMARIZE
+          - heading "分段摘要什么时候生成？" [level=2] [ref=e135]
+          - paragraph [ref=e136]: 主要时机是：某段旧消息即将退出活跃上下文之前。点击下面四种触发器，看它们各自解决什么问题。
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - button "Token 阈值" [ref=e139] [cursor=pointer]
+              - button "主题边界" [ref=e140] [cursor=pointer]
+              - button "会话暂止" [ref=e141] [cursor=pointer]
+              - button "重要事件" [ref=e142] [cursor=pointer]
+            - generic [ref=e143]:
+              - generic [ref=e144]:
+                - generic [ref=e145]: Token 阈值负责触发
+                - paragraph [ref=e146]: 活跃上下文接近预算上限，例如达到窗口的 60%～80%，启动压缩流程。
+              - generic [ref=e147]: →
+              - generic [ref=e148]:
+                - generic [ref=e149]: 寻找最近的语义边界
+                - paragraph [ref=e150]: 不要机械切断一轮问答；尽量让用户问题、助手回答和工具结果留在同一段。
+          - generic [ref=e151]:
+            - strong [ref=e152]: 推荐组合：
+            - text: Token 阈值决定“该压了”，语义边界决定“从哪里切”；任务结束时补齐最后一段，关键决定则随时额外写入长期 Memory。
+        - generic [ref=e153]:
+          - generic [ref=e154]: 05 · RETRIEVAL FLOW
+          - heading "用户突然提起很久以前的事，系统如何找回来？" [level=2] [ref=e155]
+          - paragraph [ref=e156]: 分段摘要是“语义目录”，命中之后还要回查原文，不能直接把摘要当作最终事实。
+          - generic [ref=e157]:
+            - generic [ref=e158]:
+              - generic [ref=e159]: "1"
+              - generic [ref=e160]: 理解当前问题
+              - paragraph [ref=e161]: 识别时间、主题、实体和历史指代，例如“上个月推荐的那个数据库”。
+            - generic [ref=e162]:
+              - generic [ref=e163]: "2"
+              - generic [ref=e164]: 混合检索摘要
+              - paragraph [ref=e165]: 向量语义 + 关键词/BM25 + user_id + conversation_id + 时间范围过滤。
+            - generic [ref=e166]:
+              - generic [ref=e167]: "3"
+              - generic [ref=e168]: 拿到来源指针
+              - paragraph [ref=e169]: 从命中的 Chunk Summary 读取 start/end_message_id 与关键 source_message_ids。
+            - generic [ref=e170]:
+              - generic [ref=e171]: "4"
+              - generic [ref=e172]: 回查原始消息
+              - paragraph [ref=e173]: 读取命中消息及前后文，还原当时的条件、数字、代码和谁说了什么。
+            - generic [ref=e174]:
+              - generic [ref=e175]: "5"
+              - generic [ref=e176]: 动态组装上下文
+              - paragraph [ref=e177]: 滚动总摘要 + 找回的历史片段 + 最近消息 + 当前问题，一起交给模型回答。
+          - generic [ref=e178]:
+            - strong [ref=e179]: 例子：
+            - text: 摘要只说“原型阶段选 FAISS”，原文可能还保存了“单机部署、少于 10 万条数据”这些条件。最终回答必须以回查到的原文为依据。
+        - generic [ref=e180]:
+          - generic [ref=e181]: 06 · SUMMARY VS MEMORY
+          - heading "滚动摘要、分段摘要和长期 Memory 不要混为一谈" [level=2] [ref=e182]
+          - table [ref=e184]:
+            - rowgroup [ref=e185]:
+              - row "对象 主要目的 数量 是否每轮注入 典型内容" [ref=e186]:
+                - columnheader "对象" [ref=e187]
+                - columnheader "主要目的" [ref=e188]
+                - columnheader "数量" [ref=e189]
+                - columnheader "是否每轮注入" [ref=e190]
+                - columnheader "典型内容" [ref=e191]
+            - rowgroup [ref=e192]:
+              - row "滚动总摘要 压缩当前会话主线 当前 1 份 通常是 目标、进度、约束、未完成事项" [ref=e193]:
+                - cell "滚动总摘要" [ref=e194]
+                - cell "压缩当前会话主线" [ref=e195]
+                - cell "当前 1 份" [ref=e196]
+                - cell "通常是" [ref=e197]
+                - cell "目标、进度、约束、未完成事项" [ref=e198]
+              - row "分段摘要 建立历史语义目录 随压缩不断增加 按需检索 某段讨论的主题、决定、理由、来源范围" [ref=e199]:
+                - cell "分段摘要" [ref=e200]
+                - cell "建立历史语义目录" [ref=e201]
+                - cell "随压缩不断增加" [ref=e202]
+                - cell "按需检索" [ref=e203]
+                - cell "某段讨论的主题、决定、理由、来源范围" [ref=e204]
+              - row "长期 Memory 跨会话保存稳定信息 多条，可更新 按需检索 用户偏好、长期事实、关键决策、项目约束" [ref=e205]:
+                - cell "长期 Memory" [ref=e206]
+                - cell "跨会话保存稳定信息" [ref=e207]
+                - cell "多条，可更新" [ref=e208]
+                - cell "按需检索" [ref=e209]
+                - cell "用户偏好、长期事实、关键决策、项目约束" [ref=e210]
+              - row "原始消息 完整事实与审计 全部 最近消息直接注入，旧消息按需回查 原话、数字、代码、工具结果" [ref=e211]:
+                - cell "原始消息" [ref=e212]
+                - cell "完整事实与审计" [ref=e213]
+                - cell "全部" [ref=e214]
+                - cell "最近消息直接注入，旧消息按需回查" [ref=e215]
+                - cell "原话、数字、代码、工具结果" [ref=e216]
+          - generic [ref=e217]:
+            - strong [ref=e218]: 一句话区分：
+            - text: 分段摘要回答“那段聊了什么”，长期 Memory 回答“以后都应该记住什么”。同一段对话可以生成分段摘要，但只有其中稳定、重要的信息才升级为长期 Memory。
+        - generic [ref=e219]:
+          - generic [ref=e220]: 07 · LANGGRAPH DESIGN
+          - heading "LangGraph 中可以怎样设计状态与压缩节点" [level=2] [ref=e221]
+          - paragraph [ref=e222]: 这是职责示意，不绑定具体模型与数据库。顺序上必须先保存，再从活跃 State 移除。
+          - generic [ref=e223]:
+            - generic [ref=e224]:
+              - generic [ref=e225]: two_level_memory.py · 伪代码
+              - button "复制" [ref=e226] [cursor=pointer]
+            - code [ref=e228]: "class ConversationState(TypedDict): messages: list # 最近活跃消息 rolling_summary: str # 当前唯一总摘要 summary_until_message_id: str def compact(state, store, message_db): archived, recent = split_at_semantic_boundary( state[\"messages\"], keep_recent_tokens=6000 ) # 1. 原始消息已由 message_db 完整持久化 chunk = summarize_chunk(archived) # 2. 分段摘要永久保存并建立检索索引 store.put( namespace=(user_id, \"conversation_chunks\"), value={ \"text\": chunk, \"start_message_id\": archived[0].id, \"end_message_id\": archived[-1].id, \"source_message_ids\": [m.id for m in archived], }, ) # 3. 用旧总摘要 + 新分段摘要，得到最新总摘要 new_summary = update_rolling_summary( state[\"rolling_summary\"], chunk ) # 4. 上述写入成功后，旧消息才退出活跃 State return { \"rolling_summary\": new_summary, \"messages\": remove_archived(archived), \"summary_until_message_id\": archived[-1].id, }"
+        - generic [ref=e229]:
+          - generic [ref=e230]: 08 · FAILURE MODES
+          - heading "最容易踩的四个坑" [level=2] [ref=e231]
+          - generic [ref=e232]:
+            - generic [ref=e233]:
+              - generic [ref=e234]: 🗑️
+              - heading "压缩后删除原文" [level=3] [ref=e235]
+              - paragraph [ref=e236]: 摘要漏掉的数字、代码和前提永久丢失。正确做法是只从活跃 State 移除。
+            - generic [ref=e237]:
+              - generic [ref=e238]: ♻️
+              - heading "反复只压一份摘要" [level=3] [ref=e239]
+              - paragraph [ref=e240]: 多轮改写会产生信息衰减。应保留不再改写的分段摘要作为历史锚点。
+            - generic [ref=e241]:
+              - generic [ref=e242]: ✂️
+              - heading "机械按消息条数切段" [level=3] [ref=e243]
+              - paragraph [ref=e244]: 可能把问题和回答拆开。优先按 token 触发，再找语义完整的自然边界。
+            - generic [ref=e245]:
+              - generic [ref=e246]: 🎯
+              - heading "只做向量检索" [level=3] [ref=e247]
+              - paragraph [ref=e248]: 订单号、金额、代码等精确实体容易漏召回。应结合关键词、时间和元数据过滤。
+        - generic [ref=e249]:
+          - generic [ref=e250]: 09 · SHIP CHECKLIST
+          - heading "真正落地前，检查这九件事" [level=2] [ref=e251]
+          - generic [ref=e252]:
+            - generic [ref=e253]:
+              - generic [ref=e254] [cursor=pointer]:
+                - checkbox "原始消息完整落库 压缩不影响历史事实" [ref=e255]
+                - generic [ref=e256]:
+                  - generic [ref=e257]: 原始消息完整落库
+                  - generic [ref=e258]: 压缩不影响历史事实
+              - generic [ref=e259] [cursor=pointer]:
+                - checkbox "基于 token 预算触发 为下一轮输入留安全余量" [ref=e260]
+                - generic [ref=e261]:
+                  - generic [ref=e262]: 基于 token 预算触发
+                  - generic [ref=e263]: 为下一轮输入留安全余量
+              - generic [ref=e264] [cursor=pointer]:
+                - checkbox "按语义边界切分 问答和工具调用不被拆散" [ref=e265]
+                - generic [ref=e266]:
+                  - generic [ref=e267]: 按语义边界切分
+                  - generic [ref=e268]: 问答和工具调用不被拆散
+              - generic [ref=e269] [cursor=pointer]:
+                - checkbox "分段摘要带来源范围 start/end/source message IDs" [ref=e270]
+                - generic [ref=e271]:
+                  - generic [ref=e272]: 分段摘要带来源范围
+                  - generic [ref=e273]: start/end/source message IDs
+              - generic [ref=e274] [cursor=pointer]:
+                - checkbox "滚动摘要只保留最新版 避免 V1/V2/V3 重复注入" [ref=e275]
+                - generic [ref=e276]:
+                  - generic [ref=e277]: 滚动摘要只保留最新版
+                  - generic [ref=e278]: 避免 V1/V2/V3 重复注入
+              - generic [ref=e279] [cursor=pointer]:
+                - checkbox "分段摘要可独立检索 向量 + 关键词 + 元数据" [ref=e280]
+                - generic [ref=e281]:
+                  - generic [ref=e282]: 分段摘要可独立检索
+                  - generic [ref=e283]: 向量 + 关键词 + 元数据
+              - generic [ref=e284] [cursor=pointer]:
+                - checkbox "命中后回查原文 恢复前后文并核对事实" [ref=e285]
+                - generic [ref=e286]:
+                  - generic [ref=e287]: 命中后回查原文
+                  - generic [ref=e288]: 恢复前后文并核对事实
+              - generic [ref=e289] [cursor=pointer]:
+                - checkbox "先持久化再移除 失败时不会丢失上下文" [ref=e290]
+                - generic [ref=e291]:
+                  - generic [ref=e292]: 先持久化再移除
+                  - generic [ref=e293]: 失败时不会丢失上下文
+              - generic [ref=e294] [cursor=pointer]:
+                - checkbox "长期 Memory 单独提取 只保存稳定、重要、可复用信息" [ref=e295]
+                - generic [ref=e296]:
+                  - generic [ref=e297]: 长期 Memory 单独提取
+                  - generic [ref=e298]: 只保存稳定、重要、可复用信息
+            - generic [ref=e300]: 0 / 9 已确认
+  - contentinfo [ref=e301]: 历史消息与 Memory · 两层摘要完整图解 · BIG-GROUP S2 学习页面

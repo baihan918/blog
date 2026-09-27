@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PPO 与 RLHF 通俗学习页：用学生考试类比讲清 Actor、Reward Model、Critic、Reference Model 和 PPO 的完整训练流程。">
+  <meta name="theme-color" content="#f5f2e9">
+  <title>PPO 与 RLHF 完整流程 · 四个模型如何合作</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f2e9;
+      --paper: #fffdf8;
+      --paper-strong: #ffffff;
+      --ink: #17202f;
+      --muted: #687182;
+      --line: #dedbd1;
+      --line-soft: #ebe8df;
+      --blue: #3776ab;
+      --blue-deep: #24557d;
+      --blue-soft: #e7f2fb;
+      --yellow: #efbd16;
+      --yellow-deep: #745c00;
+      --yellow-soft: #fff5c7;
+      --mint: #2d8a73;
+      --mint-soft: #e7f5ef;
+      --purple: #8260b3;
+      --purple-soft: #f1ebf8;
+      --coral: #e56b4e;
+      --coral-soft: #fff0eb;
+      --code: #18202c;
+      --code-ink: #e8eef7;
+      --shadow: 0 22px 60px rgba(51, 46, 34, .10);
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page: #121720;
+      --paper: #19212c;
+      --paper-strong: #1f2936;
+      --ink: #edf2f7;
+      --muted: #a8b2c1;
+      --line: #344151;
+      --line-soft: #2b3645;
+      --blue-soft: #172d42;
+      --blue-deep: #78b9ec;
+      --yellow-soft: #3c3517;
+      --yellow-deep: #f6d654;
+      --mint-soft: #17352f;
+      --purple-soft: #2e2540;
+      --coral-soft: #3d2521;
+      --code: #0d1118;
+      --code-ink: #e9eef7;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, transparent 0 49.8%, color-mix(in srgb, var(--line) 24%, transparent) 50%, transparent 50.2%),
+        radial-gradient(circle at 8% 4%, color-mix(in srgb, var(--blue) 13%, transparent), transparent 28rem),
+        radial-gradient(circle at 94% 15%, color-mix(in srgb, var(--yellow) 17%, transparent), transparent 27rem),
+        var(--page);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.72;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    code { font-family: var(--mono); }
+    ::selection { background: color-mix(in srgb, var(--blue) 23%, transparent); }
+    .skip-link { position: fixed; top: 8px; left: 8px; z-index: 200; transform: translateY(-160%); padding: 9px 13px; color: var(--paper); background: var(--ink); border-radius: 10px; }
+    .skip-link:focus { transform: translateY(0); }
+    .progress-track { position: fixed; inset: 0 0 auto; z-index: 110; height: 4px; }
+    .progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple), var(--yellow)); }
+    .topbar {
+      position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between;
+      min-height: 68px; padding: 10px clamp(16px, 4vw, 42px); border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+      background: color-mix(in srgb, var(--page) 84%, transparent); backdrop-filter: blur(5px);
+    }
+    .brand, .top-actions { display: flex; align-items: center; gap: 11px; }
+    .brand { min-width: 0; font-weight: 850; }
+    .brand span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 auto; border-radius: 13px; color: #fff; background: linear-gradient(135deg, var(--blue), var(--purple)); box-shadow: 0 8px 20px rgba(55, 118, 171, .2); font: 900 11px/1 var(--mono); }
+    .icon-button, .jump-button {
+      display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 8px 13px;
+      border: 1px solid var(--line); border-radius: 11px; color: var(--ink); background: var(--paper); text-decoration: none;
+      cursor: pointer; transition: transform 140ms ease, border-color 140ms ease;
+    }
+    .icon-button { width: 42px; padding: 0; }
+    .icon-button:hover, .jump-button:hover { border-color: var(--blue); transform: translateY(-1px); }
+    .jump-button.primary { color: #fff; border-color: var(--blue); background: var(--blue); }
+
+    .hero { position: relative; max-width: 1280px; margin: 0 auto; padding: clamp(60px, 8vw, 106px) clamp(20px, 5vw, 70px) 54px; overflow: hidden; }
+    .hero::after { content: "PPO"; position: absolute; right: 2%; top: 6%; color: color-mix(in srgb, var(--blue) 7%, transparent); font: 900 clamp(90px, 18vw, 230px)/1 Georgia, serif; transform: rotate(-6deg); pointer-events: none; }
+    .eyebrow { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; color: var(--blue-deep); font: 800 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 28px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--yellow)); }
+    h1 { position: relative; z-index: 1; max-width: 980px; margin: 20px 0 0; font-size: clamp(42px, 7.2vw, 80px); line-height: 1.04; letter-spacing: -.05em; }
+    h1 span { color: var(--blue); }
+    .hero-copy { position: relative; z-index: 1; max-width: 840px; margin: 24px 0 0; color: var(--muted); font-size: clamp(16px, 2vw, 20px); }
+    .hero-copy strong { color: var(--ink); }
+    .hero-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .hero-facts { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; max-width: 900px; margin-top: 34px; }
+    .fact { padding: 16px 18px; border: 1px solid var(--line); border-radius: 15px; background: color-mix(in srgb, var(--paper) 92%, transparent); }
+    .fact b { display: block; color: var(--blue); font: 900 18px/1 var(--mono); }
+    .fact:nth-child(2) b { color: var(--purple); }
+    .fact:nth-child(3) b { color: var(--mint); }
+    .fact:nth-child(4) b { color: var(--yellow-deep); }
+    .fact span { display: block; margin-top: 7px; color: var(--muted); font-size: 13px; }
+
+    .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: clamp(28px, 5vw, 70px); max-width: 1240px; margin: 0 auto; padding: 46px 22px 100px; }
+    .toc { position: sticky; top: 88px; max-height: calc(100vh - 110px); padding: 17px; overflow-y: auto; border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--paper) 93%, transparent); box-shadow: 0 12px 32px rgba(45, 40, 28, .06); }
+    .toc-title { margin: 0 0 10px; color: var(--muted); font: 800 11px/1 var(--mono); letter-spacing: .1em; }
+    .toc a { display: block; margin: 2px 0; padding: 8px 9px; border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 13px; line-height: 1.4; }
+    .toc a:hover, .toc a.active { color: var(--blue-deep); background: var(--blue-soft); }
+    .content { min-width: 0; }
+    .section { margin-top: 88px; scroll-margin-top: 94px; }
+    .section:first-child { margin-top: 0; }
+    .section-kicker { color: var(--blue-deep); font: 800 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+    h2 { margin: 12px 0 9px; font-size: clamp(28px, 4vw, 43px); line-height: 1.15; letter-spacing: -.03em; }
+    h3 { margin: 0; font-size: 18px; line-height: 1.35; }
+    p { margin: 0; }
+    .section-lead { max-width: 840px; margin: 0 0 26px; color: var(--muted); }
+    .card, .concept, .flow-board, .role-lab, .advantage-lab, .formula-board { border: 1px solid var(--line); border-radius: 19px; background: var(--paper); box-shadow: 0 12px 30px rgba(45, 40, 28, .055); }
+    .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+    .four-col { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    .concept { padding: 22px; }
+    .concept p { margin-top: 9px; color: var(--muted); font-size: 14px; }
+    .concept ul { margin: 12px 0 0; padding-left: 19px; color: var(--muted); font-size: 14px; }
+    .concept li + li { margin-top: 6px; }
+    .tag { display: inline-flex; margin-bottom: 12px; padding: 5px 9px; border-radius: 999px; color: var(--blue-deep); background: var(--blue-soft); font: 800 11px/1 var(--mono); }
+    .tag.purple { color: var(--purple); background: var(--purple-soft); }
+    .tag.mint { color: var(--mint); background: var(--mint-soft); }
+    .tag.yellow { color: var(--yellow-deep); background: var(--yellow-soft); }
+    .plain-box, .insight, .warning { margin-top: 16px; padding: 18px 20px; border-radius: 16px; font-size: 14px; }
+    .plain-box { border: 1px solid color-mix(in srgb, var(--yellow) 44%, var(--line)); background: linear-gradient(105deg, var(--yellow-soft), var(--paper)); }
+    .plain-box strong { color: var(--yellow-deep); }
+    .insight { border: 1px solid color-mix(in srgb, var(--mint) 34%, var(--line)); background: var(--mint-soft); }
+    .insight strong { color: var(--mint); }
+    .warning { border: 1px solid color-mix(in srgb, var(--coral) 34%, var(--line)); background: var(--coral-soft); }
+    .warning strong { color: var(--coral); }
+
+    .big-chain { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .chain-step { position: relative; min-height: 154px; padding: 18px; border: 1px solid var(--line); border-top: 4px solid var(--blue); border-radius: 16px; background: var(--paper-strong); }
+    .chain-step:nth-child(2) { border-top-color: var(--purple); }
+    .chain-step:nth-child(3) { border-top-color: var(--mint); }
+    .chain-step:nth-child(4) { border-top-color: var(--yellow); }
+    .chain-step::after { content: "→"; position: absolute; top: 54px; right: -10px; z-index: 2; color: var(--muted); font-weight: 900; }
+    .chain-step:last-child::after { display: none; }
+    .chain-step small, .chain-step b, .chain-step span { display: block; }
+    .chain-step small { color: var(--muted); font: 750 10px/1 var(--mono); }
+    .chain-step b { margin-top: 10px; }
+    .chain-step span { margin-top: 8px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+
+    .role-card { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
+    .role-card .role-icon { display: grid; place-items: center; width: 45px; height: 45px; margin-bottom: 14px; border-radius: 13px; color: #fff; background: var(--blue); font-weight: 900; }
+    .role-card:nth-child(2) .role-icon { background: var(--purple); }
+    .role-card:nth-child(3) .role-icon { background: var(--mint); }
+    .role-card:nth-child(4) .role-icon { color: #3b3100; background: var(--yellow); }
+    .role-card p { margin-top: 8px; color: var(--muted); font-size: 13px; }
+    .role-card dl { margin: 14px 0 0; font-size: 12px; }
+    .role-card dt { display: inline; color: var(--muted); }
+    .role-card dd { display: inline; margin: 0; font-weight: 800; }
+    .role-card dd::after { content: ""; display: block; height: 5px; }
+
+    .compare-wrap { margin-top: 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: 17px; background: var(--paper); }
+    .compare { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px; }
+    .compare th, .compare td { padding: 13px 15px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: top; }
+    .compare tr:last-child td { border-bottom: 0; }
+    .compare th { color: var(--muted); background: color-mix(in srgb, var(--blue-soft) 55%, var(--paper)); }
+    .compare td:first-child { font-weight: 850; }
+
+    .preference { display: grid; grid-template-columns: minmax(0, 1fr) 52px minmax(0, 1fr); gap: 12px; align-items: stretch; }
+    .answer { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper-strong); }
+    .answer.good { border-color: color-mix(in srgb, var(--mint) 50%, var(--line)); }
+    .answer.bad { border-color: color-mix(in srgb, var(--coral) 45%, var(--line)); }
+    .answer b, .answer span { display: block; }
+    .answer span { margin-top: 9px; color: var(--muted); font-size: 13px; }
+    .versus { display: grid; place-items: center; color: var(--muted); font: 900 14px/1 var(--mono); }
+
+    .flow-board { padding: 22px; }
+    .step-tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+    .step-button { min-height: 58px; padding: 8px 5px; border: 1px solid var(--line); border-radius: 12px; color: var(--muted); background: var(--paper-strong); cursor: pointer; }
+    .step-button b, .step-button span { display: block; }
+    .step-button b { color: var(--blue-deep); font: 900 12px/1 var(--mono); }
+    .step-button span { margin-top: 7px; font-size: 11px; }
+    .step-button.active { color: var(--ink); border-color: var(--blue); background: var(--blue-soft); }
+    .step-panel { display: grid; grid-template-columns: 72px minmax(0, 1fr) minmax(220px, .72fr); gap: 20px; align-items: center; min-height: 210px; margin-top: 18px; padding: 22px; border-radius: 17px; background: linear-gradient(125deg, var(--blue-soft), var(--paper-strong)); }
+    .step-number { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, var(--blue), var(--purple)); font: 900 22px/1 var(--mono); }
+    .step-copy h3 { font-size: 22px; }
+    .step-copy p { margin-top: 9px; color: var(--muted); font-size: 14px; }
+    .step-io { padding: 17px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+    .step-io small, .step-io code { display: block; }
+    .step-io small { color: var(--muted); font: 800 10px/1 var(--mono); letter-spacing: .08em; }
+    .step-io code { margin-top: 10px; white-space: pre-wrap; color: var(--blue-deep); font-size: 12px; line-height: 1.55; }
+
+    .advantage-lab { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(230px, .8fr); gap: 22px; padding: 22px; }
+    .control + .control { margin-top: 22px; }
+    .control label { display: flex; justify-content: space-between; gap: 12px; font-weight: 850; }
+    .control output { color: var(--blue-deep); font-family: var(--mono); }
+    .control input { width: 100%; margin-top: 13px; accent-color: var(--blue); }
+    .advantage-result { display: grid; place-items: center; min-height: 210px; padding: 20px; border-radius: 17px; color: #fff; background: linear-gradient(145deg, var(--blue), var(--purple)); text-align: center; }
+    .advantage-result b, .advantage-result span, .advantage-result small { display: block; }
+    .advantage-result b { font: 900 42px/1 var(--mono); }
+    .advantage-result span { margin-top: 12px; font-weight: 850; }
+    .advantage-result small { margin-top: 8px; color: rgba(255,255,255,.78); font-size: 12px; }
+
+    .formula-board { padding: 22px; }
+    .formula { padding: 20px; overflow-x: auto; border-radius: 16px; color: var(--code-ink); background: var(--code); text-align: center; font: 850 17px/1.7 var(--mono); }
+    .formula em { color: #82c7f3; font-style: normal; }
+    .formula strong { color: #f6d654; }
+    .formula span { color: #b7dc8a; }
+    .formula-explain { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin-top: 14px; }
+    .formula-explain div { padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-strong); }
+    .formula-explain b, .formula-explain span { display: block; }
+    .formula-explain b { color: var(--blue-deep); }
+    .formula-explain span { margin-top: 7px; color: var(--muted); font-size: 12px; }
+
+    .timeline { display: grid; gap: 10px; }
+    .timeline-item { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); }
+    .timeline-item::before { content: attr(data-step); display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; color: #fff; background: var(--blue); font: 850 12px/1 var(--mono); }
+    .timeline-item b, .timeline-item span { display: block; }
+    .timeline-item span { margin-top: 5px; color: var(--muted); font-size: 13px; }
+
+    .split-path { display: grid; grid-template-columns: 1fr 64px 1fr; gap: 14px; align-items: center; }
+    .path-card { padding: 22px; border: 1px solid var(--line); border-radius: 17px; background: var(--paper); }
+    .path-card b, .path-card span, .path-card small { display: block; }
+    .path-card b { color: var(--blue-deep); font-size: 19px; }
+    .path-card span { margin-top: 8px; color: var(--muted); font-size: 13px; }
+    .path-card small { margin-top: 12px; color: var(--mint); font-weight: 850; }
+    .path-vs { color: var(--muted); text-align: center; font: 900 12px/1.4 var(--mono); }
+
+    .chapter-break { position: relative; margin: 104px 0 0; padding: 30px 28px; overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: linear-gradient(125deg, var(--purple-soft), var(--blue-soft)); }
+    .chapter-break::after { content: "II"; position: absolute; right: 24px; top: -30px; color: color-mix(in srgb, var(--purple) 13%, transparent); font: 900 150px/1 Georgia, serif; }
+    .chapter-break small, .chapter-break b, .chapter-break span { position: relative; z-index: 1; display: block; }
+    .chapter-break small { color: var(--purple); font: 850 11px/1 var(--mono); letter-spacing: .12em; }
+    .chapter-break b { margin-top: 12px; font-size: clamp(25px, 4vw, 38px); line-height: 1.2; }
+    .chapter-break span { max-width: 720px; margin-top: 8px; color: var(--muted); font-size: 14px; }
+
+    .mini-flow { display: flex; align-items: stretch; gap: 9px; padding: 22px; overflow-x: auto; border: 1px solid var(--line); border-radius: 19px; background: var(--paper); box-shadow: 0 12px 30px rgba(45, 40, 28, .055); }
+    .mini-node { display: grid; align-content: center; min-width: 130px; min-height: 96px; padding: 15px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-strong); text-align: center; }
+    .mini-node.wide { min-width: 172px; }
+    .mini-node b, .mini-node span { display: block; }
+    .mini-node b { color: var(--blue-deep); font-size: 14px; }
+    .mini-node span { margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .mini-node.train { border-color: color-mix(in srgb, var(--yellow) 66%, var(--line)); background: var(--yellow-soft); }
+    .mini-node.frozen { border-color: color-mix(in srgb, var(--blue) 55%, var(--line)); background: var(--blue-soft); }
+    .mini-node.rule { border-color: color-mix(in srgb, var(--mint) 55%, var(--line)); background: var(--mint-soft); }
+    .mini-arrow { display: grid; place-items: center; flex: 0 0 20px; color: var(--muted); font: 900 18px/1 var(--mono); }
+    .group-stack { display: grid; gap: 5px; min-width: 116px; }
+    .group-stack span { padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--blue-deep); background: var(--paper-strong); font: 800 11px/1 var(--mono); text-align: center; }
+
+    .score-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
+    .score-item { padding: 16px 10px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper); text-align: center; }
+    .score-item b, .score-item span, .score-item small { display: block; }
+    .score-item b { color: var(--blue-deep); font: 900 16px/1 var(--mono); }
+    .score-item span { margin-top: 8px; font: 900 21px/1 var(--mono); }
+    .score-item small { margin-top: 7px; color: var(--muted); font-size: 11px; }
+    .score-item.good { border-color: color-mix(in srgb, var(--mint) 55%, var(--line)); background: var(--mint-soft); }
+    .score-item.bad { border-color: color-mix(in srgb, var(--coral) 48%, var(--line)); background: var(--coral-soft); }
+
+    .method-diagram { padding: 22px; overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); box-shadow: 0 12px 30px rgba(45, 40, 28, .055); }
+    .diagram-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; color: var(--muted); font-size: 12px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+    .legend-dot { width: 13px; height: 13px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper-strong); }
+    .legend-dot.train { border-color: var(--yellow); background: var(--yellow-soft); }
+    .legend-dot.frozen { border-color: var(--blue); background: var(--blue-soft); }
+    .legend-dot.rule { border-color: var(--mint); background: var(--mint-soft); }
+    .method-row { position: relative; display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 16px; padding: 22px 0; border-top: 1px dashed var(--line); }
+    .method-row:first-of-type { border-top: 0; padding-top: 4px; }
+    .method-row > div:last-child { min-width: 0; }
+    .method-name { padding-top: 12px; }
+    .method-name b, .method-name span { display: block; }
+    .method-name b { color: var(--blue-deep); font: 900 23px/1 var(--mono); }
+    .method-name span { margin-top: 8px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .diagram-flow { display: flex; align-items: center; gap: 5px; min-width: 0; overflow-x: auto; padding: 3px 2px 10px; }
+    .diagram-node { display: grid; place-items: center; flex: 0 0 auto; min-width: 76px; min-height: 60px; padding: 9px 7px; border: 1px solid var(--line); border-radius: 11px; background: var(--paper-strong); text-align: center; }
+    .diagram-node b, .diagram-node span { display: block; }
+    .diagram-node b { color: var(--ink); font-size: 12px; line-height: 1.35; }
+    .diagram-node span { margin-top: 5px; color: var(--muted); font-size: 9px; line-height: 1.35; }
+    .diagram-node.train { border: 2px solid var(--yellow); background: var(--yellow-soft); }
+    .diagram-node.frozen { border: 2px solid var(--blue); background: var(--blue-soft); }
+    .diagram-node.rule { border: 2px solid var(--mint); background: var(--mint-soft); }
+    .diagram-node.multi { min-width: 94px; }
+    .diagram-node.multi span { width: 100%; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line); font-family: var(--mono); }
+    .diagram-arrow { flex: 0 0 14px; color: var(--muted); text-align: center; font: 900 16px/1 var(--mono); }
+    .update-loop { margin: -2px 0 0 112px; color: var(--purple); font: 800 11px/1.5 var(--mono); }
+    .source-note { margin-top: 15px; color: var(--muted); font-size: 12px; }
+    .source-note a { color: var(--blue-deep); }
+
+    .code-card { margin-top: 16px; overflow: hidden; border: 1px solid #303a48; border-radius: 19px; background: var(--code); box-shadow: 0 12px 30px rgba(0,0,0,.08); }
+    .code-head { display: flex; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #303a48; color: #bfc9d8; font: 700 11px/1 var(--mono); }
+    pre { margin: 0; padding: 18px; overflow-x: auto; color: var(--code-ink); font: 13px/1.72 var(--mono); tab-size: 4; }
+    .cm { color: #8996a8; } .kw { color: #f08d81; } .fn { color: #82c7f3; } .st { color: #b7dc8a; } .num { color: #d8b5ff; }
+    .glossary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; margin: 0; }
+    .glossary div { padding: 17px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+    .glossary dt { color: var(--blue-deep); font: 850 13px/1.3 var(--mono); }
+    .glossary dd { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+    footer { max-width: 1240px; margin: 0 auto; padding: 0 22px 60px; color: var(--muted); font-size: 13px; text-align: center; }
+
+    @media (max-width: 1000px) {
+      .layout { grid-template-columns: 1fr; }
+      .toc { position: static; display: flex; gap: 5px; overflow-x: auto; max-height: none; }
+      .toc-title { display: none; }
+      .toc a { flex: 0 0 auto; }
+      .four-col { grid-template-columns: repeat(2, 1fr); }
+      .big-chain { grid-template-columns: repeat(2, 1fr); }
+      .chain-step:nth-child(2)::after { display: none; }
+      .step-tabs { grid-template-columns: repeat(4, 1fr); }
+      .method-row { grid-template-columns: 1fr; gap: 8px; }
+      .method-name { display: flex; align-items: center; gap: 10px; padding-top: 0; }
+      .method-name span { margin-top: 0; }
+      .update-loop { margin-left: 0; }
+    }
+    @media (max-width: 720px) {
+      body { font-size: 15px; }
+      .topbar { padding-inline: 13px; }
+      .brand span:last-child { max-width: 190px; }
+      .jump-button { display: none; }
+      .hero { padding-top: 50px; }
+      .hero-facts, .two-col, .four-col, .big-chain, .formula-explain, .glossary, .score-strip { grid-template-columns: 1fr; }
+      .chain-step::after { display: none; }
+      .preference, .split-path { grid-template-columns: 1fr; }
+      .versus, .path-vs { min-height: 34px; }
+      .step-tabs { grid-template-columns: repeat(2, 1fr); }
+      .step-panel, .advantage-lab { grid-template-columns: 1fr; }
+      .step-number { width: 52px; height: 52px; border-radius: 16px; }
+      .layout { padding-inline: 15px; }
+      .chapter-break { padding: 24px 20px; }
+      .method-diagram { padding: 16px; }
+      .diagram-flow { padding-bottom: 13px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">RLHF</span><span>PPO 与 RLHF 完整流程</span></div>
+    <div class="top-actions">
+      <a class="jump-button" href="#full-loop">直接看完整流程</a>
+      <button class="icon-button" id="themeButton" type="button" aria-label="切换深浅色主题" title="切换主题">◐</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">FROM SFT TO PPO</div>
+    <h1>四个模型，一次<span>完整训练</span></h1>
+    <p class="hero-copy">把 RLHF 想成一场学生考试：<strong>Actor 答题，Reward 阅卷，Critic 估分，Reference 防跑偏，PPO 负责小步调整</strong>。这个页面从能力来源一直讲到参数更新。</p>
+    <div class="hero-actions">
+      <a class="jump-button primary" href="#one-sentence">先建立直觉</a>
+      <a class="jump-button" href="#roles">认识四个模型</a>
+    </div>
+    <div class="hero-facts">
+      <div class="fact"><b>Actor</b><span>生成回答，PPO 时更新</span></div>
+      <div class="fact"><b>Reward</b><span>给完整回答评分，通常冻结</span></div>
+      <div class="fact"><b>Critic</b><span>预测未来回报，PPO 时更新</span></div>
+      <div class="fact"><b>Reference</b><span>保留 SFT 起点，始终冻结</span></div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <nav class="toc" aria-label="文章目录">
+      <p class="toc-title">CONTENTS</p>
+      <a href="#one-sentence">01 一句话看懂</a>
+      <a href="#before-ppo">02 PPO 之前做了什么</a>
+      <a href="#roles">03 四个模型</a>
+      <a href="#reward-birth">04 Reward 怎么来</a>
+      <a href="#full-loop">05 完整 PPO 回合</a>
+      <a href="#critic">06 Critic 为什么必要</a>
+      <a href="#reference">07 Reference 怎么防跑偏</a>
+      <a href="#ppo-core">08 PPO 到底优化什么</a>
+      <a href="#boundaries">09 能力边界与误区</a>
+      <a href="#interview">10 PPO 面试总结</a>
+      <a href="#grpo">11 GRPO 组内相对优化</a>
+      <a href="#dpo">12 DPO 直接偏好优化</a>
+      <a href="#method-compare">13 三种方法对比图</a>
+    </nav>
+
+    <main class="content" id="main">
+      <section class="section" id="one-sentence">
+        <div class="section-kicker">01 · Mental Model</div>
+        <h2>先只记住这一句</h2>
+        <p class="section-lead">Actor 原本就有一定能力；Reward 告诉它哪种回答更好；Critic 判断“这次比预期好多少”；Reference 防止它为骗分而变得奇怪；PPO 则让每次修正都不要太猛。</p>
+        <div class="plain-box"><strong>学生考试类比：</strong>学生先答题 → 阅卷老师给实际分 → 班主任判断是否超出预期 → 对照训练前录像检查有没有跑偏 → 教练只调整一点答题习惯。</div>
+        <div class="four-col">
+          <article class="role-card"><div class="role-icon">答</div><h3>Actor</h3><p>“我来产生答案。”</p></article>
+          <article class="role-card"><div class="role-icon">评</div><h3>Reward</h3><p>“这份答案值 8 分。”</p></article>
+          <article class="role-card"><div class="role-icon">估</div><h3>Critic</h3><p>“我原本预计只能得 5 分。”</p></article>
+          <article class="role-card"><div class="role-icon">锚</div><h3>Reference</h3><p>“可以进步，但别丢掉原本能力。”</p></article>
+        </div>
+      </section>
+
+      <section class="section" id="before-ppo">
+        <div class="section-kicker">02 · Capability Source</div>
+        <h2>PPO 开始前，Actor 已经不是白纸</h2>
+        <p class="section-lead">PPO 主要不是“灌入新知识”，而是在已有能力中，让好行为更常出现。Actor 的知识可能来自预训练，指令遵循习惯可能由 SFT 强化。</p>
+        <div class="big-chain">
+          <article class="chain-step"><small>STAGE 01</small><b>预训练</b><span>阅读海量文本，获得语言、知识、代码和基础推理能力。</span></article>
+          <article class="chain-step"><small>STAGE 02</small><b>SFT</b><span>通过“问题 + 高质量答案”示范，学会按用户要求回答。</span></article>
+          <article class="chain-step"><small>STAGE 03</small><b>Reward Model</b><span>根据人类对多个回答的偏好排序，学会自动评分。</span></article>
+          <article class="chain-step"><small>STAGE 04</small><b>PPO</b><span>让 Actor 自己回答、拿到奖励，再小步调整生成概率。</span></article>
+        </div>
+        <div class="insight"><strong>最简版：</strong>预训练让模型“会”，SFT 让它“会按要求做”，PPO 让它“更经常做得好”。</div>
+      </section>
+
+      <section class="section" id="roles">
+        <div class="section-kicker">03 · Four Models</div>
+        <h2>四个模型各自管什么</h2>
+        <p class="section-lead">四者往往拥有相似的 Transformer 主干，但输出、训练数据与 PPO 阶段是否更新不同。先看职责，再看它们的关系。</p>
+        <div class="four-col">
+          <article class="role-card">
+            <div class="role-icon">A</div><h3>Actor / Policy</h3><p>一个 Token 接一个 Token 地生成回答。</p>
+            <dl><dt>输出：</dt><dd>Token 概率</dd><dt>PPO 时：</dt><dd>更新</dd><dt>类比：</dt><dd>答题学生</dd></dl>
+          </article>
+          <article class="role-card">
+            <div class="role-icon">R</div><h3>Reward Model</h3><p>读完 Prompt 与整个回答，输出一个质量分。</p>
+            <dl><dt>输出：</dt><dd>标量奖励</dd><dt>PPO 时：</dt><dd>冻结</dd><dt>类比：</dt><dd>阅卷老师</dd></dl>
+          </article>
+          <article class="role-card">
+            <div class="role-icon">C</div><h3>Critic / Value</h3><p>根据当前已生成内容，预测未来总回报。</p>
+            <dl><dt>输出：</dt><dd>每个状态的 Value</dd><dt>PPO 时：</dt><dd>更新</dd><dt>类比：</dt><dd>估分班主任</dd></dl>
+          </article>
+          <article class="role-card">
+            <div class="role-icon">Ref</div><h3>Reference Model</h3><p>计算 Actor 对同一回答的概率与 SFT 起点差多少。</p>
+            <dl><dt>输出：</dt><dd>参考 Token 概率</dd><dt>PPO 时：</dt><dd>冻结</dd><dt>类比：</dt><dd>训练前录像</dd></dl>
+          </article>
+        </div>
+        <div class="compare-wrap">
+          <table class="compare">
+            <thead><tr><th>对象</th><th>核心问题</th><th>何时得到监督</th><th>监督从哪来</th><th>PPO 阶段</th></tr></thead>
+            <tbody>
+              <tr><td>Actor</td><td>下一个 Token 生成什么？</td><td>每次 PPO 更新</td><td>Advantage + PPO 目标</td><td>训练</td></tr>
+              <tr><td>Reward</td><td>完整回答好不好？</td><td>PPO 前</td><td>人类偏好对</td><td>冻结</td></tr>
+              <tr><td>Critic</td><td>从现在继续，预计能得多少分？</td><td>PPO 过程中</td><td>Actor 实际获得的 Return</td><td>训练</td></tr>
+              <tr><td>Reference</td><td>Actor 距离初始 SFT 模型多远？</td><td>不再学习</td><td>SFT 模型的冻结副本</td><td>冻结</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="reward-birth">
+        <div class="section-kicker">04 · Reward Training</div>
+        <h2>Reward Model 不是凭空出现的</h2>
+        <p class="section-lead">它通常从预训练或 SFT 模型开始，加上输出一个分数的打分头，再用人类偏好数据微调。重点不是学会绝对的“8.5 分”，而是把好回答排在差回答前面。</p>
+        <div class="preference">
+          <article class="answer good"><b>✓ Chosen：人类更喜欢</b><span>“保持规律作息，睡前减少咖啡因和强光；如果长期失眠，建议就医。”</span></article>
+          <div class="versus">&gt;</div>
+          <article class="answer bad"><b>✗ Rejected：人类不喜欢</b><span>“睡不着就自己加大药量，肯定有效。”</span></article>
+        </div>
+        <div class="timeline" style="margin-top:16px">
+          <article class="timeline-item" data-step="01"><div><b>SFT 模型多次采样</b><span>同一个 Prompt 用不同随机性生成多个候选回答。</span></div></article>
+          <article class="timeline-item" data-step="02"><div><b>人类排序</b><span>标注者选出 chosen 与 rejected，不必精确打绝对分。</span></div></article>
+          <article class="timeline-item" data-step="03"><div><b>训练排序能力</b><span>让 score(chosen) &gt; score(rejected)，判断错了就反向传播。</span></div></article>
+          <article class="timeline-item" data-step="04"><div><b>PPO 时冻结</b><span>Reward Model 变成自动阅卷老师，只打分，通常不再改参数。</span></div></article>
+        </div>
+        <div class="warning"><strong>判断边界：</strong>Actor 可能拥有 Reward Model 没有的冷门知识，但 Reward 如果无法正确判断，PPO 就可能得到错误方向。可靠边界取决于“阅卷能力”，不是单纯的“知识边界”。</div>
+      </section>
+
+      <section class="section" id="full-loop">
+        <div class="section-kicker">05 · Interactive Rollout</div>
+        <h2>一次 PPO 训练回合发生了什么</h2>
+        <p class="section-lead">点击 7 个步骤，观察每一步谁在工作、产生什么数据。一批 rollout 可以被切成 mini-batch 训练几轮，然后必须用新 Actor 重新采样。</p>
+        <div class="flow-board">
+          <div class="step-tabs" id="stepTabs" role="tablist" aria-label="PPO 训练步骤"></div>
+          <div class="step-panel" role="tabpanel" aria-live="polite">
+            <div class="step-number" id="stepNumber">01</div>
+            <div class="step-copy"><h3 id="stepTitle"></h3><p id="stepAnalogy"></p><p id="stepTech"></p></div>
+            <div class="step-io"><small>本步的关键输出</small><code id="stepOutput"></code></div>
+          </div>
+        </div>
+        <div class="code-card">
+          <div class="code-head"><span>ppo_training_loop.py</span><span>逻辑伪代码</span></div>
+          <pre><span class="kw">for</span> prompts <span class="kw">in</span> dataloader:
+    responses, old_log_probs = actor.<span class="fn">generate</span>(prompts)
+
+    reward_score = reward_model.<span class="fn">score</span>(prompts, responses)   <span class="cm"># 冻结</span>
+    ref_log_probs = reference.<span class="fn">log_probs</span>(prompts, responses) <span class="cm"># 冻结</span>
+    values = critic.<span class="fn">predict</span>(prompts, responses)
+
+    token_rewards = reward_score - beta * <span class="fn">kl_penalty</span>(
+        old_log_probs, ref_log_probs
+    )
+    advantages, returns = <span class="fn">compute_gae</span>(token_rewards, values)
+
+    <span class="fn">update_actor_with_ppo_clip</span>(old_log_probs, advantages)
+    <span class="fn">update_critic</span>(values, returns)</pre>
+        </div>
+      </section>
+
+      <section class="section" id="critic">
+        <div class="section-kicker">06 · Critic & Advantage</div>
+        <h2>Critic 提供一条“动态及格线”</h2>
+        <p class="section-lead">Reward 只告诉我们实际回报；Critic 估计从当前状态继续生成，将来应该能拿多少回报。两者的差，告诉 Actor 这次表现是不是“超出预期”。</p>
+        <div class="advantage-lab">
+          <div>
+            <div class="control"><label for="actualReward">实际 Return <output id="actualRewardOutput">8</output></label><input id="actualReward" type="range" min="0" max="10" step="1" value="8"></div>
+            <div class="control"><label for="predictedValue">Critic 预测 Value <output id="predictedValueOutput">5</output></label><input id="predictedValue" type="range" min="0" max="10" step="1" value="5"></div>
+            <div class="plain-box"><strong>你可以拖动：</strong>同样是 8 分，如果原本只预期 5 分，就值得强化；如果原本预期 9 分，则是没有达到预期。</div>
+          </div>
+          <div class="advantage-result" id="advantageResult"><div><b id="advantageValue">+3</b><span id="advantageReading">比预期好，值得强化</span><small>Advantage ≈ Return − Value</small></div></div>
+        </div>
+        <div class="two-col">
+          <article class="concept"><span class="tag mint">Critic 怎么学</span><h3>用实际 Return 当答案</h3><p>初始可从 Reward Model 或 SFT 权重复制，再在 PPO 过程中不断比较“预测 Value”和“实际 Return”，缩小预测误差。</p></article>
+          <article class="concept"><span class="tag purple">Critic 不是 Reward</span><h3>一个预测，一个阅卷</h3><p>Reward 通常对完整回答给分并保持冻结；Critic 对生成中的每个前缀估分，并在 PPO 中持续训练。</p></article>
+        </div>
+      </section>
+
+      <section class="section" id="reference">
+        <div class="section-kicker">07 · Reference & KL</div>
+        <h2>Reference 是长期安全绳</h2>
+        <p class="section-lead">Reference 通常是 PPO 开始前 SFT 模型的冻结副本。它不主动另写一份答案，而是对 Actor 已经生成的同一串 Token 计算参考概率，以此衡量 Actor 偏离了多远。</p>
+        <div class="formula-board">
+          <div class="formula"><em>最终奖励</em> = <strong>Reward 质量分</strong> − β × <span>KL 偏离惩罚</span></div>
+          <div class="formula-explain">
+            <div><b>Reward 越高</b><span>回答越符合人类偏好，提供向前的拉力。</span></div>
+            <div><b>KL 越大</b><span>Actor 与初始 SFT 模型差得越多，需要扣分。</span></div>
+            <div><b>β 控制绳的松紧</b><span>太小容易跑偏，太大则几乎不敢学新偏好。</span></div>
+          </div>
+        </div>
+        <div class="warning"><strong>Reward Hacking：</strong>如果阅卷老师偏爱长答案，Actor 可能学会堆砌废话来骗分。Reference + KL 能限制这种偏离，但不能修复一个本身就会误判的 Reward Model。</div>
+        <h3 style="margin-top:28px">Reference Model 不等于 Old Policy</h3>
+        <div class="split-path" style="margin-top:14px">
+          <article class="path-card"><b>Reference Model</b><span>整个 PPO 训练中固定在初始 SFT 起点，约束长期偏离。</span><small>像整段旅程的出发点</small></article>
+          <div class="path-vs">别混淆<br>≠</div>
+          <article class="path-card"><b>Old Policy</b><span>采样当时 Actor 的临时快照，每批 rollout 后会换，约束单次更新。</span><small>像上一步站立的位置</small></article>
+        </div>
+      </section>
+
+      <section class="section" id="ppo-core">
+        <div class="section-kicker">08 · PPO Core</div>
+        <h2>PPO 实际上在改变“下次这样答”的概率</h2>
+        <p class="section-lead">对大模型来说，状态是“Prompt + 已生成 Token”，动作是“下一个 Token”。PPO 根据 Advantage 调整这些 Token 的生成概率。</p>
+        <div class="two-col">
+          <article class="concept"><span class="tag mint">Advantage &gt; 0</span><h3>比预期好</h3><p>提高这批 Token 在相似状态下被选中的概率，但一次不能提得太猛。</p></article>
+          <article class="concept"><span class="tag" style="color:var(--coral);background:var(--coral-soft)">Advantage &lt; 0</span><h3>比预期差</h3><p>降低这批 Token 被选中的概率，同样限制单次变化幅度。</p></article>
+        </div>
+        <div class="formula-board" style="margin-top:16px">
+          <div class="formula"><em>概率比 r</em> = 新 Actor 给该 Token 的概率 ÷ Old Policy 给它的概率</div>
+          <div class="formula-explain">
+            <div><b>r = 1.0</b><span>新旧策略对这个 Token 的看法没有变。</span></div>
+            <div><b>r = 1.1</b><span>新 Actor 让它的出现概率提高了约 10%。</span></div>
+            <div><b>Clip 如 [0.8, 1.2]</b><span>超出区间后不再鼓励继续猛改，保持训练稳定。</span></div>
+          </div>
+        </div>
+        <div class="plain-box"><strong>开车类比：</strong>方向偏左时，向右修一点；不会因为一次偏左就猛打一圈方向盘。这就是 Proximal——新策略始终靠近旧策略。</div>
+      </section>
+
+      <section class="section" id="boundaries">
+        <div class="section-kicker">09 · Boundaries</div>
+        <h2>这套流程能做什么，不擅长什么</h2>
+        <div class="two-col">
+          <article class="concept"><span class="tag mint">擅长</span><h3>对齐已有能力的使用方式</h3><ul><li>更遵循指令</li><li>更有帮助且表达清楚</li><li>更安全、少生成危险内容</li><li>让好回答从“偶尔出现”变成“稳定出现”</li></ul></article>
+          <article class="concept"><span class="tag" style="color:var(--coral);background:var(--coral-soft)">不擅长</span><h3>凭一个分数灌入大量新知识</h3><ul><li>Actor 完全不会时，Reward 只说“不好”还不够</li><li>阅卷标准有漏洞时会产生 Reward Hacking</li><li>专业领域超出 Reward 判断能力时会误导训练</li><li>新知识更适合预训练、SFT、RAG 或工具</li></ul></article>
+        </div>
+        <div class="compare-wrap">
+          <table class="compare">
+            <thead><tr><th>常见误解</th><th>更准确的说法</th></tr></thead>
+            <tbody>
+              <tr><td>Reward Model 把知识教给 Actor</td><td>Reward 主要给出方向，不直接给标准答案；PPO 强化 Actor 能生成的好行为。</td></tr>
+              <tr><td>Critic 也是另一个评分老师</td><td>Critic 学的是“预测未来 Return”，用于计算超出预期多少，它会在 PPO 中更新。</td></tr>
+              <tr><td>Reference 和 Old Policy 是同一个模型</td><td>Reference 是长期固定的 SFT 锚点；Old Policy 是每批采样时 Actor 的临时快照。</td></tr>
+              <tr><td>Clip 强行把所有概率截到 0.8～1.2</td><td>Clip 主要是截断“过度改变带来的优化收益”，并非简单修改每个输出概率。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="interview">
+        <div class="section-kicker">10 · Interview Answer</div>
+        <h2>用一段话把 PPO 讲完</h2>
+        <p class="section-lead">如果面试官问“RLHF 中 PPO 的流程”，可以按下面顺序回答。</p>
+        <div class="plain-box"><strong>可直接复述：</strong>Actor 通常由 SFT 模型初始化，先对 Prompt 采样生成回答。冻结的 Reward Model 给完整回答打偏好分，冻结的 Reference Model 用来计算 KL 惩罚，防止 Actor 长期偏离 SFT 起点。Critic 估计每个生成状态的未来回报，结合实际 Return 得到 Advantage。PPO 用新旧策略概率比和 Clip 目标更新 Actor，限制单次更新幅度；同时用 Return 训练 Critic。然后用新 Actor 重新采样，循环进行。</div>
+        <h3 style="margin-top:30px">术语表</h3>
+        <dl class="glossary" style="margin-top:14px">
+          <div><dt>Actor / Policy</dt><dd>生成回答的模型，PPO 的主要优化对象。</dd></div>
+          <div><dt>Rollout</dt><dd>Actor 对一批 Prompt 实际采样生成的经验数据。</dd></div>
+          <div><dt>Reward Model</dt><dd>由人类偏好对训练出的自动阅卷模型。</dd></div>
+          <div><dt>Critic / Value Model</dt><dd>预测从当前状态出发的未来回报。</dd></div>
+          <div><dt>Reference Model</dt><dd>冻结的 SFT 副本，用于控制 Actor 长期偏离。</dd></div>
+          <div><dt>Old Policy</dt><dd>本批 rollout 采样时的 Actor 快照，用于 PPO 概率比。</dd></div>
+          <div><dt>Advantage</dt><dd>实际表现相对 Critic 预期的好坏程度。</dd></div>
+          <div><dt>Return</dt><dd>经过奖励、KL 惩罚与时间累积后，用来训练 Critic 的目标回报。</dd></div>
+          <div><dt>KL Penalty</dt><dd>衡量 Actor 和 Reference 差异并对过度偏离扣分。</dd></div>
+          <div><dt>PPO Clip</dt><dd>不再鼓励过大的单次策略改变，提高训练稳定性。</dd></div>
+        </dl>
+        <div class="insight"><strong>最终心智模型：</strong>Reward 管方向，Critic 管相对惊喜，Reference 管长期偏离，Old Policy + Clip 管单次步子，Actor 才是最终被训练得更会回答的模型。</div>
+      </section>
+
+      <div class="chapter-break" aria-label="新章节：GRPO 与 DPO">
+        <small>PART II · OTHER ALIGNMENT METHODS</small>
+        <b>GRPO 与 DPO：两条单独的对齐路线</b>
+        <span>下面不再延伸 PPO 内部细节，而是分别建立 GRPO 和 DPO 的独立心智模型，最后再用一张结构图比较三者。</span>
+      </div>
+
+      <section class="section" id="grpo">
+        <div class="section-kicker">11 · GRPO</div>
+        <h2>GRPO：不找 Critic 估分，改成同题组内比较</h2>
+        <p class="section-lead">GRPO 全称 Group Relative Policy Optimization。它仍是在线强化学习：Actor 先对同一道题生成一组回答，每份回答拿到奖励，然后根据“高于还是低于组内平均”计算 Advantage。</p>
+
+        <div class="plain-box"><strong>学生类比：</strong>PPO 是“学生的实际分和班主任 Critic 的预测分比”；GRPO 是“学生对同一道题写多份答案，彼此比较”。</div>
+
+        <div class="mini-flow" aria-label="GRPO 完整流程" style="margin-top:16px">
+          <div class="mini-node"><b>Prompt</b><span>同一道题</span></div><div class="mini-arrow">→</div>
+          <div class="mini-node train"><b>Actor</b><span>可训练</span></div><div class="mini-arrow">→</div>
+          <div class="group-stack" aria-label="一组回答"><span>o₁</span><span>o₂</span><span>…</span><span>oᴳ</span></div><div class="mini-arrow">→</div>
+          <div class="mini-node rule wide"><b>Reward / 规则</b><span>分别得到 r₁…rᴳ</span></div><div class="mini-arrow">→</div>
+          <div class="mini-node wide"><b>组内标准化</b><span>(rᵢ − mean) / std</span></div><div class="mini-arrow">→</div>
+          <div class="mini-node train"><b>PPO-style Clip</b><span>更新 Actor</span></div>
+        </div>
+
+        <h3 style="margin-top:28px">用四份答案看懂“组内相对”</h3>
+        <div class="score-strip">
+          <article class="score-item bad"><b>回答 A</b><span>2</span><small>低于平均 → 削弱</small></article>
+          <article class="score-item bad"><b>回答 B</b><span>4</span><small>低于平均 → 削弱</small></article>
+          <article class="score-item good"><b>回答 C</b><span>8</span><small>高于平均 → 强化</small></article>
+          <article class="score-item good"><b>回答 D</b><span>6</span><small>高于平均 → 强化</small></article>
+        </div>
+        <div class="formula-board" style="margin-top:16px">
+          <div class="formula"><em>组内平均分</em> = 5　　 <strong>Aᵢ</strong> ≈ (<span>rᵢ − 5</span>) ÷ 组内标准差</div>
+          <div class="formula-explain">
+            <div><b>高于组内平均</b><span>对应回答的相对 Advantage 为正，提高其生成概率。</span></div>
+            <div><b>低于组内平均</b><span>相对 Advantage 为负，降低其生成概率。</span></div>
+            <div><b>整组都一样</b><span>标准差接近 0，组内没有谁更好，学习信号很弱。</span></div>
+          </div>
+        </div>
+
+        <h3 style="margin-top:30px">GRPO 的 Reward 可以不是模型</h3>
+        <div class="two-col">
+          <article class="concept"><span class="tag mint">可验证任务</span><h3>直接用规则打分</h3><p>数学题核对最终答案，代码运行单元测试，格式通过正则检查。这时不需要预先微调 Reward Model，但仍然必须有能产生分数的 Reward Function。</p></article>
+          <article class="concept"><span class="tag purple">主观任务</span><h3>仍可能需要 Reward Model</h3><p>“是否有同理心”、“文章是否优美”很难用硬规则衡量，可使用偏好模型、LLM Judge、人工评分或混合奖励。GRPO 只规定如何比较奖励，不限定奖励必须从哪里来。</p></article>
+        </div>
+        <div class="warning"><strong>别误解“不需要预训练”：</strong>可以不训练 Reward Model，但 Actor 通常仍是已经大规模预训练的语言模型。规则奖励也不等于没有监督：标准答案、测试用例和验证程序就是监督来源。</div>
+        <p class="source-note">延伸阅读：<a href="https://arxiv.org/abs/2402.03300" target="_blank" rel="noreferrer">DeepSeekMath · GRPO 原始论文</a></p>
+      </section>
+
+      <section class="section" id="dpo">
+        <div class="section-kicker">12 · DPO</div>
+        <h2>DPO：不现场考试，直接学“A 比 B 好”</h2>
+        <p class="section-lead">DPO 全称 Direct Preference Optimization。它把现成的 chosen / rejected 偏好对直接变成训练损失：让 Actor 相对于 Reference 更偏爱 chosen，更不偏爱 rejected。训练中不需要 Reward Model、Critic 或在线 rollout。</p>
+
+        <div class="preference">
+          <article class="answer good"><b>✓ chosen</b><span>“保持规律作息，睡前减少咖啡因；若长期失眠建议就医。”</span></article>
+          <div class="versus">&gt;</div>
+          <article class="answer bad"><b>✗ rejected</b><span>“睡不着就自己加大药量，肯定有效。”</span></article>
+        </div>
+
+        <div class="mini-flow" aria-label="DPO 完整流程" style="margin-top:16px">
+          <div class="mini-node rule wide"><b>离线偏好数据</b><span>Prompt + chosen + rejected</span></div><div class="mini-arrow">→</div>
+          <div class="mini-node train"><b>Actor</b><span>计算两个回答的概率</span></div><div class="mini-arrow">+</div>
+          <div class="mini-node frozen"><b>Reference</b><span>提供训练前的概率基准</span></div><div class="mini-arrow">→</div>
+          <div class="mini-node wide"><b>偏好差值</b><span>chosen 提升 − rejected 提升</span></div><div class="mini-arrow">→</div>
+          <div class="mini-node train"><b>DPO Loss</b><span>只更新 Actor</span></div>
+        </div>
+
+        <div class="two-col">
+          <article class="concept"><span class="tag">SFT</span><h3>只看到好答案</h3><p>数据是 Prompt → chosen，目标是提高 chosen 的生成概率。模型并不知道对照组中哪种回答不受偏好。</p></article>
+          <article class="concept"><span class="tag purple">DPO</span><h3>同时看到好与差</h3><p>数据是 Prompt + chosen &gt; rejected，目标是让 Actor 相对 Reference 更明确地选 chosen，而不是无限制把一个答案概率推高。</p></article>
+        </div>
+
+        <div class="formula-board" style="margin-top:16px">
+          <div class="formula"><em>DPO 想放大的信号</em> = <strong>chosen 相对 Reference 的提升</strong> − <span>rejected 相对 Reference 的提升</span></div>
+          <div class="formula-explain">
+            <div><b>没有显式 Reward Model</b><span>偏好直接作用在 Actor 的概率差上，不需要先把偏好学成打分模型。</span></div>
+            <div><b>没有在线探索</b><span>训练时只消化已有偏好对，不会像 GRPO 那样边生成边验证新解法。</span></div>
+            <div><b>β 控制偏好强度</b><span>它影响对偏好差的敏感度与相对 Reference 的保守程度，具体语义要以实现为准。</span></div>
+          </div>
+        </div>
+        <div class="two-col">
+          <article class="concept"><span class="tag mint">优点</span><h3>像普通微调一样简洁</h3><ul><li>不训练 Reward Model 和 Critic</li><li>不需要在线生成环境</li><li>显存、工程和调参成本较低</li><li>适合已有高质量偏好对的场景</li></ul></article>
+          <article class="concept"><span class="tag" style="color:var(--coral);background:var(--coral-soft)">限制</span><h3>上限受离线偏好数据约束</h3><ul><li>错误标注会被直接学进 Actor</li><li>未覆盖场景很难凭空获得好的偏好信号</li><li>不像在线 RL 能够通过验证器持续探索</li><li>chosen / rejected 差异不合理会学到偏差</li></ul></article>
+        </div>
+        <p class="source-note">延伸阅读：<a href="https://arxiv.org/abs/2305.18290" target="_blank" rel="noreferrer">Direct Preference Optimization 原始论文</a></p>
+      </section>
+
+      <section class="section" id="method-compare">
+        <div class="section-kicker">13 · Architecture Comparison</div>
+        <h2>一张图看清 PPO、GRPO 和 DPO</h2>
+        <p class="section-lead">参考附图的表达方式，下图统一标出了哪些模型会训练、哪些保持冻结，以及三种方法分别如何得到优化信号。小屏幕可在每行内横向滑动。</p>
+
+        <div class="method-diagram">
+          <div class="diagram-legend" aria-label="图例">
+            <span class="legend-item"><i class="legend-dot train"></i>训练中更新</span>
+            <span class="legend-item"><i class="legend-dot frozen"></i>冻结模型</span>
+            <span class="legend-item"><i class="legend-dot rule"></i>离线数据或规则信号</span>
+            <span class="legend-item"><i class="legend-dot"></i>数据或计算</span>
+          </div>
+
+          <div class="method-row">
+            <div class="method-name"><b>PPO</b><span>Critic 当基线</span></div>
+            <div>
+              <div class="diagram-flow" aria-label="PPO 架构流程">
+                <div class="diagram-node"><b>Prompt</b><span>q</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node train"><b>Actor</b><span>Policy Model</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node"><b>1 份回答</b><span>o</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node frozen multi"><b>Reward + Ref</b><span>评分 / KL</span></div><div class="diagram-arrow">+</div>
+                <div class="diagram-node train"><b>Critic</b><span>Value v</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node"><b>GAE</b><span>Advantage A</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node train"><b>PPO Clip</b><span>小步更新</span></div>
+              </div>
+              <div class="update-loop">↺ Advantage 更新 Actor；Return 同时更新 Critic</div>
+            </div>
+          </div>
+
+          <div class="method-row">
+            <div class="method-name"><b>GRPO</b><span>组内平均当基线</span></div>
+            <div>
+              <div class="diagram-flow" aria-label="GRPO 架构流程">
+                <div class="diagram-node"><b>Prompt</b><span>q</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node train"><b>Actor</b><span>Policy Model</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node multi"><b>G 份回答</b><span>o₁ / o₂ / … / oᴳ</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node rule multi"><b>Reward / 规则</b><span>r₁ / r₂ / … / rᴳ</span></div><div class="diagram-arrow">+</div>
+                <div class="diagram-node frozen"><b>Reference</b><span>KL，可选于实现</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node"><b>组内计算</b><span>A₁…Aᴳ</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node train"><b>PPO-style Clip</b><span>更新 Actor</span></div>
+              </div>
+              <div class="update-loop">↺ 没有 Critic；以同题多回答的相对奖励更新 Actor</div>
+            </div>
+          </div>
+
+          <div class="method-row">
+            <div class="method-name"><b>DPO</b><span>偏好对直接监督</span></div>
+            <div>
+              <div class="diagram-flow" aria-label="DPO 架构流程">
+                <div class="diagram-node rule multi"><b>离线数据</b><span>q + chosen + rejected</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node train"><b>Actor</b><span>两份回答的概率</span></div><div class="diagram-arrow">+</div>
+                <div class="diagram-node frozen"><b>Reference</b><span>原始概率基准</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node multi"><b>偏好概率差</b><span>chosen − rejected</span></div><div class="diagram-arrow">→</div>
+                <div class="diagram-node train"><b>DPO Loss</b><span>直接更新 Actor</span></div>
+              </div>
+              <div class="update-loop">↺ 没有 Reward Model、Critic 和在线 rollout</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="compare-wrap">
+          <table class="compare">
+            <thead><tr><th>对比项</th><th>PPO</th><th>GRPO</th><th>DPO</th></tr></thead>
+            <tbody>
+              <tr><td>训练时怎么得到信号</td><td>Return 与 Critic Value 之差</td><td>同题多回答的组内相对奖励</td><td>chosen / rejected 概率差</td></tr>
+              <tr><td>Critic</td><td>需要</td><td>不需要</td><td>不需要</td></tr>
+              <tr><td>Reward Model</td><td>通常需要，也可来自其他 Reward Function</td><td>可用模型，也可直接用规则</td><td>训练时不需要</td></tr>
+              <tr><td>在线生成</td><td>需要 rollout</td><td>需要，且同题生成 G 份</td><td>不需要，使用离线偏好对</td></tr>
+              <tr><td>主要成本</td><td>多模型显存与训练稳定性</td><td>同题多次生成的推理成本</td><td>高质量偏好数据的构造成本</td></tr>
+              <tr><td>更适合</td><td>复杂、动态的在线奖励</td><td>数学、代码等可验证推理</td><td>人类偏好、安全、风格等离线对齐</td></tr>
+              <tr><td>一句话</td><td>和自己的预期比</td><td>和同题的其他答案比</td><td>直接学人们选 A 不选 B</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="insight"><strong>选型口诀：</strong>有现成高质量偏好对，先想 DPO；答案能用规则或测试验证，考虑 GRPO；需要复杂、动态、可学习的在线价值基线，再考虑 PPO。</div>
+      </section>
+    </main>
+  </div>
+
+  <footer>LLM 对齐方法通俗学习页 · PPO 、GRPO 与 DPO 的模型职责、训练信号与适用边界。</footer>
+
+  <script>
+    const ppoSteps = [
+      { tab: "出题", title: "取一批 Prompt", analogy: "老师从题库里取出一批题，准备让学生作答。", tech: "Prompt 可以来自真实用户分布或专门构造的训练集。", output: "prompts\n[‘怎么提高睡眠质量？’, ...]" },
+      { tab: "回答", title: "Actor 采样生成回答", analogy: "学生不看标准答案，依靠当前能力自己作答。", tech: "逐 Token 采样，同时保存采样当时的 old_log_probs，它们定义 Old Policy。", output: "responses\nold_log_probs" },
+      { tab: "打分", title: "Reward Model 给质量分", analogy: "阅卷老师读完整份答案，给出实际成绩。", tech: "冻结的 Reward Model 输入 Prompt + Response，输出通常为一个标量分数。", output: "reward_score = 8.0" },
+      { tab: "防跑偏", title: "Reference 计算 KL 惩罚", analogy: "对照学生训练前的录像，检查他是正常进步，还是为骗分变得奇怪。", tech: "对 Actor 生成的同一回答计算 Reference log_probs，用 Actor 与 Reference 的概率差构造 KL penalty。", output: "ref_log_probs\nfinal_reward = reward - β × KL" },
+      { tab: "估分", title: "Critic 预测每个状态的 Value", analogy: "班主任看到学生答到每一步时，都估计他最后大概能拿多少分。", tech: "对 Prompt + 每个 Response 前缀输出 V(s_t)，作为当前预期基线。", output: "values = [4.1, 4.8, 5.5, ...]" },
+      { tab: "算惊喜", title: "计算 Return 和 Advantage", analogy: "实际成绩减去原本预期，得到这次是惊喜还是失望。", tech: "实际工程常用 GAE，把奖励、Value、折扣因子和时间关系组合成 advantages 与 returns。", output: "advantages\nreturns = advantages + values" },
+      { tab: "更新", title: "PPO 更新 Actor，Return 更新 Critic", analogy: "教练让好习惯多一点、坏习惯少一点，但不许一次改得太猛；班主任也校准自己的估分。", tech: "Actor 用 PPO clip loss 更新，Critic 通过拟合 returns 更新；Reward 与 Reference 都不更新。", output: "actor.step()\ncritic.step()\n→ 用新 Actor 重新采样" }
+    ];
+
+    const stepTabs = document.getElementById("stepTabs");
+    const stepNumber = document.getElementById("stepNumber");
+    const stepTitle = document.getElementById("stepTitle");
+    const stepAnalogy = document.getElementById("stepAnalogy");
+    const stepTech = document.getElementById("stepTech");
+    const stepOutput = document.getElementById("stepOutput");
+
+    function renderPpoStep(index) {
+      const step = ppoSteps[index];
+      stepNumber.textContent = String(index + 1).padStart(2, "0");
+      stepTitle.textContent = step.title;
+      stepAnalogy.textContent = `类比：${step.analogy}`;
+      stepTech.textContent = `对应技术：${step.tech}`;
+      stepOutput.textContent = step.output;
+      [...stepTabs.children].forEach((button, buttonIndex) => {
+        const active = buttonIndex === index;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", String(active));
+        button.tabIndex = active ? 0 : -1;
+      });
+    }
+
+    ppoSteps.forEach((step, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "step-button";
+      button.setAttribute("role", "tab");
+      button.innerHTML = `<b>${String(index + 1).padStart(2, "0")}</b><span>${step.tab}</span>`;
+      button.addEventListener("click", () => renderPpoStep(index));
+      stepTabs.appendChild(button);
+    });
+    renderPpoStep(0);
+
+    const actualReward = document.getElementById("actualReward");
+    const predictedValue = document.getElementById("predictedValue");
+    const actualRewardOutput = document.getElementById("actualRewardOutput");
+    const predictedValueOutput = document.getElementById("predictedValueOutput");
+    const advantageValue = document.getElementById("advantageValue");
+    const advantageReading = document.getElementById("advantageReading");
+    const advantageResult = document.getElementById("advantageResult");
+
+    function renderAdvantage() {
+      const actual = Number(actualReward.value);
+      const predicted = Number(predictedValue.value);
+      const advantage = actual - predicted;
+      actualRewardOutput.textContent = actual;
+      predictedValueOutput.textContent = predicted;
+      advantageValue.textContent = `${advantage > 0 ? "+" : ""}${advantage}`;
+      advantageReading.textContent = advantage > 0 ? "比预期好，值得强化" : advantage < 0 ? "低于预期，应降低概率" : "符合预期，调整信号很弱";
+      advantageResult.style.background = advantage > 0
+        ? "linear-gradient(145deg, var(--mint), var(--blue))"
+        : advantage < 0
+          ? "linear-gradient(145deg, var(--coral), var(--purple))"
+          : "linear-gradient(145deg, var(--muted), var(--blue))";
+    }
+    actualReward.addEventListener("input", renderAdvantage);
+    predictedValue.addEventListener("input", renderAdvantage);
+    renderAdvantage();
+
+    const root = document.documentElement;
+    const themeButton = document.getElementById("themeButton");
+    const savedTheme = localStorage.getItem("training-page-theme");
+    if (savedTheme) root.dataset.theme = savedTheme;
+    themeButton.addEventListener("click", () => {
+      const next = root.dataset.theme === "dark" ? "light" : "dark";
+      root.dataset.theme = next;
+      localStorage.setItem("training-page-theme", next);
+    });
+
+    const progressBar = document.getElementById("progressBar");
+    function updateProgress() {
+      const total = document.documentElement.scrollHeight - innerHeight;
+      progressBar.style.width = `${total > 0 ? scrollY / total * 100 : 0}%`;
+    }
+    addEventListener("scroll", updateProgress, { passive: true });
+    updateProgress();
+
+    const tocLinks = [...document.querySelectorAll(".toc a")];
+    const sections = [...document.querySelectorAll("main .section")];
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        tocLinks.forEach(link => link.classList.toggle("active", link.getAttribute("href") === `#${entry.target.id}`));
+      });
+    }, { rootMargin: "-22% 0px -68% 0px" });
+    sections.forEach(section => observer.observe(section));
+  </script>
+</body>
+</html>

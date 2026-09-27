@@ -1,0 +1,810 @@
+- generic [active] [ref=e1]:
+  - link "跳到正文" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: MD
+      - generic [ref=e7]: 缓存与数据库一致性及高并发缓存保护
+    - generic [ref=e8]:
+      - link "查看 Markdown" [ref=e9] [cursor=pointer]:
+        - /url: md/%E7%BC%93%E5%AD%98%E4%B8%8E%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%80%E8%87%B4%E6%80%A7%E5%8F%8A%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E4%BF%9D%E6%8A%A4.md
+      - button "切换深浅主题" [ref=e10] [cursor=pointer]: ◐
+  - generic [ref=e11]:
+    - generic [ref=e12]: Markdown Reading Page
+    - heading "缓存与数据库一致性及高并发缓存保护" [level=1] [ref=e13]
+    - text: MD
+  - main [ref=e14]:
+    - complementary [ref=e15]:
+      - navigation "页面目录" [ref=e16]:
+        - paragraph [ref=e17]: READING MAP
+        - link "1. 缓存与数据库一致性策略如何取舍？" [ref=e18] [cursor=pointer]:
+          - /url: "#1-缓存与数据库一致性策略如何取舍"
+        - link "2. Cache Aside 读流程" [ref=e19] [cursor=pointer]:
+          - /url: "#2-cache-aside-读流程"
+        - link "3. 写数据为什么推荐\"更新 DB → 删除缓存\"？" [ref=e20] [cursor=pointer]:
+          - /url: "#3-写数据为什么推荐-更新-db-删除缓存"
+        - link "4. \"更新 DB → 删除缓存\"是不是绝对一致？" [ref=e21] [cursor=pointer]:
+          - /url: "#4-更新-db-删除缓存-是不是绝对一致"
+        - link "5. 如何进一步降低不一致概率？" [ref=e22] [cursor=pointer]:
+          - /url: "#5-如何进一步降低不一致概率"
+        - link "5.1 TTL" [ref=e23] [cursor=pointer]:
+          - /url: "#5-1-ttl"
+        - link "5.2 删除失败重试 / MQ 补偿" [ref=e24] [cursor=pointer]:
+          - /url: "#5-2-删除失败重试-mq-补偿"
+        - link "5.3 延迟双删" [ref=e25] [cursor=pointer]:
+          - /url: "#5-3-延迟双删"
+        - link "6. 哪些场景使用什么一致性策略？" [ref=e26] [cursor=pointer]:
+          - /url: "#6-哪些场景使用什么一致性策略"
+        - link "7. 为什么缓存不应该轻易作为事实源？" [ref=e27] [cursor=pointer]:
+          - /url: "#7-为什么缓存不应该轻易作为事实源"
+        - link "8. 强一致业务为什么不能单纯依赖缓存？" [ref=e28] [cursor=pointer]:
+          - /url: "#8-强一致业务为什么不能单纯依赖缓存"
+        - link "9. 缓存击穿：大量并发同时 Cache Miss 怎么办？" [ref=e29] [cursor=pointer]:
+          - /url: "#9-缓存击穿-大量并发同时-cache-miss-怎么办"
+        - link "10. 方案一：互斥锁" [ref=e30] [cursor=pointer]:
+          - /url: "#10-方案一-互斥锁"
+        - link "11. 为什么抢到锁之后还要再查一次缓存？" [ref=e31] [cursor=pointer]:
+          - /url: "#11-为什么抢到锁之后还要再查一次缓存"
+        - link "12. 方案二：Singleflight / 请求合并" [ref=e32] [cursor=pointer]:
+          - /url: "#12-方案二-singleflight-请求合并"
+        - link "13. Singleflight 的局限" [ref=e33] [cursor=pointer]:
+          - /url: "#13-singleflight-的局限"
+        - link "单机请求合并" [ref=e34] [cursor=pointer]:
+          - /url: "#单机请求合并"
+        - link "分布式请求合并" [ref=e35] [cursor=pointer]:
+          - /url: "#分布式请求合并"
+        - link "14. 方案三：逻辑过期" [ref=e36] [cursor=pointer]:
+          - /url: "#14-方案三-逻辑过期"
+        - link "15. 逻辑过期的本质：用一致性换可用性" [ref=e37] [cursor=pointer]:
+          - /url: "#15-逻辑过期的本质-用一致性换可用性"
+        - link "16. 方案四：提前刷新缓存" [ref=e38] [cursor=pointer]:
+          - /url: "#16-方案四-提前刷新缓存"
+        - link "17. 方案五：限流、降级、熔断" [ref=e39] [cursor=pointer]:
+          - /url: "#17-方案五-限流-降级-熔断"
+        - link "返回系统繁忙" [ref=e40] [cursor=pointer]:
+          - /url: "#返回系统繁忙"
+        - link "返回旧缓存" [ref=e41] [cursor=pointer]:
+          - /url: "#返回旧缓存"
+        - link "服务降级" [ref=e42] [cursor=pointer]:
+          - /url: "#服务降级"
+        - link "18. 完整的高并发缓存保护体系" [ref=e43] [cursor=pointer]:
+          - /url: "#18-完整的高并发缓存保护体系"
+        - link "19. 缓存穿透、缓存击穿、缓存雪崩的区别" [ref=e44] [cursor=pointer]:
+          - /url: "#19-缓存穿透-缓存击穿-缓存雪崩的区别"
+        - link "19.1 缓存穿透" [ref=e45] [cursor=pointer]:
+          - /url: "#19-1-缓存穿透"
+        - link "19.2 缓存击穿" [ref=e46] [cursor=pointer]:
+          - /url: "#19-2-缓存击穿"
+        - link "19.3 缓存雪崩" [ref=e47] [cursor=pointer]:
+          - /url: "#19-3-缓存雪崩"
+        - link "20. 三种缓存问题快速记忆" [ref=e48] [cursor=pointer]:
+          - /url: "#20-三种缓存问题快速记忆"
+        - link "21. 面试回答：缓存和数据库一致性怎么保证？" [ref=e49] [cursor=pointer]:
+          - /url: "#21-面试回答-缓存和数据库一致性怎么保证"
+        - link "22. 面试回答：缓存击穿怎么解决？" [ref=e50] [cursor=pointer]:
+          - /url: "#22-面试回答-缓存击穿怎么解决"
+        - link "23. 最终理解框架" [ref=e51] [cursor=pointer]:
+          - /url: "#23-最终理解框架"
+    - article [ref=e52]:
+      - heading "SECTION 01 1. 缓存与数据库一致性策略如何取舍？" [level=2] [ref=e53]
+      - paragraph [ref=e54]:
+        - text: 缓存与数据库一致性的核心，不是追求所有场景下的"绝对一致"，而是根据业务对
+        - strong [ref=e55]: 一致性、性能、复杂度
+        - text: 的要求做取舍。
+      - paragraph [ref=e56]: 最常见、也是业务系统里比较推荐的方案是：
+      - blockquote [ref=e57]:
+        - paragraph [ref=e58]:
+          - strong [ref=e59]: Cache Aside（旁路缓存） + 更新数据库后删除缓存
+      - separator [ref=e60]
+      - heading "SECTION 02 2. Cache Aside 读流程" [level=2] [ref=e61]
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - generic [ref=e64]: text
+          - button "复制" [ref=e65] [cursor=pointer]
+        - code [ref=e67]: 请求 ↓ 查 Redis ↓ 命中 直接返回 ↓ 未命中 查 DB ↓ 写 Redis ↓ 返回
+      - paragraph [ref=e68]: 基本逻辑：
+      - list [ref=e69]:
+        - listitem [ref=e70]: 请求先查询 Redis。
+        - listitem [ref=e71]: Redis 命中，直接返回。
+        - listitem [ref=e72]: Redis 未命中，查询数据库。
+        - listitem [ref=e73]: 将数据库查询结果写入 Redis。
+        - listitem [ref=e74]: 返回数据。
+      - paragraph [ref=e75]: 这种模式下：
+      - blockquote [ref=e76]:
+        - paragraph [ref=e77]:
+          - strong [ref=e78]: 数据库是事实源（Source of Truth），Redis 是性能加速层。
+      - paragraph [ref=e79]: 缓存即使出现问题，也可以删除并重新从数据库构建。
+      - separator [ref=e80]
+      - heading "SECTION 03 3. 写数据为什么推荐\"更新 DB → 删除缓存\"？" [level=2] [ref=e81]
+      - paragraph [ref=e82]: 推荐：
+      - generic [ref=e83]:
+        - generic [ref=e84]:
+          - generic [ref=e85]: text
+          - button "复制" [ref=e86] [cursor=pointer]
+        - code [ref=e88]: 更新 DB ↓ 删除 Redis
+      - paragraph [ref=e89]: 而不是：
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - generic [ref=e92]: text
+          - button "复制" [ref=e93] [cursor=pointer]
+        - code [ref=e95]: 更新 DB ↓ 更新 Redis
+      - paragraph [ref=e96]: 原因是直接更新缓存，在高并发情况下容易发生写入顺序错乱。
+      - paragraph [ref=e97]: 例如两个并发请求：
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - generic [ref=e100]: text
+          - button "复制" [ref=e101] [cursor=pointer]
+        - code [ref=e103]: 请求 A：DB 写成 10 请求 B：DB 写成 20 请求 B 先更新缓存 = 20 请求 A 后更新缓存 = 10
+      - paragraph [ref=e104]: 最终可能变成：
+      - generic [ref=e105]:
+        - generic [ref=e106]:
+          - generic [ref=e107]: text
+          - button "复制" [ref=e108] [cursor=pointer]
+        - code [ref=e110]: DB = 20 Cache = 10
+      - paragraph [ref=e111]: 数据库已经是最新值 20，但是缓存却被旧请求覆盖成 10。
+      - paragraph [ref=e112]: 因此更常见的策略是：
+      - generic [ref=e113]:
+        - generic [ref=e114]:
+          - generic [ref=e115]: text
+          - button "复制" [ref=e116] [cursor=pointer]
+        - code [ref=e118]: 更新数据库 ↓ 删除缓存 ↓ 下一次查询缓存 miss ↓ 重新查询 DB ↓ 重新构建缓存
+      - paragraph [ref=e119]: 这样缓存只负责失效，而不是主动维护复杂的并发更新顺序。
+      - separator [ref=e120]
+      - heading "SECTION 04 4. \"更新 DB → 删除缓存\"是不是绝对一致？" [level=2] [ref=e121]
+      - paragraph [ref=e122]: 不是。
+      - paragraph [ref=e123]:
+        - text: Cache Aside 本质上通常提供的是
+        - strong [ref=e124]: 最终一致性
+        - text: 。
+      - paragraph [ref=e125]: 仍然存在一个经典并发问题。
+      - paragraph [ref=e126]: 例如：
+      - generic [ref=e127]:
+        - generic [ref=e128]:
+          - generic [ref=e129]: text
+          - button "复制" [ref=e130] [cursor=pointer]
+        - code [ref=e132]: 线程 A： 1. 查缓存，没有 2. 查 DB，读到旧值 10 线程 B： 3. 更新 DB = 20 4. 删除缓存 线程 A： 5. 把刚才读到的旧值 10 写入缓存
+      - paragraph [ref=e133]: 最终：
+      - generic [ref=e134]:
+        - generic [ref=e135]:
+          - generic [ref=e136]: text
+          - button "复制" [ref=e137] [cursor=pointer]
+        - code [ref=e139]: DB = 20 Cache = 10
+      - paragraph [ref=e140]: 因此：
+      - blockquote [ref=e141]:
+        - paragraph [ref=e142]:
+          - strong [ref=e143]: 删除缓存并不意味着理论上的强一致，只是大幅降低了缓存与数据库不一致的复杂度。
+      - separator [ref=e144]
+      - heading "SECTION 05 5. 如何进一步降低不一致概率？" [level=2] [ref=e145]
+      - paragraph [ref=e146]: 工程上常见组合：
+      - generic [ref=e147]:
+        - generic [ref=e148]:
+          - generic [ref=e149]: text
+          - button "复制" [ref=e150] [cursor=pointer]
+        - code [ref=e152]: Cache Aside + TTL + 删除失败重试 / MQ 补偿 + 必要时延迟双删
+      - heading "5.1 TTL" [level=3] [ref=e153]
+      - paragraph [ref=e154]: 给缓存设置合理的过期时间。
+      - paragraph [ref=e155]: 即使因为极端并发产生了脏缓存：
+      - generic [ref=e156]:
+        - generic [ref=e157]:
+          - generic [ref=e158]: text
+          - button "复制" [ref=e159] [cursor=pointer]
+        - code [ref=e161]: DB = 新值 Redis = 旧值
+      - paragraph [ref=e162]: 缓存最终也会自动过期，然后重新从 DB 构建。
+      - paragraph [ref=e163]: TTL 相当于最终一致性的兜底机制之一。
+      - separator [ref=e164]
+      - heading "5.2 删除失败重试 / MQ 补偿" [level=3] [ref=e165]
+      - paragraph [ref=e166]: 例如：
+      - generic [ref=e167]:
+        - generic [ref=e168]:
+          - generic [ref=e169]: text
+          - button "复制" [ref=e170] [cursor=pointer]
+        - code [ref=e172]: 更新 DB 成功 ↓ 删除 Redis ↓ 删除失败 ↓ 发送 MQ / 写入重试队列 ↓ 后台重新删除 Redis
+      - paragraph [ref=e173]: 这样可以避免：
+      - generic [ref=e174]:
+        - generic [ref=e175]:
+          - generic [ref=e176]: text
+          - button "复制" [ref=e177] [cursor=pointer]
+        - code [ref=e179]: 数据库已经更新 但缓存删除失败 ↓ 旧缓存一直存在
+      - paragraph [ref=e180]: 对于比较重要的数据，这是比单纯"删一次缓存"更可靠的方式。
+      - separator [ref=e181]
+      - heading "5.3 延迟双删" [level=3] [ref=e182]
+      - paragraph [ref=e183]: 例如：
+      - generic [ref=e184]:
+        - generic [ref=e185]:
+          - generic [ref=e186]: text
+          - button "复制" [ref=e187] [cursor=pointer]
+        - code [ref=e189]: 更新 DB ↓ 删除 Redis ↓ 等待一小段时间 ↓ 再次删除 Redis
+      - paragraph [ref=e190]: 目的就是处理前面提到的并发场景：
+      - generic [ref=e191]:
+        - generic [ref=e192]:
+          - generic [ref=e193]: text
+          - button "复制" [ref=e194] [cursor=pointer]
+        - code [ref=e196]: A 查询到旧 DB ↓ B 更新 DB ↓ B 删除缓存 ↓ A 又把旧数据写回缓存
+      - paragraph [ref=e197]: 第二次删除尝试把 A 回填的旧缓存再次删除。
+      - paragraph [ref=e198]: 但是延迟双删并不是所有业务都应该默认使用，因为：
+      - list [ref=e199]:
+        - listitem [ref=e200]: 增加系统复杂度。
+        - listitem [ref=e201]: 延迟时间很难精确确定。
+        - listitem [ref=e202]: 仍然不是严格意义上的强一致。
+      - paragraph [ref=e203]: 因此通常根据业务一致性要求决定是否采用。
+      - separator [ref=e204]
+      - heading "SECTION 06 6. 哪些场景使用什么一致性策略？" [level=1] [ref=e205]
+      - table [ref=e207]:
+        - rowgroup [ref=e208]:
+          - row "场景 推荐策略" [ref=e209]:
+            - columnheader "场景" [ref=e210]
+            - columnheader "推荐策略" [ref=e211]
+        - rowgroup [ref=e212]:
+          - row "商品详情、配置、普通业务数据 Cache Aside + DB 更新后删缓存 + TTL" [ref=e213]:
+            - cell "商品详情、配置、普通业务数据" [ref=e214]
+            - cell "Cache Aside + DB 更新后删缓存 + TTL" [ref=e215]
+          - row "高并发读、低频写 Cache Aside" [ref=e216]:
+            - cell "高并发读、低频写" [ref=e217]
+            - cell "Cache Aside" [ref=e218]
+          - row "缓存删除偶尔失败 MQ / 重试队列补偿删除" [ref=e219]:
+            - cell "缓存删除偶尔失败" [ref=e220]
+            - cell "MQ / 重试队列补偿删除" [ref=e221]
+          - row "可以容忍几秒旧数据 TTL + 最终一致性" [ref=e222]:
+            - cell "可以容忍几秒旧数据" [ref=e223]
+            - cell "TTL + 最终一致性" [ref=e224]
+          - row "余额、库存扣减、支付状态 不依赖普通缓存保证一致性" [ref=e225]:
+            - cell "余额、库存扣减、支付状态" [ref=e226]
+            - cell "不依赖普通缓存保证一致性" [ref=e227]
+          - row "极高一致性要求 DB 事务 / 原子操作 / 必要的分布式事务" [ref=e228]:
+            - cell "极高一致性要求" [ref=e229]
+            - cell "DB 事务 / 原子操作 / 必要的分布式事务" [ref=e230]
+      - separator [ref=e231]
+      - heading "SECTION 07 7. 为什么缓存不应该轻易作为事实源？" [level=1] [ref=e232]
+      - paragraph [ref=e233]: 例如：
+      - generic [ref=e234]:
+        - generic [ref=e235]:
+          - generic [ref=e236]: text
+          - button "复制" [ref=e237] [cursor=pointer]
+        - code [ref=e239]: "Redis: 余额 = 100 DB: 余额 = 80"
+      - paragraph [ref=e240]: 此时到底相信谁？
+      - paragraph [ref=e241]: 一般设计应该是：
+      - generic [ref=e242]:
+        - generic [ref=e243]:
+          - generic [ref=e244]: text
+          - button "复制" [ref=e245] [cursor=pointer]
+        - code [ref=e247]: DB = 事实源 Redis = 性能层
+      - paragraph [ref=e248]: 缓存错了：
+      - generic [ref=e249]:
+        - generic [ref=e250]:
+          - generic [ref=e251]: text
+          - button "复制" [ref=e252] [cursor=pointer]
+        - code [ref=e254]: 删除缓存 ↓ 重新读取 DB ↓ 重建缓存
+      - paragraph [ref=e255]: 因此普通业务缓存应该尽量做到：
+      - blockquote [ref=e256]:
+        - paragraph [ref=e257]:
+          - strong [ref=e258]: 缓存可以丢，数据库不能错。
+      - separator [ref=e259]
+      - heading "SECTION 08 8. 强一致业务为什么不能单纯依赖缓存？" [level=1] [ref=e260]
+      - paragraph [ref=e261]: 例如库存：
+      - generic [ref=e262]:
+        - generic [ref=e263]:
+          - generic [ref=e264]: text
+          - button "复制" [ref=e265] [cursor=pointer]
+        - code [ref=e267]: 库存剩余：1 用户 A → 下单 用户 B → 同时下单
+      - paragraph [ref=e268]: 这时候真正的问题已经不是：
+      - blockquote [ref=e269]:
+        - paragraph [ref=e270]: Redis 和数据库缓存是否一致？
+      - paragraph [ref=e271]: 而是：
+      - blockquote [ref=e272]:
+        - paragraph [ref=e273]: 两个并发请求如何保证只有一个请求成功扣减库存？
+      - paragraph [ref=e274]: 因此核心应该转向：
+      - list [ref=e275]:
+        - listitem [ref=e276]: 数据库事务
+        - listitem [ref=e277]: 乐观锁 / 悲观锁
+        - listitem [ref=e278]: CAS
+        - listitem [ref=e279]: Redis 原子操作
+        - listitem [ref=e280]: Lua Script
+        - listitem [ref=e281]: 库存预扣
+        - listitem [ref=e282]: 消息队列
+        - listitem [ref=e283]: 分布式事务
+      - paragraph [ref=e284]: 也就是说：
+      - blockquote [ref=e285]:
+        - paragraph [ref=e286]:
+          - strong [ref=e287]: 缓存一致性解决的是"读到什么数据"的问题，而库存并发控制解决的是"业务状态能不能被正确修改"的问题。
+      - paragraph [ref=e288]: 两者不能混为一谈。
+      - separator [ref=e289]
+      - heading "SECTION 09 9. 缓存击穿：大量并发同时 Cache Miss 怎么办？" [level=1] [ref=e290]
+      - paragraph [ref=e291]: 假设某一个热点 Key：
+      - generic [ref=e292]:
+        - generic [ref=e293]:
+          - generic [ref=e294]: text
+          - button "复制" [ref=e295] [cursor=pointer]
+        - code [ref=e297]: product:123
+      - paragraph [ref=e298]: 平时：
+      - generic [ref=e299]:
+        - generic [ref=e300]:
+          - generic [ref=e301]: text
+          - button "复制" [ref=e302] [cursor=pointer]
+        - code [ref=e304]: 10 万 QPS ↓ Redis ↓ DB 几乎没有压力
+      - paragraph [ref=e305]: 突然缓存失效：
+      - generic [ref=e306]:
+        - generic [ref=e307]:
+          - generic [ref=e308]: text
+          - button "复制" [ref=e309] [cursor=pointer]
+        - code [ref=e311]: product:123 过期
+      - paragraph [ref=e312]: 这时候 10 万个请求同时：
+      - generic [ref=e313]:
+        - generic [ref=e314]:
+          - generic [ref=e315]: text
+          - button "复制" [ref=e316] [cursor=pointer]
+        - code [ref=e318]: Redis MISS ↓ 全部查询 DB
+      - paragraph [ref=e319]: 数据库可能瞬间被打垮。
+      - paragraph [ref=e320]: 这就是典型的：
+      - blockquote [ref=e321]:
+        - paragraph [ref=e322]:
+          - strong [ref=e323]: 缓存击穿（Cache Breakdown / Hot Key Expiration）
+      - separator [ref=e324]
+      - heading "SECTION 10 10. 方案一：互斥锁" [level=1] [ref=e325]
+      - paragraph [ref=e326]: 核心思想：
+      - blockquote [ref=e327]:
+        - paragraph [ref=e328]:
+          - strong [ref=e329]: 缓存失效之后，只允许一个请求查询数据库。
+      - paragraph [ref=e330]: 流程：
+      - generic [ref=e331]:
+        - generic [ref=e332]:
+          - generic [ref=e333]: text
+          - button "复制" [ref=e334] [cursor=pointer]
+        - code [ref=e336]: 大量请求 ↓ 查 Redis ↓ MISS 抢分布式锁 ↓ ┌────────────────┐ │ 抢到锁的请求 │ │ 查询 DB │ │ 写 Redis │ │ 释放锁 │ └────────────────┘ 其他请求 ↓ 没有抢到锁 ↓ 等待 / 重试 ↓ 重新读取 Redis
+      - paragraph [ref=e337]: Redis 中可以使用类似：
+      - generic [ref=e338]:
+        - generic [ref=e339]:
+          - generic [ref=e340]: text
+          - button "复制" [ref=e341] [cursor=pointer]
+        - code [ref=e343]: SET lock:product:123 1 NX EX 5
+      - paragraph [ref=e344]: 含义：
+      - list [ref=e345]:
+        - listitem [ref=e346]:
+          - code [ref=e347]: NX
+          - text: ：Key 不存在时才写入。
+        - listitem [ref=e348]:
+          - code [ref=e349]: EX 5
+          - text: ：锁 5 秒后自动过期。
+        - listitem [ref=e350]: 防止服务异常导致死锁。
+      - separator [ref=e351]
+      - heading "SECTION 11 11. 为什么抢到锁之后还要再查一次缓存？" [level=1] [ref=e352]
+      - paragraph [ref=e353]: 这是一个非常重要的细节。
+      - paragraph [ref=e354]: 例如：
+      - generic [ref=e355]:
+        - generic [ref=e356]:
+          - generic [ref=e357]: text
+          - button "复制" [ref=e358] [cursor=pointer]
+        - code [ref=e360]: A 查 Redis → MISS B 查 Redis → MISS A 抢到锁 A 查询 DB A 写 Redis A 释放锁 B 此时才抢到锁
+      - paragraph [ref=e361]: 如果 B 抢到锁之后直接：
+      - generic [ref=e362]:
+        - generic [ref=e363]:
+          - generic [ref=e364]: text
+          - button "复制" [ref=e365] [cursor=pointer]
+        - code [ref=e367]: 查询 DB
+      - paragraph [ref=e368]: 实际上这次数据库查询完全没有必要。
+      - paragraph [ref=e369]: 因为 A 已经：
+      - generic [ref=e370]:
+        - generic [ref=e371]:
+          - generic [ref=e372]: text
+          - button "复制" [ref=e373] [cursor=pointer]
+        - code [ref=e375]: DB → Redis
+      - paragraph [ref=e376]: 完成了缓存回填。
+      - paragraph [ref=e377]: 所以正确流程应该是：
+      - generic [ref=e378]:
+        - generic [ref=e379]:
+          - generic [ref=e380]: text
+          - button "复制" [ref=e381] [cursor=pointer]
+        - code [ref=e383]: 查缓存 ↓ MISS ↓ 抢锁 ↓ 再次查缓存 ↓ 仍然 MISS ↓ 查询 DB
+      - paragraph [ref=e384]: 这就是：
+      - blockquote [ref=e385]:
+        - paragraph [ref=e386]:
+          - strong [ref=e387]: Double Check（双重检查）
+      - separator [ref=e388]
+      - heading "SECTION 12 12. 方案二：Singleflight / 请求合并" [level=1] [ref=e389]
+      - paragraph [ref=e390]: 如果大量请求同时查询：
+      - generic [ref=e391]:
+        - generic [ref=e392]:
+          - generic [ref=e393]: text
+          - button "复制" [ref=e394] [cursor=pointer]
+        - code [ref=e396]: product:123
+      - paragraph [ref=e397]: 其实没有必要产生：
+      - generic [ref=e398]:
+        - generic [ref=e399]:
+          - generic [ref=e400]: text
+          - button "复制" [ref=e401] [cursor=pointer]
+        - code [ref=e403]: 1000 个请求 = 1000 次 DB 查询
+      - paragraph [ref=e404]: 可以让：
+      - generic [ref=e405]:
+        - generic [ref=e406]:
+          - generic [ref=e407]: text
+          - button "复制" [ref=e408] [cursor=pointer]
+        - code [ref=e410]: 第一个请求 ↓ 真正查询 DB 其他 999 个请求 ↓ 等待第一个请求的查询结果
+      - paragraph [ref=e411]: 最终：
+      - generic [ref=e412]:
+        - generic [ref=e413]:
+          - generic [ref=e414]: text
+          - button "复制" [ref=e415] [cursor=pointer]
+        - code [ref=e417]: 1000 个请求 ↓ 1 次 DB 查询
+      - paragraph [ref=e418]: 这就是：
+      - blockquote [ref=e419]:
+        - paragraph [ref=e420]:
+          - strong [ref=e421]: Singleflight / Request Coalescing（请求合并）
+      - paragraph [ref=e422]: Node.js 中可以维护一个正在执行的 Promise：
+      - generic [ref=e423]:
+        - generic [ref=e424]:
+          - generic [ref=e425]: js
+          - button "复制" [ref=e426] [cursor=pointer]
+        - code [ref=e428]: "const pending = new Map(); async function getProduct(id) { const key = `product:${id}`; const cached = await redis.get(key); if (cached) { return JSON.parse(cached); } if (pending.has(key)) { return pending.get(key); } const task = (async () => { try { const data = await db.getProduct(id); await redis.set( key, JSON.stringify(data), { EX: 60 } ); return data; } finally { pending.delete(key); } })(); pending.set(key, task); return task; }"
+      - paragraph [ref=e429]: 效果：
+      - generic [ref=e430]:
+        - generic [ref=e431]:
+          - generic [ref=e432]: text
+          - button "复制" [ref=e433] [cursor=pointer]
+        - code [ref=e435]: 请求 A ────────────────┐ 请求 B ────────────────┤ 请求 C ────────────────┤ 请求 D ────────────────┤ ↓ 同一个 Promise ↓ 查询 DB ↓ 返回所有请求
+      - separator [ref=e436]
+      - heading "SECTION 13 13. Singleflight 的局限" [level=1] [ref=e437]
+      - paragraph [ref=e438]: 假设系统部署：
+      - generic [ref=e439]:
+        - generic [ref=e440]:
+          - generic [ref=e441]: text
+          - button "复制" [ref=e442] [cursor=pointer]
+        - code [ref=e444]: 20 个 Node.js 实例
+      - paragraph [ref=e445]: 每个实例内部都有自己的：
+      - generic [ref=e446]:
+        - generic [ref=e447]:
+          - generic [ref=e448]: text
+          - button "复制" [ref=e449] [cursor=pointer]
+        - code [ref=e451]: pending Map
+      - paragraph [ref=e452]: 那么：
+      - generic [ref=e453]:
+        - generic [ref=e454]:
+          - generic [ref=e455]: text
+          - button "复制" [ref=e456] [cursor=pointer]
+        - code [ref=e458]: 实例 1 → 1 次 DB 实例 2 → 1 次 DB 实例 3 → 1 次 DB ... 实例 20 → 1 次 DB
+      - paragraph [ref=e459]: 最终仍然可能产生：
+      - generic [ref=e460]:
+        - generic [ref=e461]:
+          - generic [ref=e462]: text
+          - button "复制" [ref=e463] [cursor=pointer]
+        - code [ref=e465]: 20 次 DB 查询
+      - paragraph [ref=e466]: 因此：
+      - heading "单机请求合并" [level=3] [ref=e467]
+      - generic [ref=e468]:
+        - generic [ref=e469]:
+          - generic [ref=e470]: text
+          - button "复制" [ref=e471] [cursor=pointer]
+        - code [ref=e473]: 本地 Singleflight
+      - paragraph [ref=e474]: 解决：
+      - generic [ref=e475]:
+        - generic [ref=e476]:
+          - generic [ref=e477]: text
+          - button "复制" [ref=e478] [cursor=pointer]
+        - code [ref=e480]: 同一个服务实例内部的并发
+      - heading "分布式请求合并" [level=3] [ref=e481]
+      - paragraph [ref=e482]: 可以进一步使用：
+      - generic [ref=e483]:
+        - generic [ref=e484]:
+          - generic [ref=e485]: text
+          - button "复制" [ref=e486] [cursor=pointer]
+        - code [ref=e488]: 本地 Singleflight + Redis 分布式锁
+      - paragraph [ref=e489]: 这样能够进一步控制多个服务实例同时访问数据库。
+      - separator [ref=e490]
+      - heading "SECTION 14 14. 方案三：逻辑过期" [level=1] [ref=e491]
+      - paragraph [ref=e492]: 对于超级热点 Key，可以不让 Redis Key 真正消失。
+      - paragraph [ref=e493]: 例如 Redis 保存：
+      - generic [ref=e494]:
+        - generic [ref=e495]:
+          - generic [ref=e496]: json
+          - button "复制" [ref=e497] [cursor=pointer]
+        - code [ref=e499]: "{ \"data\": { \"name\": \"商品 A\" }, \"expireTime\": 1780000000 }"
+      - paragraph [ref=e500]: Redis Key 本身：
+      - generic [ref=e501]:
+        - generic [ref=e502]:
+          - generic [ref=e503]: text
+          - button "复制" [ref=e504] [cursor=pointer]
+        - code [ref=e506]: 不设置物理 TTL
+      - paragraph [ref=e507]: 或者设置一个非常长的 TTL。
+      - paragraph [ref=e508]: 业务代码自己判断：
+      - generic [ref=e509]:
+        - generic [ref=e510]:
+          - generic [ref=e511]: text
+          - button "复制" [ref=e512] [cursor=pointer]
+        - code [ref=e514]: expireTime
+      - paragraph [ref=e515]: 如果没有过期：
+      - generic [ref=e516]:
+        - generic [ref=e517]:
+          - generic [ref=e518]: text
+          - button "复制" [ref=e519] [cursor=pointer]
+        - code [ref=e521]: 直接返回数据
+      - paragraph [ref=e522]: 如果已经逻辑过期：
+      - generic [ref=e523]:
+        - generic [ref=e524]:
+          - generic [ref=e525]: text
+          - button "复制" [ref=e526] [cursor=pointer]
+        - code [ref=e528]: 仍然返回旧数据 + 后台异步刷新缓存
+      - paragraph [ref=e529]: 流程：
+      - generic [ref=e530]:
+        - generic [ref=e531]:
+          - generic [ref=e532]: text
+          - button "复制" [ref=e533] [cursor=pointer]
+        - code [ref=e535]: 请求 ↓ 读取 Redis ↓ 发现逻辑过期 ↓ 仍然返回旧数据 ↓ 尝试抢刷新锁 ↓ 一个线程查询 DB ↓ 更新 Redis
+      - paragraph [ref=e536]: 这样就不会出现：
+      - generic [ref=e537]:
+        - generic [ref=e538]:
+          - generic [ref=e539]: text
+          - button "复制" [ref=e540] [cursor=pointer]
+        - code [ref=e542]: 缓存突然消失 ↓ 所有请求直接访问 DB
+      - separator [ref=e543]
+      - heading "SECTION 15 15. 逻辑过期的本质：用一致性换可用性" [level=1] [ref=e544]
+      - paragraph [ref=e545]: 逻辑过期意味着：
+      - generic [ref=e546]:
+        - generic [ref=e547]:
+          - generic [ref=e548]: text
+          - button "复制" [ref=e549] [cursor=pointer]
+        - code [ref=e551]: 缓存已经过期 ↓ 用户仍然可能看到旧数据
+      - paragraph [ref=e552]: 例如：
+      - generic [ref=e553]:
+        - generic [ref=e554]:
+          - generic [ref=e555]: text
+          - button "复制" [ref=e556] [cursor=pointer]
+        - code [ref=e558]: DB： 商品价格 = 100 Redis： 商品价格 = 90
+      - paragraph [ref=e559]: 缓存正在异步刷新期间，部分用户可能仍然看到 90。
+      - paragraph [ref=e560]: 因此它适合：
+      - list [ref=e561]:
+        - listitem [ref=e562]: 首页数据
+        - listitem [ref=e563]: 热门商品
+        - listitem [ref=e564]: 排行榜
+        - listitem [ref=e565]: 活动配置
+        - listitem [ref=e566]: 热点内容
+        - listitem [ref=e567]: 推荐内容
+      - paragraph [ref=e568]: 不适合直接用于要求强一致的：
+      - list [ref=e569]:
+        - listitem [ref=e570]: 账户余额
+        - listitem [ref=e571]: 最终支付金额
+        - listitem [ref=e572]: 精确库存状态
+        - listitem [ref=e573]: 强一致业务状态
+      - separator [ref=e574]
+      - heading "SECTION 16 16. 方案四：提前刷新缓存" [level=1] [ref=e575]
+      - paragraph [ref=e576]: 假设：
+      - generic [ref=e577]:
+        - generic [ref=e578]:
+          - generic [ref=e579]: text
+          - button "复制" [ref=e580] [cursor=pointer]
+        - code [ref=e582]: TTL = 10 分钟
+      - paragraph [ref=e583]: 不要等到：
+      - generic [ref=e584]:
+        - generic [ref=e585]:
+          - generic [ref=e586]: text
+          - button "复制" [ref=e587] [cursor=pointer]
+        - code [ref=e589]: 10:00:00
+      - paragraph [ref=e590]: Key 真正消失之后再重建。
+      - paragraph [ref=e591]: 可以在：
+      - generic [ref=e592]:
+        - generic [ref=e593]:
+          - generic [ref=e594]: text
+          - button "复制" [ref=e595] [cursor=pointer]
+        - code [ref=e597]: TTL 剩余 60 秒
+      - paragraph [ref=e598]: 时由后台任务提前刷新。
+      - paragraph [ref=e599]: 例如：
+      - generic [ref=e600]:
+        - generic [ref=e601]:
+          - generic [ref=e602]: text
+          - button "复制" [ref=e603] [cursor=pointer]
+        - code [ref=e605]: 09:59:00 ↓ 后台刷新缓存 10:00:00 ↓ 新的缓存已经存在
+      - paragraph [ref=e606]: 这样避免：
+      - generic [ref=e607]:
+        - generic [ref=e608]:
+          - generic [ref=e609]: text
+          - button "复制" [ref=e610] [cursor=pointer]
+        - code [ref=e612]: 热点 Key 突然失效 ↓ 大量请求 Cache Miss
+      - paragraph [ref=e613]: 特别适合：
+      - list [ref=e614]:
+        - listitem [ref=e615]: 可以预测的热点。
+        - listitem [ref=e616]: 首页。
+        - listitem [ref=e617]: 大促商品。
+        - listitem [ref=e618]: 活动配置。
+        - listitem [ref=e619]: 热门榜单。
+      - separator [ref=e620]
+      - heading "SECTION 17 17. 方案五：限流、降级、熔断" [level=1] [ref=e621]
+      - paragraph [ref=e622]: 即使缓存保护措施全部失效，也不能让无限流量直接进入数据库。
+      - paragraph [ref=e623]: 例如数据库最大安全能力：
+      - generic [ref=e624]:
+        - generic [ref=e625]:
+          - generic [ref=e626]: text
+          - button "复制" [ref=e627] [cursor=pointer]
+        - code [ref=e629]: 500 QPS
+      - paragraph [ref=e630]: 如果突然出现：
+      - generic [ref=e631]:
+        - generic [ref=e632]:
+          - generic [ref=e633]: text
+          - button "复制" [ref=e634] [cursor=pointer]
+        - code [ref=e636]: 50,000 QPS
+      - paragraph [ref=e637]: 系统入口应该有限流能力：
+      - generic [ref=e638]:
+        - generic [ref=e639]:
+          - generic [ref=e640]: text
+          - button "复制" [ref=e641] [cursor=pointer]
+        - code [ref=e643]: 请求 ↓ 限流 ↓ 缓存 ↓ DB
+      - paragraph [ref=e644]: 超过系统承载能力，可以：
+      - heading "返回系统繁忙" [level=3] [ref=e645]
+      - generic [ref=e646]:
+        - generic [ref=e647]:
+          - generic [ref=e648]: json
+          - button "复制" [ref=e649] [cursor=pointer]
+        - code [ref=e651]: "{ \"message\": \"系统繁忙，请稍后重试\" }"
+      - heading "返回旧缓存" [level=3] [ref=e652]
+      - generic [ref=e653]:
+        - generic [ref=e654]:
+          - generic [ref=e655]: text
+          - button "复制" [ref=e656] [cursor=pointer]
+        - code [ref=e658]: Redis 数据虽然已经逻辑过期 ↓ 但是 DB 压力过大 ↓ 继续返回旧数据
+      - heading "服务降级" [level=3] [ref=e659]
+      - paragraph [ref=e660]: 例如首页推荐：
+      - generic [ref=e661]:
+        - generic [ref=e662]:
+          - generic [ref=e663]: text
+          - button "复制" [ref=e664] [cursor=pointer]
+        - code [ref=e666]: 正常： 个性化推荐 降级： 热门商品列表
+      - paragraph [ref=e667]: 核心思想：
+      - blockquote [ref=e668]:
+        - paragraph [ref=e669]:
+          - strong [ref=e670]: 数据库应该是最后一道防线，而不是缓存一失效，所有流量都直接进入数据库。
+      - separator [ref=e671]
+      - heading "SECTION 18 18. 完整的高并发缓存保护体系" [level=1] [ref=e672]
+      - paragraph [ref=e673]: 一个比较完整的系统可以设计为：
+      - generic [ref=e674]:
+        - generic [ref=e675]:
+          - generic [ref=e676]: text
+          - button "复制" [ref=e677] [cursor=pointer]
+        - code [ref=e679]: 请求 ↓ 限流 ↓ 查询 Redis ↙ ↘ HIT MISS ↓ ↓ 返回 Singleflight ↓ Redis 分布式锁 ↓ Double Check ↓ 查询 DB ↓ 回填 Redis
+      - paragraph [ref=e680]: 对于超级热点 Key：
+      - generic [ref=e681]:
+        - generic [ref=e682]:
+          - generic [ref=e683]: text
+          - button "复制" [ref=e684] [cursor=pointer]
+        - code [ref=e686]: 请求 ↓ 查询 Redis ↓ 数据逻辑过期？ ↙ ↘ 否 是 ↓ ↓ 返回 返回旧数据 + 抢刷新锁 ↓ 后台查询 DB ↓ 更新 Redis
+      - separator [ref=e687]
+      - heading "SECTION 19 19. 缓存穿透、缓存击穿、缓存雪崩的区别" [level=1] [ref=e688]
+      - paragraph [ref=e689]: 这三个概念经常一起出现。
+      - heading "SECTION 20 19.1 缓存穿透" [level=2] [ref=e690]
+      - paragraph [ref=e691]: 含义：
+      - blockquote [ref=e692]:
+        - paragraph [ref=e693]: 查询一个根本不存在的数据。
+      - paragraph [ref=e694]: 例如：
+      - generic [ref=e695]:
+        - generic [ref=e696]:
+          - generic [ref=e697]: text
+          - button "复制" [ref=e698] [cursor=pointer]
+        - code [ref=e700]: GET /product/999999999
+      - paragraph [ref=e701]: Redis：
+      - generic [ref=e702]:
+        - generic [ref=e703]:
+          - generic [ref=e704]: text
+          - button "复制" [ref=e705] [cursor=pointer]
+        - code [ref=e707]: 没有
+      - paragraph [ref=e708]: DB：
+      - generic [ref=e709]:
+        - generic [ref=e710]:
+          - generic [ref=e711]: text
+          - button "复制" [ref=e712] [cursor=pointer]
+        - code [ref=e714]: 也没有
+      - paragraph [ref=e715]: 每一次请求都会：
+      - generic [ref=e716]:
+        - generic [ref=e717]:
+          - generic [ref=e718]: text
+          - button "复制" [ref=e719] [cursor=pointer]
+        - code [ref=e721]: Redis MISS ↓ DB MISS
+      - paragraph [ref=e722]: 攻击者甚至可以不断生成随机 ID：
+      - generic [ref=e723]:
+        - generic [ref=e724]:
+          - generic [ref=e725]: text
+          - button "复制" [ref=e726] [cursor=pointer]
+        - code [ref=e728]: product:123456 product:837462 product:918273 ...
+      - paragraph [ref=e729]: 导致数据库压力巨大。
+      - paragraph [ref=e730]: 解决方案：
+      - generic [ref=e731]:
+        - generic [ref=e732]:
+          - generic [ref=e733]: text
+          - button "复制" [ref=e734] [cursor=pointer]
+        - code [ref=e736]: 缓存空值 + Bloom Filter（布隆过滤器）
+      - separator [ref=e737]
+      - heading "SECTION 21 19.2 缓存击穿" [level=2] [ref=e738]
+      - paragraph [ref=e739]: 含义：
+      - blockquote [ref=e740]:
+        - paragraph [ref=e741]: 一个超级热点 Key 突然失效。
+      - paragraph [ref=e742]: 例如：
+      - generic [ref=e743]:
+        - generic [ref=e744]:
+          - generic [ref=e745]: text
+          - button "复制" [ref=e746] [cursor=pointer]
+        - code [ref=e748]: iPhone 商品详情
+      - paragraph [ref=e749]: 缓存突然过期：
+      - generic [ref=e750]:
+        - generic [ref=e751]:
+          - generic [ref=e752]: text
+          - button "复制" [ref=e753] [cursor=pointer]
+        - code [ref=e755]: 大量请求 ↓ Redis MISS ↓ DB
+      - paragraph [ref=e756]: 解决：
+      - generic [ref=e757]:
+        - generic [ref=e758]:
+          - generic [ref=e759]: text
+          - button "复制" [ref=e760] [cursor=pointer]
+        - code [ref=e762]: 互斥锁 Singleflight 逻辑过期 提前刷新
+      - separator [ref=e763]
+      - heading "SECTION 22 19.3 缓存雪崩" [level=2] [ref=e764]
+      - paragraph [ref=e765]: 含义：
+      - blockquote [ref=e766]:
+        - paragraph [ref=e767]: 大量缓存 Key 在同一时间失效。
+      - paragraph [ref=e768]: 例如：
+      - generic [ref=e769]:
+        - generic [ref=e770]:
+          - generic [ref=e771]: text
+          - button "复制" [ref=e772] [cursor=pointer]
+        - code [ref=e774]: product:1 TTL = 3600 product:2 TTL = 3600 product:3 TTL = 3600 ... product:100000 TTL = 3600
+      - paragraph [ref=e775]: 这些缓存恰好同一时间创建。
+      - paragraph [ref=e776]: 一个小时之后：
+      - generic [ref=e777]:
+        - generic [ref=e778]:
+          - generic [ref=e779]: text
+          - button "复制" [ref=e780] [cursor=pointer]
+        - code [ref=e782]: 10 万个 Key 同时过期
+      - paragraph [ref=e783]: 大量请求：
+      - generic [ref=e784]:
+        - generic [ref=e785]:
+          - generic [ref=e786]: text
+          - button "复制" [ref=e787] [cursor=pointer]
+        - code [ref=e789]: Redis MISS ↓ DB
+      - paragraph [ref=e790]: 解决方案：
+      - generic [ref=e791]:
+        - generic [ref=e792]:
+          - generic [ref=e793]: text
+          - button "复制" [ref=e794] [cursor=pointer]
+        - code [ref=e796]: TTL 随机化 + 分批过期 + 多级缓存 + 限流 + 降级
+      - paragraph [ref=e797]: 例如不要全部：
+      - generic [ref=e798]:
+        - generic [ref=e799]:
+          - generic [ref=e800]: text
+          - button "复制" [ref=e801] [cursor=pointer]
+        - code [ref=e803]: TTL = 3600
+      - paragraph [ref=e804]: 而是：
+      - generic [ref=e805]:
+        - generic [ref=e806]:
+          - generic [ref=e807]: text
+          - button "复制" [ref=e808] [cursor=pointer]
+        - code [ref=e810]: TTL = 3600 + random(0, 300)
+      - paragraph [ref=e811]: 让缓存失效时间分散。
+      - separator [ref=e812]
+      - heading "SECTION 23 20. 三种缓存问题快速记忆" [level=1] [ref=e813]
+      - generic [ref=e814]:
+        - generic [ref=e815]:
+          - generic [ref=e816]: text
+          - button "复制" [ref=e817] [cursor=pointer]
+        - code [ref=e819]: 缓存穿透 = 查“根本不存在”的数据 = 缓存空值 / Bloom Filter 缓存击穿 = 一个“超级热点 Key”失效 = 互斥锁 / Singleflight / 逻辑过期 缓存雪崩 = “大量 Key”同时失效 = 随机 TTL / 分批过期 / 多级缓存 / 限流
+      - separator [ref=e820]
+      - heading "SECTION 24 21. 面试回答：缓存和数据库一致性怎么保证？" [level=1] [ref=e821]
+      - paragraph [ref=e822]: 可以这样回答：
+      - blockquote [ref=e823]:
+        - paragraph [ref=e824]: 我通常使用 Cache Aside Pattern。读请求先查缓存，未命中再查询数据库并回填缓存；写请求先更新数据库，再删除缓存，而不是直接更新缓存，这样可以降低并发情况下缓存更新顺序错乱导致的不一致问题。 这种方案本质上还是最终一致性，仍然存在并发读写导致旧数据重新写入缓存的问题，所以会根据业务要求增加 TTL、删除失败重试、MQ 补偿，必要时使用延迟双删。 如果是余额、库存、支付这类强一致业务，不会依赖普通缓存保证最终业务正确性，而是让数据库事务或者原子操作负责业务状态正确，缓存主要作为查询加速层。
+      - separator [ref=e825]
+      - heading "SECTION 25 22. 面试回答：缓存击穿怎么解决？" [level=1] [ref=e826]
+      - paragraph [ref=e827]: 可以这样回答：
+      - blockquote [ref=e828]:
+        - paragraph [ref=e829]: 对热点 Key 缓存失效导致的大量并发请求，我首先会避免所有请求同时访问数据库。 常见方案是基于 Redis 分布式锁或者 Singleflight 做请求合并，只让一个请求查询数据库并回填缓存，其他请求等待之后重新读取缓存。同时抢到锁之后还要再次查询缓存，也就是 Double Check，避免其他请求已经完成缓存回填之后仍然重复查询数据库。 如果是超级热点数据，我会考虑逻辑过期，让旧缓存继续提供服务，然后只让一个线程异步刷新缓存，从根本上避免缓存失效瞬间大量流量直接进入数据库。 最后还要配合随机 TTL、提前刷新、限流和降级，避免缓存异常进一步演变成数据库雪崩。
+      - separator [ref=e830]
+      - heading "SECTION 26 23. 最终理解框架" [level=1] [ref=e831]
+      - paragraph [ref=e832]: 缓存相关问题可以按照下面几个层次理解：
+      - generic [ref=e833]:
+        - generic [ref=e834]:
+          - generic [ref=e835]: text
+          - button "复制" [ref=e836] [cursor=pointer]
+        - code [ref=e838]: 第一层：正常缓存 Cache Aside DB = Source of Truth Redis = Performance Layer 第二层：一致性 更新 DB ↓ 删除缓存 ↓ TTL / MQ 补偿 / 必要时延迟双删 第三层：单热点高并发 缓存击穿 ↓ Singleflight ↓ 分布式锁 ↓ Double Check 第四层：超级热点 逻辑过期 ↓ 旧数据继续服务 ↓ 后台异步刷新 第五层：大量缓存同时失效 缓存雪崩 ↓ 随机 TTL ↓ 分批失效 ↓ 多级缓存 第六层：最后防线 限流 ↓ 降级 ↓ 熔断 ↓ 保护 DB
+      - paragraph [ref=e839]: 判断具体方案时，优先问三个问题：
+      - list [ref=e840]:
+        - listitem [ref=e841]:
+          - strong [ref=e842]: 业务能不能接受短时间脏数据？
+        - listitem [ref=e843]:
+          - strong [ref=e844]: 这个数据是读多写少，还是写操作也非常频繁？
+        - listitem [ref=e845]:
+          - strong [ref=e846]: 缓存错误只是影响展示，还是会造成资金、库存、支付等业务损失？
+      - paragraph [ref=e847]: 这三个问题基本决定了应该采用最终一致性、逻辑过期，还是需要把一致性保证下沉到数据库事务和原子业务操作。
+  - button "返回顶部": ↑
+  - contentinfo [ref=e848]: 缓存与数据库一致性及高并发缓存保护

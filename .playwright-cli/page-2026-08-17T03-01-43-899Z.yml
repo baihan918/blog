@@ -1,0 +1,445 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: LN
+      - generic [ref=e6]: Transformer 通俗学习手册
+    - button "切换深浅色模式" [ref=e8] [cursor=pointer]: ◐
+  - generic [ref=e9]:
+    - generic [ref=e10]: LAYER NORMALIZATION
+    - heading "把每个 Token 的数值 换成同一把尺子" [level=1] [ref=e11]:
+      - text: 把每个 Token 的数值
+      - text: 换成同一把尺子
+    - paragraph [ref=e12]: 不从公式开始。先把 LayerNorm 想成照片的自动亮度与对比度校准，再一步步理解均值、方差、标准差，以及 Transformer 为什么不用 BatchNorm。
+    - generic [ref=e13]:
+      - generic [ref=e14]: Token 的特征是什么？
+      - generic [ref=e15]: 归一化到底在做什么？
+      - generic [ref=e16]: 为什么除以标准差？
+      - generic [ref=e17]: RMSNorm 又是什么？
+  - generic [ref=e18]:
+    - complementary "章节目录" [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]: 学习目录
+          - generic [ref=e23]: ⌘ K
+        - searchbox "搜索章节" [ref=e24]
+      - navigation [ref=e25]:
+        - link "01 一个 Token 是什么" [ref=e26] [cursor=pointer]:
+          - /url: "#token"
+          - generic [ref=e27]: "01"
+          - generic [ref=e28]: 一个 Token 是什么
+        - link "↳ 隐藏向量与隐藏维度" [ref=e29] [cursor=pointer]:
+          - /url: "#hidden-vector"
+          - generic [ref=e30]: ↳
+          - generic [ref=e31]: 隐藏向量与隐藏维度
+        - link "02 什么叫归一化" [ref=e32] [cursor=pointer]:
+          - /url: "#normalize"
+          - generic [ref=e33]: "02"
+          - generic [ref=e34]: 什么叫归一化
+        - link "↳ 照片亮度与对比度类比" [ref=e35] [cursor=pointer]:
+          - /url: "#photo-analogy"
+          - generic [ref=e36]: ↳
+          - generic [ref=e37]: 照片亮度与对比度类比
+        - link "03 方差与标准差" [ref=e38] [cursor=pointer]:
+          - /url: "#variance"
+          - generic [ref=e39]: "03"
+          - generic [ref=e40]: 方差与标准差
+        - link "↳ 为什么除以标准差" [ref=e41] [cursor=pointer]:
+          - /url: "#std-vs-var"
+          - generic [ref=e42]: ↳
+          - generic [ref=e43]: 为什么除以标准差
+        - link "04 LayerNorm 与 BatchNorm" [ref=e44] [cursor=pointer]:
+          - /url: "#batch"
+          - generic [ref=e45]: "04"
+          - generic [ref=e46]: LayerNorm 与 BatchNorm
+        - link "05 放回 Transformer" [ref=e47] [cursor=pointer]:
+          - /url: "#transformer"
+          - generic [ref=e48]: "05"
+          - generic [ref=e49]: 放回 Transformer
+        - link "↳ 最新残差状态如何校准" [ref=e50] [cursor=pointer]:
+          - /url: "#residual-state"
+          - generic [ref=e51]: ↳
+          - generic [ref=e52]: 最新残差状态如何校准
+        - link "↳ Pre-LN 与 Post-LN" [ref=e53] [cursor=pointer]:
+          - /url: "#pre-post-ln"
+          - generic [ref=e54]: ↳
+          - generic [ref=e55]: Pre-LN 与 Post-LN
+        - link "06 RMSNorm 与 LLaMA" [ref=e56] [cursor=pointer]:
+          - /url: "#rmsnorm"
+          - generic [ref=e57]: "06"
+          - generic [ref=e58]: RMSNorm 与 LLaMA
+        - link "↳ LLaMA 实际怎么做" [ref=e59] [cursor=pointer]:
+          - /url: "#llama-rmsnorm"
+          - generic [ref=e60]: ↳
+          - generic [ref=e61]: LLaMA 实际怎么做
+        - link "↳ LayerNorm 还有必要吗" [ref=e62] [cursor=pointer]:
+          - /url: "#norm-choice"
+          - generic [ref=e63]: ↳
+          - generic [ref=e64]: LayerNorm 还有必要吗
+    - main [ref=e65]:
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - text: 01 · 先看对象
+          - heading "一个 Token，在模型里就是一张“数字特征卡”" [level=2] [ref=e68]
+          - paragraph [ref=e69]: 词只是人类看到的形式；进入模型后，每个 Token 都会变成一个 hidden vector。
+        - generic [ref=e70]:
+          - article [ref=e71]:
+            - generic [ref=e72]:
+              - generic [ref=e73]: 喜欢
+              - generic [ref=e74]:
+                - generic "喜欢这个 Token 的六维示意向量" [ref=e75]:
+                  - generic [ref=e76]: "1.2"
+                  - generic [ref=e77]: "-0.4"
+                  - generic [ref=e78]: "2.8"
+                  - generic [ref=e79]: "0.7"
+                  - generic [ref=e80]: "-1.1"
+                  - generic [ref=e81]: "3.4"
+                - generic [ref=e82]: ← LayerNorm 沿着这一整排 hidden features 计算 →
+            - generic [ref=e83]:
+              - strong [ref=e84]: 别把每一维硬翻译成人类概念：
+              - text: 真实模型可能有 768、4096 甚至更多维。某一维通常不是单独的“情感”或“词性”，而是许多信息混合形成的内部坐标。
+          - article [ref=e85]:
+            - heading "“同一个 Token 的所有特征”是什么意思？" [level=3] [ref=e86]
+            - paragraph [ref=e87]: 就是只拿“喜欢”自己的这一整排数字计算均值和方差，不把“我”“学习”或别的句子混进来。
+            - generic [ref=e88]: "[batch, sequence, hidden] → 对每个 [hidden] 单独归一化"
+          - article [ref=e89]:
+            - heading "一句话先记住" [level=3] [ref=e90]
+            - paragraph [ref=e91]: LayerNorm 不是理解这些数字的语义，而是在每道工序前，先把它们使用的“数值尺子”校准好。
+          - article [ref=e92]:
+            - heading "把“隐藏向量”和“隐藏维度”说准确" [level=3] [ref=e93]
+            - paragraph [ref=e94]:
+              - strong [ref=e95]: 一个 Token 对应一个隐藏向量；隐藏维度 D 是多少，这个向量里就有多少个数。
+              - text: 不是一个 Token 拥有 D 个向量，而是它拥有一个由 D 个特征值组成的向量。
+            - generic [ref=e96]: 一个 Token → 一个隐藏向量 h = [h₁, h₂, h₃, …, hᴅ]
+            - generic [ref=e97]:
+              - generic [ref=e98]:
+                - generic [ref=e99]: D = 4
+                - text: “喜欢” → [2.4, 0.6, 4.2, 1.8]，LayerNorm 就在这 4 个数之间计算。
+              - generic [ref=e100]:
+                - generic [ref=e101]: D = 4096
+                - text: 真实大模型中，一个 Token 的隐藏向量可能包含 4096 个特征值。
+              - generic [ref=e102]:
+                - generic [ref=e103]: 统计范围
+                - text: 每个 Token 独立得到自己的均值 μ 和方差 σ²，其他 Token 不参与。
+            - generic [ref=e104]:
+              - strong [ref=e105]: 像一张体检表：
+              - text: 一个人只有一张表，但表里有身高、体重、血压等许多栏目。LayerNorm 校准的是当前这个人整张表里的数值，不是把全班同一栏拿来比较。
+            - generic [ref=e106]:
+              - strong [ref=e107]: 这里的“单个 Token”不等于只有原始词义：
+              - text: 经过 Attention 后，这一个 Token 的隐藏向量已经可能融合了整段上下文的信息；LayerNorm 仍然只在它自己的 D 个特征值上计算。
+      - generic [ref=e108]:
+        - generic [ref=e109]:
+          - text: 02 · 核心类比
+          - heading "归一化，就像统一照片的亮度和对比度" [level=2] [ref=e110]
+          - paragraph [ref=e111]: 照片内容可能相同，但拍摄时有的太亮、有的太暗，有的对比强、有的灰蒙蒙。数值也有类似问题。
+        - generic [ref=e112]:
+          - article [ref=e113]:
+            - heading "先看同一幅山景的三种状态" [level=3] [ref=e114]
+            - generic [ref=e115]:
+              - generic [ref=e116]:
+                - generic [ref=e119]: 整体太暗
+                - generic [ref=e120]: 均值偏低：整张图像左移
+              - generic [ref=e121]:
+                - generic [ref=e124]: 对比度太弱
+                - generic [ref=e125]: 标准差偏小：明暗挤在一起
+              - generic [ref=e126]:
+                - generic [ref=e129]: 校准之后
+                - generic [ref=e130]: 中心和波动范围都更稳定
+            - generic [ref=e131]:
+              - strong [ref=e132]: 类比对应：
+              - text: 均值像整体亮度；标准差像对比度刻度。LayerNorm 先去掉整体亮暗，再统一对比度大小。
+          - article [ref=e133]:
+            - heading "不是“算出均值和方差”就归一化了，而是用它们完成三步" [level=3] [ref=e134]
+            - generic [ref=e135]:
+              - generic [ref=e136]:
+                - generic [ref=e137]: "1"
+                - generic [ref=e138]: 均值：找到中心
+                - text: 先看看整组数字总体偏高还是偏低，相当于找到照片的平均亮度。
+              - generic [ref=e139]:
+                - generic [ref=e140]: "2"
+                - generic [ref=e141]: 减均值：搬到同一起点
+                - text: 把中心搬到 0，去掉“整组一起加了多少”的影响。
+              - generic [ref=e142]:
+                - generic [ref=e143]: "3"
+                - generic [ref=e144]: 除标准差：换成同一把尺子
+                - text: 把波动幅度调到相同尺度，去掉“整组一起放大了多少”的影响。
+            - generic [ref=e145]: 原数值 → 减去自己的中心 → 除以自己的典型波动 → 稳定尺度
+          - article [ref=e146]:
+            - heading "减均值，去掉整体偏移" [level=3] [ref=e147]
+            - paragraph [ref=e148]:
+              - code [ref=e149]: "[10, 20, 30]"
+              - text: 和
+              - code [ref=e150]: "[110, 120, 130]"
+              - text: 内部形状相同，后一组只是整体加了 100。
+            - paragraph [ref=e151]: 各自减去均值后都会变成：
+            - generic [ref=e152]: "[-10, 0, 10]"
+          - article [ref=e153]:
+            - heading "除标准差，去掉整体缩放" [level=3] [ref=e154]
+            - paragraph [ref=e155]:
+              - code [ref=e156]: "[-10, 0, 10]"
+              - text: 和
+              - code [ref=e157]: "[-20, 0, 20]"
+              - text: 形状相同，后一组只是波动放大两倍。
+            - paragraph [ref=e158]: 各自除以自己的标准差后都会接近：
+            - generic [ref=e159]: "[-1.225, 0, 1.225]"
+      - generic [ref=e160]:
+        - generic [ref=e161]:
+          - text: 03 · 关键追问
+          - heading "方差负责“算离散”，标准差才是“原刻度”" [level=2] [ref=e162]
+          - paragraph [ref=e163]: 这两个词常被混着说。最准确的分工是：方差是计算工具，标准差是还原后的典型距离。
+        - generic [ref=e164]:
+          - article [ref=e165]:
+            - heading "为什么不能直接平均“离中心的距离”？" [level=3] [ref=e166]
+            - paragraph [ref=e167]:
+              - text: 数字
+              - code [ref=e168]: "[10, 20, 30]"
+              - text: 的中心是 20，偏差是
+              - code [ref=e169]: "[-10, 0, 10]"
+              - text: 。直接平均会得到 0，因为左右两边互相抵消了，但数据明明有波动。
+            - generic "偏差平方示意" [ref=e170]:
+              - generic [ref=e171]:
+                - generic [ref=e172]: 中心左边是负，右边是正
+                - generic [ref=e173]: 先平方，避免正负抵消
+              - generic [ref=e174]:
+                - generic [ref=e176]: 原偏差
+                - generic [ref=e183]: 平方距离
+            - paragraph [ref=e189]:
+              - text: 把偏差平方后再平均，得到的就是
+              - strong [ref=e190]: 方差
+              - text: ：它描述“平均平方距离有多大”。
+          - article [ref=e191]:
+            - heading "方差为什么不是最终的“尺子”？" [level=3] [ref=e192]
+            - paragraph [ref=e193]: 如果原数据单位是厘米，平方后的方差单位就是平方厘米。它能衡量离散，但已经不是原来的长度刻度。
+            - generic [ref=e194]:
+              - generic [ref=e195]:
+                - generic [ref=e196]: 原数据
+                - text: 厘米 cm
+              - generic [ref=e197]:
+                - generic [ref=e198]: 方差
+                - text: 平方厘米 cm²
+              - generic [ref=e199]:
+                - generic [ref=e200]: 标准差
+                - text: 开方后回到 cm
+          - article [ref=e201]:
+            - heading "标准差是什么？" [level=3] [ref=e202]
+            - paragraph [ref=e203]: 标准差就是给方差开平方，把“平方后的波动”还原成与原数据同单位的典型距离。
+            - generic [ref=e204]:
+              - strong [ref=e205]: 面积与边长：
+              - text: 方差像 100 m² 的面积；标准差像开平方后得到的 10 m 边长。要衡量原来的长度，应该使用边长。
+          - article [ref=e206]:
+            - heading "为什么 LayerNorm 除以标准差，而不是方差？" [level=3] [ref=e207]
+            - generic [ref=e208]:
+              - generic [ref=e209]:
+                - code [ref=e210]: "[1, 2, 3]"
+                - generic [ref=e211]:
+                  - text: 标准差约 0.816
+                  - text: 方差约 0.667
+              - generic [ref=e212]: ×10 →
+              - generic [ref=e213]:
+                - code [ref=e214]: "[10, 20, 30]"
+                - generic [ref=e215]:
+                  - text: 标准差也 ×10
+                  - text: 方差却 ×100
+            - paragraph [ref=e216]:
+              - text: 数据整体放大 10 倍，我们需要除以一个也放大 10 倍的量，才能刚好抵消。因此应该除以
+              - strong [ref=e217]: 标准差
+              - text: ；若除以放大 100 倍的方差，就会缩过头。
+            - generic [ref=e218]: 数据 ×10 ÷ 标准差 ×10 → 抵消 ｜ 数据 ×10 ÷ 方差 ×100 → 过度缩小
+            - generic [ref=e219]:
+              - strong [ref=e220]: 纠正一句容易混淆的话：
+              - text: 不是“方差就是刻度”。准确说法是：方差通过平均平方距离衡量离散程度；标准差才把这种离散程度表示回原数据的刻度。
+      - generic [ref=e221]:
+        - generic [ref=e222]:
+          - text: 04 · 两种归一化
+          - heading "LayerNorm 看一张特征卡，BatchNorm 看一摞同类卡" [level=2] [ref=e223]
+          - paragraph [ref=e224]: 两者不是谁更高级，而是横向统计的方向不同，适合的任务也不同。
+        - generic [ref=e225]:
+          - article [ref=e226]:
+            - heading "Layer Normalization" [level=3] [ref=e227]
+            - paragraph [ref=e228]: 对当前 Token 自己的全部 hidden features 计算均值和方差。
+            - generic [ref=e229]:
+              - strong [ref=e230]: 像什么：
+              - text: 每个人拿自己的整张体检表，校准这张表内部各项指标的数值尺度。
+          - article [ref=e231]:
+            - heading "Batch Normalization" [level=3] [ref=e232]
+            - paragraph [ref=e233]: 固定某一个特征，跨 batch 中的多个样本计算均值和方差。
+            - generic [ref=e234]:
+              - strong [ref=e235]: 像什么：
+              - text: 拿全班同学的“身高”这一栏放在一起，判断每个人相对全班的位置。
+          - article [ref=e236]:
+            - table [ref=e237]:
+              - rowgroup [ref=e238]:
+                - row "比较点 LayerNorm BatchNorm" [ref=e239]:
+                  - columnheader "比较点" [ref=e240]
+                  - columnheader "LayerNorm" [ref=e241]
+                  - columnheader "BatchNorm" [ref=e242]
+              - rowgroup [ref=e243]:
+                - row "统计谁 一个 Token 内部的所有特征 同一特征跨多个样本" [ref=e244]:
+                  - cell "统计谁" [ref=e245]
+                  - cell "一个 Token 内部的所有特征" [ref=e246]
+                  - cell "同一特征跨多个样本" [ref=e247]
+                - row "依赖 batch 吗 不依赖，batch size = 1 也能用 依赖，batch 太小时统计不稳定" [ref=e248]:
+                  - cell "依赖 batch 吗" [ref=e249]
+                  - cell "不依赖，batch size = 1 也能用" [ref=e250]
+                  - cell "依赖，batch 太小时统计不稳定" [ref=e251]
+                - row "训练与推理 都用当前 Token 自己的统计量 训练用当前 batch，推理通常用累计统计量" [ref=e252]:
+                  - cell "训练与推理" [ref=e253]
+                  - cell "都用当前 Token 自己的统计量" [ref=e254]
+                  - cell "训练用当前 batch，推理通常用累计统计量" [ref=e255]
+                - row "更自然的场景 Transformer、变长序列、自回归生成 CNN 等同一通道语义较稳定的场景" [ref=e256]:
+                  - cell "更自然的场景" [ref=e257]
+                  - cell "Transformer、变长序列、自回归生成" [ref=e258]
+                  - cell "CNN 等同一通道语义较稳定的场景" [ref=e259]
+      - generic [ref=e260]:
+        - generic [ref=e261]:
+          - text: 05 · 回到模型
+          - heading "Transformer 为什么更偏爱 LayerNorm？" [level=2] [ref=e262]
+          - paragraph [ref=e263]: 因为句子长短、batch 大小和生成阶段都在变化，而每个 Token 自己的特征维度是稳定的。
+        - generic [ref=e264]:
+          - article [ref=e265]:
+            - heading "校准依据：当前最新的残差累积状态" [level=3] [ref=e266]
+            - paragraph [ref=e267]: 你的理解可以写成一条不断循环的流水线：每次子层都读取当前最新状态，先校准，再计算本轮变更量，最后把变更加回残差主干。
+            - generic [ref=e268]:
+              - generic [ref=e269]:
+                - generic [ref=e270]: "1"
+                - generic [ref=e271]: 当前状态 x
+                - text: 它已经包含前面多层、Attention 和 FFN 累积下来的历史变更。
+              - generic [ref=e272]:
+                - generic [ref=e273]: "2"
+                - generic [ref=e274]: LN(x) → 子层 → Δx
+                - text: 基于最新状态制作一个校准后的“工作副本”，用来计算本轮变更。
+              - generic [ref=e275]:
+                - generic [ref=e276]: "3"
+                - generic [ref=e277]: x + Δx → 新状态 x′
+                - text: 把本轮变更加回残差主干；下一次 LayerNorm 就以 x′ 为依据。
+            - generic [ref=e278]: x → LN(x) → Attention → Δx₁ → x₁ = x + Δx₁ → LN(x₁) → FFN → Δx₂ → x₂ = x₁ + Δx₂
+            - generic [ref=e279]:
+              - strong [ref=e280]: Pre-LN 的关键细节：
+              - text: LayerNorm 不直接改写残差主干 x，而是把 LN(x) 交给 Attention 或 FFN。残差主干继续保存原状态与历次变更；下一个 LayerNorm 再读取更新后的主干。
+          - article [ref=e281]:
+            - heading "不依赖旁边坐着谁" [level=3] [ref=e282]
+            - paragraph [ref=e283]: 一个 batch 放 1 句话还是 128 句话，都不会改变当前 Token 的归一化方式，分布式训练和梯度累积也更自然。
+          - article [ref=e284]:
+            - heading "适合变长序列" [level=3] [ref=e285]
+            - paragraph [ref=e286]: 句子有长有短，还会出现 padding。LayerNorm 不需要把不同位置、不同句子的 Token 混在一起统计。
+          - article [ref=e287]:
+            - heading "适合逐 Token 生成" [level=3] [ref=e288]
+            - paragraph [ref=e289]: 大模型常常一次只生成一个新 Token，batch 和上下文长度不断变化。LayerNorm 仍然可以独立、稳定地工作。
+          - article [ref=e290]:
+            - heading "训练与推理规则一致" [level=3] [ref=e291]
+            - paragraph [ref=e292]: LayerNorm 两个阶段都根据当前 Token 自己计算，不需要维护一套训练期的滑动均值和方差。
+          - article [ref=e293]:
+            - heading "它稳定的是数值平台，不是判断语义对错" [level=3] [ref=e294]
+            - paragraph [ref=e295]: LayerNorm 能避免某层输入忽大忽小，让 Attention 和 FFN 更容易训练；但它不会判断“这个 Token 理解得对不对”。
+            - generic [ref=e296]:
+              - strong [ref=e297]: 工厂类比：
+              - text: 它像每道工序前校准尺子和亮度计。工具刻度稳定了，工人更容易施工，但校准仪器并不替工人决定产品应该做成什么。
+          - article [ref=e298]:
+            - heading "类比理解之后，再看完整公式与摆放位置" [level=3] [ref=e299]
+            - paragraph [ref=e300]:
+              - strong [ref=e301]: ε
+              - text: 是一个很小的安全垫，防止所有特征恰好相同时除以 0；
+              - strong [ref=e302]: γ
+              - text: 和
+              - strong [ref=e303]: β
+              - text: 是模型学习的缩放与偏移，让归一化之后仍能恢复任务需要的表达尺度。
+            - generic [ref=e304]: y = γ · (x − μ) / √(σ² + ε) + β
+            - generic [ref=e305]:
+              - generic [ref=e306]:
+                - generic [ref=e307]: Pre-LN（现代模型常见）
+                - text: x + Attention(LN(x))：先校准，再进入子层，深层梯度通常更稳定。
+              - generic [ref=e308]:
+                - generic [ref=e309]: Post-LN（原始 Transformer）
+                - text: LN(x + Attention(x))：先计算与残差相加，再做校准。
+              - generic [ref=e310]:
+                - generic [ref=e311]: RMSNorm
+                - text: 现代模型中的常见替代方案；保留尺度校准思想，但不减均值。
+          - article [ref=e312]:
+            - heading "最后把整段对话压缩成四句话" [level=3] [ref=e313]
+            - generic [ref=e314]:
+              - generic [ref=e315]:
+                - generic [ref=e316]: 均值
+                - text: 找到整组数字的中心在哪里，像照片的整体亮度。
+              - generic [ref=e317]:
+                - generic [ref=e318]: 方差
+                - text: 用平均平方距离计算数据有多分散，避免正负偏差抵消。
+              - generic [ref=e319]:
+                - generic [ref=e320]: 标准差
+                - text: 给方差开平方，回到原数据的单位，成为真正可用的波动刻度。
+              - generic [ref=e321]:
+                - generic [ref=e322]: LayerNorm
+                - text: 每个 Token 独立减去自己的均值、除以自己的标准差，再学习缩放 γ 和偏移 β。
+            - generic [ref=e323]: 中心归零 + 刻度统一 + 可学习恢复 = 稳定但仍有表达力
+      - generic [ref=e324]:
+        - generic [ref=e325]:
+          - text: 06 · 现代大模型取舍
+          - heading "LLaMA 用 RMSNorm，LayerNorm 仍然有必要吗？" [level=2] [ref=e326]
+          - paragraph [ref=e327]: 有必要。RMSNorm 不是推翻 LayerNorm，而是保留其中最关键的尺度校准，省略中心校准。
+        - generic [ref=e328]:
+          - article [ref=e329]:
+            - heading "LLaMA 实际怎么做？" [level=3] [ref=e330]
+            - paragraph [ref=e331]: LLaMA 系列使用 RMSNorm，并采用 Pre-Norm 结构：Attention 前校准一次，得到最新残差状态后，在 FFN 前再校准一次。
+            - generic [ref=e332]:
+              - text: h = x + Attention(RMSNorm(x))
+              - text: out = h + FFN(RMSNorm(h))
+            - paragraph [ref=e333]:
+              - text: 它的统计范围没有改变：仍然针对
+              - strong [ref=e334]: 当前单个 Token 的 D 维隐藏向量
+              - text: 独立计算，不跨 Token、不依赖 batch。
+            - generic [ref=e335]:
+              - text: 官方实现：
+              - link "Llama 2" [ref=e336] [cursor=pointer]:
+                - /url: https://github.com/meta-llama/llama/blob/main/llama/model.py
+              - text: ·
+              - link "Llama 3" [ref=e337] [cursor=pointer]:
+                - /url: https://github.com/meta-llama/llama-models/blob/main/models/llama3/model.py
+              - text: ·
+              - link "Llama 4" [ref=e338] [cursor=pointer]:
+                - /url: https://github.com/meta-llama/llama-models/blob/main/models/llama4/model.py
+          - article [ref=e339]:
+            - heading "LayerNorm：完整校准" [level=3] [ref=e340]
+            - paragraph [ref=e341]: 先减去均值，把中心移到 0；再除以标准差，统一波动尺度。
+            - generic [ref=e342]: 中心校准 + 尺度校准
+            - generic [ref=e343]:
+              - strong [ref=e344]: 照片类比：
+              - text: 同时调整整体亮度和对比度。
+          - article [ref=e345]:
+            - heading "RMSNorm：只校准尺度" [level=3] [ref=e346]
+            - paragraph [ref=e347]: 不减均值，直接根据所有特征值的均方根 RMS 控制整体数值幅度。
+            - generic [ref=e348]: x / √(mean(x²) + ε) · γ
+            - generic [ref=e349]:
+              - strong [ref=e350]: 照片类比：
+              - text: 不把亮度中心搬到 0，只控制画面整体能量不要忽强忽弱。
+          - article [ref=e351]:
+            - heading "为什么很多大模型只校准尺度也够用？" [level=3] [ref=e352]
+            - paragraph [ref=e353]: 深层残差网络最直接的训练风险之一，是隐藏向量的整体幅度经过多层后越来越大或越来越小。实践中，RMSNorm 只控制幅度就能提供足够好的稳定性，同时省去减均值步骤，计算更简洁。
+            - generic [ref=e354]:
+              - strong [ref=e355]: “足够”不是数学上永远等价：
+              - text: RMSNorm 不会像 LayerNorm 那样消除整体平移。例如两组内部形状相同、但整体都加了 100 的向量，LayerNorm 会消除这个偏移，RMSNorm 不会完全消除。
+          - article [ref=e356]:
+            - heading "LayerNorm 为什么没有过时？" [level=3] [ref=e357]
+            - paragraph [ref=e358]: 它仍是一种完整、通用的归一化方法。当架构需要同时控制中心与尺度，或者原模型就是围绕 LayerNorm 训练时，它仍然是正确选择。
+          - article [ref=e359]:
+            - heading "不能直接互换" [level=3] [ref=e360]
+            - paragraph [ref=e361]: 训练好的后续权重已经适应原来的归一化输出。直接把 LayerNorm 换成 RMSNorm，或反过来，都会改变中间分布，通常需要重新训练或专门适配。
+          - article [ref=e362]:
+            - heading "实际选择：跟随架构，再用实验验证" [level=3] [ref=e363]
+            - table [ref=e364]:
+              - rowgroup [ref=e365]:
+                - row "场景 更合理的做法" [ref=e366]:
+                  - columnheader "场景" [ref=e367]
+                  - columnheader "更合理的做法" [ref=e368]
+              - rowgroup [ref=e369]:
+                - row "学习归一化原理 先理解 LayerNorm 的“减均值 + 除标准差”，再把 RMSNorm 理解成只保留尺度校准的简化方案。" [ref=e370]:
+                  - cell "学习归一化原理" [ref=e371]
+                  - cell "先理解 LayerNorm 的“减均值 + 除标准差”，再把 RMSNorm 理解成只保留尺度校准的简化方案。" [ref=e372]
+                - row "复现已有模型 严格跟随原架构：LLaMA 用 RMSNorm，采用 LayerNorm 的模型继续使用 LayerNorm。" [ref=e373]:
+                  - cell "复现已有模型" [ref=e374]
+                  - cell "严格跟随原架构：LLaMA 用 RMSNorm，采用 LayerNorm 的模型继续使用 LayerNorm。" [ref=e375]
+                - row "设计新的 Decoder-only LLM RMSNorm 是常见起点，但是否更好仍应由训练稳定性、效果和性能实验决定。" [ref=e376]:
+                  - cell "设计新的 Decoder-only LLM" [ref=e377]
+                  - cell "RMSNorm 是常见起点，但是否更好仍应由训练稳定性、效果和性能实验决定。" [ref=e378]
+            - generic [ref=e379]:
+              - strong [ref=e380]: 最终类比：
+              - text: LayerNorm 是“亮度 + 对比度”的完整校准；RMSNorm 是只保留最关键的强度校准。后者更轻，不代表前者没用。
+  - contentinfo [ref=e381]: Layer Normalization 通俗理解手册 · 把每个 Token 换成同一把尺子
+  - button "返回顶部" [ref=e383] [cursor=pointer]: ↑

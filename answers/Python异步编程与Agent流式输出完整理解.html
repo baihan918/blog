@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Python 异步编程：进程、线程、协程、async/await、yield 与 Agent 流式输出">
+  <title>Python 异步编程：进程、线程、协程、async/await、yield 与 Agent 流式输出</title>
+  <link rel="stylesheet" href="../assets/answer-pages.css?v=2">
+  <script>window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] } };</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">MD</span><span class="brand-title">Python 异步编程：进程、线程、协程、async/await、yield 与 Agent 流式输出</span></div>
+    <div class="top-actions"><a class="source-link" href="0-md/Python%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%E4%B8%8EAgent%E6%B5%81%E5%BC%8F%E8%BE%93%E5%87%BA%E5%AE%8C%E6%95%B4%E7%90%86%E8%A7%A3.md">查看 Markdown</a><button class="menu-button" id="menuToggle" type="button" aria-label="打开目录" aria-expanded="false">☰</button><button class="icon-button" id="themeToggle" type="button" aria-label="切换深浅主题">◐</button></div>
+  </header>
+  <section class="hero"><div class="eyebrow">Markdown Reading Page</div><h1>Python 异步编程：进程、线程、协程、async/await、yield 与 Agent 流式输出</h1></section>
+  <main class="layout" id="main">
+    <aside class="toc-shell" id="tocShell"><nav class="toc" aria-label="页面目录"><p class="toc-title">READING MAP</p><a href="#1-进程-线程和协程的核心差异" data-toc="1-进程-线程和协程的核心差异" data-level="2">1. 进程、线程和协程的核心差异</a>
+<a href="#选择原则" data-toc="选择原则" data-level="3">选择原则</a>
+<a href="#2-python-协程和-js-微任务是什么关系" data-toc="2-python-协程和-js-微任务是什么关系" data-level="2">2. Python 协程和 JS 微任务是什么关系？</a>
+<a href="#3-async-await-如何暂停和恢复协程" data-toc="3-async-await-如何暂停和恢复协程" data-level="2">3. async / await 如何暂停和恢复协程？</a>
+<a href="#4-await-和-yield-有什么区别" data-toc="4-await-和-yield-有什么区别" data-level="2">4. await 和 yield 有什么区别？</a>
+<a href="#5-yield-为什么可以用于流式输出" data-toc="5-yield-为什么可以用于流式输出" data-level="2">5. yield 为什么可以用于流式输出？</a>
+<a href="#6-agent-中-yield-是怎么工作的" data-toc="6-agent-中-yield-是怎么工作的" data-level="2">6. Agent 中 yield 是怎么工作的？</a>
+<a href="#7-async-for-为什么可以一直等-yield" data-toc="7-async-for-为什么可以一直等-yield" data-level="2">7. async for 为什么可以一直等 yield？</a>
+<a href="#8-async-for-到底是怎么-等-的" data-toc="8-async-for-到底是怎么-等-的" data-level="2">8. async for 到底是怎么&quot;等&quot;的？</a>
+<a href="#9-yield-出现后为什么-async-for-会继续" data-toc="9-yield-出现后为什么-async-for-会继续" data-level="2">9. yield 出现后为什么 async for 会继续？</a>
+<a href="#10-agent-中-await-yield-的完整配合" data-toc="10-agent-中-await-yield-的完整配合" data-level="2">10. Agent 中 await + yield 的完整配合</a>
+<a href="#11-从-llm-到浏览器的真正流式链路" data-toc="11-从-llm-到浏览器的真正流式链路" data-level="2">11. 从 LLM 到浏览器的真正流式链路</a>
+<a href="#12-yield-间隔很久会不会丢数据" data-toc="12-yield-间隔很久会不会丢数据" data-level="2">12. yield 间隔很久会不会丢数据？</a>
+<a href="#13-什么情况下-async-for-拿不到后续-yield" data-toc="13-什么情况下-async-for-拿不到后续-yield" data-level="2">13. 什么情况下 async for 拿不到后续 yield？</a>
+<a href="#14-最终心智模型" data-toc="14-最终心智模型" data-level="2">14. 最终心智模型</a>
+<a href="#15-面试记忆版" data-toc="15-面试记忆版" data-level="2">15. 面试记忆版</a>
+<a href="#进程-线程-协程" data-toc="进程-线程-协程" data-level="3">进程、线程、协程</a>
+<a href="#await" data-toc="await" data-level="3">await</a>
+<a href="#yield" data-toc="yield" data-level="3">yield</a>
+<a href="#await-与-yield" data-toc="await-与-yield" data-level="3">await 与 yield</a>
+<a href="#async-for" data-toc="async-for" data-level="3">async for</a>
+<a href="#agent-streaming" data-toc="agent-streaming" data-level="3">Agent Streaming</a>
+<a href="#16-最值得记住的几句话" data-toc="16-最值得记住的几句话" data-level="2">16. 最值得记住的几句话</a></nav></aside>
+    <article class="article"><h2 id="1-进程-线程和协程的核心差异" data-section="SECTION 01">1. 进程、线程和协程的核心差异</h2>
+<p>可以先用一个简单类比理解：</p>
+<ul><li><strong>进程（Process）</strong>：多个人，各自拥有一套独立办公室。</li><li><strong>线程（Thread）</strong>：一个办公室里的多个人，共享办公室资源。</li><li><strong>协程（Coroutine）</strong>：一个人同时维护很多任务，一个任务需要等待时，就先去处理其他任务。</li></ul>
+<div class="table-wrap"><table><thead><tr><th>对比项</th><th>进程 Process</th><th>线程 Thread</th><th>协程 Coroutine</th></tr></thead><tbody><tr><td>调度者</td><td>操作系统</td><td>操作系统</td><td>程序 / Event Loop</td></tr><tr><td>内存</td><td>独立</td><td>共享进程内存</td><td>共享线程内存</td></tr><tr><td>切换成本</td><td>高</td><td>中</td><td>很低</td></tr><tr><td>创建成本</td><td>高</td><td>中</td><td>很低</td></tr><tr><td>Python GIL</td><td>多进程可绕开</td><td>CPU 密集场景受影响</td><td>本身不解决 GIL</td></tr><tr><td>典型场景</td><td>CPU 密集</td><td>阻塞式 I/O</td><td>高并发 I/O</td></tr><tr><td>常见 API</td><td>multiprocessing</td><td>threading</td><td>asyncio</td></tr></tbody></table></div>
+<h3 id="选择原则">选择原则</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>任务
+ │
+ ├── CPU 密集
+ │      ↓
+ │   多进程
+ │
+ └── I/O 密集
+        │
+        ├── 阻塞式库 / 普通并发
+        │      ↓
+        │    多线程
+        │
+        └── 大量网络 I/O / 高并发
+               ↓
+             协程</code></pre></div>
+<p>Agent、RAG、LLM、数据库、MCP、HTTP API 等场景通常存在大量网络 I/O，因此协程非常常见。</p>
+<hr>
+<h2 id="2-python-协程和-js-微任务是什么关系" data-section="SECTION 02">2. Python 协程和 JS 微任务是什么关系？</h2>
+<p><strong>Python 协程不能直接理解为 JS 微任务。</strong></p>
+<p>更准确的类比：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>JavaScript                     Python asyncio
+
+async function        ≈        async def
+Promise               ≈        Future / Task
+await                 ≈        await
+Event Loop            ≈        asyncio Event Loop
+异步函数执行过程       ≈        Coroutine
+Microtask Queue       ≠        Coroutine</code></pre></div>
+<p>Python：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async def task():
+    result = await fetch_data()
+    print(result)</code></pre></div>
+<p>JavaScript：</p>
+<div class="code-card"><div class="code-head"><span>javascript</span><button class="copy-button" type="button">复制</button></div><pre><code>async function task() {
+    const result = await fetchData()
+    console.log(result)
+}</code></pre></div>
+<p>两者的核心心智模型类似：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>开始执行
+   ↓
+遇到 await
+   ↓
+当前任务暂停
+   ↓
+执行权交还 Event Loop
+   ↓
+Event Loop 执行其他任务
+   ↓
+异步操作完成
+   ↓
+恢复之前的任务</code></pre></div>
+<p>JS 中 <code>await</code> 后续执行基于 Promise 调度，通常会进入微任务机制；因此 <strong>async function 可以类比 Python 协程，但 Coroutine 本身不能等同于 Microtask。</strong></p>
+<hr>
+<h2 id="3-async-await-如何暂停和恢复协程" data-section="SECTION 03">3. async / await 如何暂停和恢复协程？</h2>
+<p>核心：</p>
+<blockquote><p><code>await</code> 遇到未完成的异步操作时，会挂起当前协程，将控制权交还 Event Loop；异步操作完成后，Event Loop 再重新调度该协程，从 <code>await</code> 后继续执行。</p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async def fetch_data():
+    print(&quot;1. 开始&quot;)
+
+    result = await request()
+
+    print(&quot;2. 请求完成&quot;)
+    return result</code></pre></div>
+<p>执行过程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>fetch_data 开始
+       ↓
+执行 request()
+       ↓
+结果没有准备好
+       ↓
+await 挂起 fetch_data
+       ↓
+保存当前执行状态
+       ↓
+控制权交还 Event Loop
+       ↓
+Event Loop 执行其他 Task
+       ↓
+request 完成
+       ↓
+Event Loop 重新调度 fetch_data
+       ↓
+从 await 后恢复
+       ↓
+继续执行</code></pre></div>
+<p>这里暂停的是 <strong>Coroutine</strong>，不是整个线程。</p>
+<p>因此一个线程中的 Event Loop 可以同时维护大量等待 I/O 的协程。</p>
+<hr>
+<h2 id="4-await-和-yield-有什么区别" data-section="SECTION 04">4. await 和 yield 有什么区别？</h2>
+<p>两者共同点：</p>
+<blockquote><p>都可以暂停当前执行，并保存执行现场，之后再从暂停的位置继续。</p></blockquote>
+<p>但目的不同。</p>
+<div class="table-wrap"><table><thead><tr><th>对比项</th><th>yield</th><th>await</th></tr></thead><tbody><tr><td>主要对象</td><td>Generator / Async Generator</td><td>Coroutine</td></tr><tr><td>暂停目的</td><td>产生一个值</td><td>等待异步结果</td></tr><tr><td>数据给谁</td><td>调用者</td><td>获取异步操作结果</td></tr><tr><td>谁驱动恢复</td><td>next() / for / async for</td><td>Event Loop</td></tr><tr><td>常见场景</td><td>惰性迭代、流式生产数据</td><td>HTTP、数据库、LLM、RAG 等 I/O</td></tr><tr><td>核心思想</td><td>生产一个给一个</td><td>等待期间让出执行权</td></tr></tbody></table></div>
+<p>可以记成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>yield：
+
+“我先给你一个值。
+我暂停一下，
+你下次再要数据时我继续。”
+
+
+await：
+
+“这个异步结果还没回来。
+我先暂停，
+Event Loop 你先执行别人，
+结果好了再恢复我。”</code></pre></div>
+<hr>
+<h2 id="5-yield-为什么可以用于流式输出" data-section="SECTION 05">5. yield 为什么可以用于流式输出？</h2>
+<p>首先要明确：</p>
+<blockquote><p><strong>yield 本身不负责网络传输。</strong></p></blockquote>
+<p>它解决的是：</p>
+<blockquote><p><strong>数据不需要全部准备完成，可以生产一个就交给调用方一个。</strong></p></blockquote>
+<p>普通 <code>return</code>：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>def get_data():
+    return 1</code></pre></div>
+<p>执行 <code>return</code> 后函数直接结束。</p>
+<p>而：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>def get_data():
+    yield 1
+    yield 2
+    yield 3</code></pre></div>
+<p>会产生 Generator：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>gen = get_data()
+
+print(next(gen))  # 1
+print(next(gen))  # 2
+print(next(gen))  # 3</code></pre></div>
+<p>执行过程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第一次 next()
+    ↓
+yield 1
+    ↓
+返回 1
+    ↓
+函数暂停
+
+第二次 next()
+    ↓
+从 yield 1 后继续
+    ↓
+yield 2
+    ↓
+返回 2
+    ↓
+再次暂停</code></pre></div>
+<p>因此：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>return：
+等所有数据准备完成 → 一次返回
+
+yield：
+生产 A → 给出去
+生产 B → 给出去
+生产 C → 给出去</code></pre></div>
+<p>这就是流式处理的基础能力。</p>
+<hr>
+<h2 id="6-agent-中-yield-是怎么工作的" data-section="SECTION 06">6. Agent 中 yield 是怎么工作的？</h2>
+<p>Agent 中最常见的是异步生成器：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async def agent():
+    yield &quot;开始&quot;
+
+    result = await rag_search()
+    yield result
+
+    result = await call_tool()
+    yield result</code></pre></div>
+<p>Agent 可以不断产生阶段性数据。</p>
+<p>调用方：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async for chunk in agent():
+    print(chunk)</code></pre></div>
+<p>会依次得到每一次 <code>yield</code> 的内容。</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>agent
+  │
+  ├── yield &quot;开始&quot;
+  │        ↓
+  │   async for 收到
+  │
+  ├── await rag_search()
+  │
+  ├── yield rag_result
+  │        ↓
+  │   async for 收到
+  │
+  ├── await call_tool()
+  │
+  └── yield tool_result
+           ↓
+      async for 收到</code></pre></div>
+<p>所以可以记：</p>
+<blockquote><p><strong>yield = 生产一个。</strong><br> <strong>async for = 消费一个。</strong></p></blockquote>
+<hr>
+<h2 id="7-async-for-为什么可以一直等-yield" data-section="SECTION 07">7. async for 为什么可以一直等 yield？</h2>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async def agent():
+    yield &quot;A&quot;
+
+    await asyncio.sleep(5)
+
+    yield &quot;B&quot;
+
+    await asyncio.sleep(10)
+
+    yield &quot;C&quot;</code></pre></div>
+<p>消费：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async for chunk in agent():
+    print(chunk)</code></pre></div>
+<p>输出时间大致是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>立即：A
+
+等待 5 秒
+
+B
+
+等待 10 秒
+
+C</code></pre></div>
+<p><code>async for</code> 不会因为暂时没有新的 <code>yield</code> 就结束。</p>
+<p>只要：</p>
+<ul><li>异步生成器没有执行结束；</li><li>没有抛出异常；</li><li>没有被取消；</li></ul>
+<p>它就会继续等待下一个值。</p>
+<hr>
+<h2 id="8-async-for-到底是怎么-等-的" data-section="SECTION 08">8. async for 到底是怎么&quot;等&quot;的？</h2>
+<p>这是理解整个机制最关键的一步。</p>
+<p><code>async for</code> <strong>本身不是一个协程</strong>，它是一种异步迭代语法，一般运行在 <code>async def</code> 协程内部。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async def main():
+    async for chunk in agent():
+        print(chunk)</code></pre></div>
+<p>可以把：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async for chunk in agent():
+    print(chunk)</code></pre></div>
+<p>粗略理解成：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>iterator = agent()
+
+while True:
+    chunk = await iterator.__anext__()
+    print(chunk)</code></pre></div>
+<p>关键就在：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>await iterator.__anext__()</code></pre></div>
+<p>也就是说：</p>
+<blockquote><p><strong>async for 本质上是在不断异步等待&quot;下一个值&quot;。</strong></p></blockquote>
+<hr>
+<h2 id="9-yield-出现后为什么-async-for-会继续" data-section="SECTION 09">9. yield 出现后为什么 async for 会继续？</h2>
+<p>完整流程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>main 协程
+   │
+   │ async for 想获取下一个值
+   ▼
+await agent.__anext__()
+   │
+   ▼
+agent 开始 / 恢复执行
+   │
+   ├── await 某个异步操作
+   │
+   │       ↓
+   │   agent 暂停
+   │       ↓
+   │   Event Loop 执行其他任务
+   │       ↓
+   │   异步操作完成
+   │       ↓
+   │   agent 恢复
+   │
+   └── yield &quot;A&quot;
+            │
+            ▼
+     __anext__() 得到结果
+            │
+            ▼
+       main 协程恢复
+            │
+            ▼
+       chunk = &quot;A&quot;
+            │
+            ▼
+        print(&quot;A&quot;)
+            │
+            ▼
+ async for 再请求下一个值</code></pre></div>
+<p>因此更准确地说：</p>
+<blockquote><p>不是 <code>yield</code> 像事件一样&quot;触发 async for&quot;。</p></blockquote>
+<p>而是：</p>
+<blockquote><p><strong>async for 正在 <code>await</code> 下一个值；当生成器执行到 <code>yield</code> 时，这次等待得到结果，因此消费者协程可以继续执行。</strong></p></blockquote>
+<hr>
+<h2 id="10-agent-中-await-yield-的完整配合" data-section="SECTION 10">10. Agent 中 await + yield 的完整配合</h2>
+<p>这是 Agent Streaming 最值得掌握的模型：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async def agent():
+
+    result1 = await rag_search()
+    yield result1
+
+    result2 = await call_tool()
+    yield result2
+
+    async for token in llm.astream():
+        yield token</code></pre></div>
+<p>消费者：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async for chunk in agent():
+    print(chunk)</code></pre></div>
+<p>整体过程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>async for：给我下一个
+        ↓
+agent：开始执行
+        ↓
+await rag_search()
+        ↓
+RAG 没返回
+        ↓
+agent 暂停
+        ↓
+Event Loop 执行其他任务
+        ↓
+RAG 返回
+        ↓
+agent 恢复
+        ↓
+yield result1
+        ↓
+async for 等待完成
+        ↓
+处理 result1
+        ↓
+async for：再给我下一个
+        ↓
+agent 从上一次 yield 后继续
+        ↓
+await call_tool()
+        ↓
+……</code></pre></div>
+<p>一句话：</p>
+<blockquote><p><strong>await：没结果时先等。</strong><br> <strong>yield：有阶段性结果时先往外给。</strong></p></blockquote>
+<hr>
+<h2 id="11-从-llm-到浏览器的真正流式链路" data-section="SECTION 11">11. 从 LLM 到浏览器的真正流式链路</h2>
+<p><code>yield</code> 只是 Python 内部的数据生产机制。</p>
+<p>真正发到浏览器还需要 SSE、WebSocket 或 HTTP Streaming。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async def agent():
+    async for chunk in llm.astream(&quot;介绍一下 RAG&quot;):
+        yield chunk</code></pre></div>
+<p>上层：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async def stream():
+    async for chunk in agent():
+        yield f&quot;data: {chunk}\n\n&quot;</code></pre></div>
+<p>完整链路：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>LLM
+ │
+ │ 产生 token / chunk
+ ▼
+Agent
+ │
+ │ yield chunk
+ ▼
+async for
+ │
+ │ 消费 chunk
+ ▼
+SSE / WebSocket / StreamingResponse
+ │
+ │ 网络发送
+ ▼
+浏览器
+ │
+ │ 收到一个 chunk
+ ▼
+立即渲染</code></pre></div>
+<p>因此三个职责要分清：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>yield
+ ↓
+生产一个给一个
+
+async for
+ ↓
+消费一个拿一个
+
+SSE / WebSocket
+ ↓
+拿到一个往浏览器发送一个</code></pre></div>
+<hr>
+<h2 id="12-yield-间隔很久会不会丢数据" data-section="SECTION 12">12. yield 间隔很久会不会丢数据？</h2>
+<p>正常不会。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async def agent():
+    yield &quot;A&quot;
+
+    await very_slow_tool()   # 30 秒
+
+    yield &quot;B&quot;</code></pre></div>
+<p>消费者：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>async for chunk in agent():
+    print(chunk)</code></pre></div>
+<p>仍然会：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>A
+
+等待 30 秒
+
+B</code></pre></div>
+<p>Python 异步迭代层面没有问题。</p>
+<p>但是工程上还有一个额外问题：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Agent
+ ↓
+SSE
+ ↓
+Nginx
+ ↓
+Load Balancer
+ ↓
+Browser</code></pre></div>
+<p>如果长时间完全没有网络数据，一些网关或代理可能因为超时关闭连接。</p>
+<p>所以真实系统可能需要：</p>
+<ul><li>heartbeat</li><li>keepalive</li><li>SSE ping</li><li>合理设置代理超时时间</li></ul>
+<p>例如 SSE 定期发送：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>: ping</code></pre></div>
+<p>这是<strong>网络连接保活问题</strong>，不是 <code>yield</code> / <code>async for</code> 本身的问题。</p>
+<hr>
+<h2 id="13-什么情况下-async-for-拿不到后续-yield" data-section="SECTION 13">13. 什么情况下 async for 拿不到后续 yield？</h2>
+<p>主要包括：</p>
+<ol><li><code>agent()</code> 执行结束；</li><li><code>agent()</code> 抛出异常；</li><li>Task 被取消；</li><li>用户点击&quot;停止生成&quot;导致任务取消；</li><li>如果涉及网络 Streaming，SSE / WebSocket / HTTP 连接被断开。</li></ol>
+<p>否则异步生成器会继续被消费。</p>
+<hr>
+<h2 id="14-最终心智模型" data-section="SECTION 14">14. 最终心智模型</h2>
+<p>把整个 Python Agent 异步流式机制压缩成下面这张图：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                    Event Loop
+                        │
+             ┌──────────┴──────────┐
+             │                     │
+        消费者协程              Agent
+             │                     │
+      async for chunk              │
+             │                     │
+      await __anext__() ───────→ 开始执行
+             │                     │
+             │               await RAG / Tool
+             │                     │
+             │                 暂停等待
+             │                     │
+             │                I/O 完成恢复
+             │                     │
+             │                yield chunk
+             │                     │
+             └──── 得到 chunk ←────┘
+             │
+        处理 / SSE 发送
+             │
+      再 await __anext__()
+             │
+             └──────────────→ Agent 从上次
+                              yield 后继续</code></pre></div>
+<hr>
+<h2 id="15-面试记忆版" data-section="SECTION 15">15. 面试记忆版</h2>
+<h3 id="进程-线程-协程">进程、线程、协程</h3>
+<blockquote><p>CPU 密集型任务通常使用多进程利用多核；传统阻塞式 I/O 可以使用多线程；大量网络 I/O、高并发任务适合 asyncio 协程。</p></blockquote>
+<h3 id="await">await</h3>
+<blockquote><p><code>await</code> 遇到未完成的异步操作时挂起当前协程，把控制权交还 Event Loop；异步操作完成后再恢复当前协程。</p></blockquote>
+<h3 id="yield">yield</h3>
+<blockquote><p><code>yield</code> 会产出一个值并暂停生成器，调用方获取这个值后，下一次请求数据时再从上次暂停的位置继续执行。</p></blockquote>
+<h3 id="await-与-yield">await 与 yield</h3>
+<blockquote><p><code>await</code> 主要解决&quot;异步等待&quot;，<code>yield</code> 主要解决&quot;逐步产出&quot;。</p></blockquote>
+<h3 id="async-for">async for</h3>
+<blockquote><p><code>async for</code> 用于消费异步迭代器，可以粗略理解为不断执行 <code>await iterator.__anext__()</code>，因此它能够异步等待下一次 <code>yield</code> 的结果。</p></blockquote>
+<h3 id="agent-streaming">Agent Streaming</h3>
+<blockquote><p>Agent 中通常通过 <code>await</code> 非阻塞地等待 LLM、RAG、Tool 等 I/O，通过 <code>yield</code> 将已经得到的阶段性结果逐步交给上层，再由 SSE、WebSocket 或 HTTP Streaming 推送给前端。</p></blockquote>
+<hr>
+<h2 id="16-最值得记住的几句话" data-section="SECTION 16">16. 最值得记住的几句话</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>await = 没结果，我先等，让别人跑。
+
+yield = 有一个结果，我先给出去。
+
+async for = 我不断异步等你下一个结果。
+
+Event Loop = 谁可以继续执行，我来调度。
+
+SSE / WebSocket = 把 yield 出来的结果真正传给浏览器。</code></pre></div>
+<p>最终：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>await 解决等待
+      ↓
+yield 解决生产
+      ↓
+async for 解决消费
+      ↓
+SSE / WebSocket 解决网络传输
+      ↓
+前端解决实时渲染</code></pre></div></article>
+  </main>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+  <footer>Python 异步编程：进程、线程、协程、async/await、yield 与 Agent 流式输出</footer>
+  <script src="../assets/answer-pages.js"></script>
+</body>
+</html>

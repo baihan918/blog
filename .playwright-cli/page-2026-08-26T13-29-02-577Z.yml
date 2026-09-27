@@ -1,0 +1,1166 @@
+- generic [ref=e1]:
+  - link "跳到正文" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e4]:
+    - generic [ref=e6]: MD
+    - generic [ref=e7]:
+      - button "打开目录" [expanded] [active] [ref=e8] [cursor=pointer]: ☰
+      - button "切换深浅主题" [ref=e9] [cursor=pointer]: ◐
+  - generic [ref=e10]:
+    - generic [ref=e11]: Markdown Reading Page
+    - heading "Self-Attention 与 Multi-Head Attention：计算流程、设计动机与面试重点" [level=1] [ref=e12]
+    - text: MD
+  - main [ref=e13]:
+    - complementary [ref=e14]:
+      - navigation "页面目录" [ref=e15]:
+        - paragraph [ref=e16]: READING MAP
+        - link "1. Self-Attention 要解决什么问题？" [ref=e17] [cursor=pointer]:
+          - /url: "#1-self-attention-要解决什么问题"
+        - link "2. Self-Attention 的完整计算流程" [ref=e18] [cursor=pointer]:
+          - /url: "#2-self-attention-的完整计算流程"
+        - link "2.1 计算 Scores" [ref=e19] [cursor=pointer]:
+          - /url: "#2-1-计算-scores"
+        - link "3. 为什么维度越高，QK 点积的数值波动越大？" [ref=e20] [cursor=pointer]:
+          - /url: "#3-为什么维度越高-qk-点积的数值波动越大"
+        - link "4. 和 分别是什么？" [ref=e21] [cursor=pointer]:
+          - /url: "#4-dk-和-sqrt-dk-分别是什么"
+          - text: "4."
+          - generic [ref=e22]:
+            - img [ref=e23]
+            - math [ref=e32]:
+              - generic [ref=e33]:
+                - generic [ref=e34]: d
+                - generic [ref=e35]: k
+          - text: 和
+          - generic [ref=e36]:
+            - img [ref=e37]
+            - math [ref=e51]:
+              - generic [ref=e53]:
+                - generic [ref=e54]: d
+                - generic [ref=e55]: k
+          - text: 分别是什么？
+        - link "5. 为什么除以 ，而不是除以 ？" [ref=e56] [cursor=pointer]:
+          - /url: "#5-为什么除以-sqrt-dk-而不是除以-dk"
+          - text: 5. 为什么除以
+          - generic [ref=e57]:
+            - img [ref=e58]
+            - math [ref=e72]:
+              - generic [ref=e74]:
+                - generic [ref=e75]: d
+                - generic [ref=e76]: k
+          - text: ，而不是除以
+          - generic [ref=e77]:
+            - img [ref=e78]
+            - math [ref=e87]:
+              - generic [ref=e88]:
+                - generic [ref=e89]: d
+                - generic [ref=e90]: k
+          - text: ？
+        - link "6. Scaled Dot-Product Attention 完整公式" [ref=e91] [cursor=pointer]:
+          - /url: "#6-scaled-dot-product-attention-完整公式"
+        - link "7. 为什么需要 Q / K / V？" [ref=e92] [cursor=pointer]:
+          - /url: "#7-为什么需要-q-k-v"
+        - link "8. Self-Attention 相比 RNN 的优势" [ref=e93] [cursor=pointer]:
+          - /url: "#8-self-attention-相比-rnn-的优势"
+        - link "8.1 长距离依赖更加直接" [ref=e94] [cursor=pointer]:
+          - /url: "#8-1-长距离依赖更加直接"
+        - link "8.2 可以高度并行" [ref=e95] [cursor=pointer]:
+          - /url: "#8-2-可以高度并行"
+        - link "8.3 缺点：标准 Attention 是" [ref=e96] [cursor=pointer]:
+          - /url: "#8-3-缺点-标准-attention-是-o-n-2"
+          - text: 8.3 缺点：标准 Attention 是
+          - generic [ref=e97]:
+            - img [ref=e98]
+            - math [ref=e113]:
+              - generic [ref=e114]: O
+              - generic [ref=e115]: (
+              - generic [ref=e116]:
+                - generic [ref=e117]: "n"
+                - generic [ref=e118]: "2"
+              - generic [ref=e119]: )
+        - link "9. Multi-Head Attention 与 Self-Attention 的区别" [ref=e120] [cursor=pointer]:
+          - /url: "#9-multi-head-attention-与-self-attention-的区别"
+        - link "10. 为什么需要 Multi-Head Attention？" [ref=e121] [cursor=pointer]:
+          - /url: "#10-为什么需要-multi-head-attention"
+        - link "11. Multi-Head Attention 的维度变化" [ref=e122] [cursor=pointer]:
+          - /url: "#11-multi-head-attention-的维度变化"
+        - link "12. \"把 d_model 拆成多个 Head\"更严格的理解" [ref=e123] [cursor=pointer]:
+          - /url: "#12-把-dmodel-拆成多个-head-更严格的理解"
+        - link "13. Self-Attention vs Multi-Head Attention" [ref=e124] [cursor=pointer]:
+          - /url: "#13-self-attention-vs-multi-head-attention"
+        - link "14. 面试回答模板" [ref=e125] [cursor=pointer]:
+          - /url: "#14-面试回答模板"
+        - link "Self-Attention" [ref=e126] [cursor=pointer]:
+          - /url: "#self-attention"
+        - link "Multi-Head Attention" [ref=e127] [cursor=pointer]:
+          - /url: "#multi-head-attention"
+        - link "15. 最终记忆版" [ref=e128] [cursor=pointer]:
+          - /url: "#15-最终记忆版"
+        - link "Self-Attention" [ref=e129] [cursor=pointer]:
+          - /url: "#self-attention-2"
+        - link "为什么是 √d_k？" [ref=e130] [cursor=pointer]:
+          - /url: "#为什么是-dk"
+        - link "Multi-Head Attention" [ref=e131] [cursor=pointer]:
+          - /url: "#multi-head-attention-2"
+    - article [ref=e132]:
+      - heading "SECTION 01 1. Self-Attention 要解决什么问题？" [level=2] [ref=e133]
+      - paragraph [ref=e134]: Self-Attention 的核心目标是：
+      - blockquote [ref=e135]:
+        - paragraph [ref=e136]: 让序列中的每个 Token，根据当前上下文，动态决定应该关注其他哪些 Token。
+      - paragraph [ref=e137]: 例如：
+      - paragraph [ref=e138]:
+        - code [ref=e139]: 小明把苹果给了小红，因为她很饿。
+      - paragraph [ref=e140]: 理解"她"时，模型需要结合上下文判断它与"小红"的关系更强。
+      - paragraph [ref=e141]: 因此 Self-Attention 本质上是在做两件事：
+      - list [ref=e142]:
+        - listitem [ref=e143]: 计算当前 Token 与其他 Token 的相关程度。
+        - listitem [ref=e144]: 根据相关程度，对其他 Token 携带的信息进行加权聚合。
+      - separator [ref=e145]
+      - heading "SECTION 02 2. Self-Attention 的完整计算流程" [level=2] [ref=e146]
+      - paragraph [ref=e147]: 假设输入为：
+      - generic [ref=e149]:
+        - img [ref=e150]
+        - math [ref=e180]:
+          - generic [ref=e181]: X
+          - generic [ref=e182]: ∈
+          - generic [ref=e183]:
+            - generic [ref=e184]: R
+            - generic [ref=e185]:
+              - generic [ref=e186]: "n"
+              - generic [ref=e187]: ×
+              - generic [ref=e188]:
+                - generic [ref=e189]: d
+                - generic [ref=e190]:
+                  - generic [ref=e191]: m
+                  - generic [ref=e192]: o
+                  - generic [ref=e193]: d
+                  - generic [ref=e194]: e
+                  - generic [ref=e195]: l
+      - paragraph [ref=e196]: 首先通过三个可学习的线性投影得到 Q、K、V：
+      - generic [ref=e198]:
+        - img [ref=e199]
+        - math [ref=e214]:
+          - generic [ref=e215]: Q
+          - generic [ref=e216]: =
+          - generic [ref=e217]: X
+          - generic [ref=e218]:
+            - generic [ref=e219]: W
+            - generic [ref=e220]: Q
+      - generic [ref=e222]:
+        - img [ref=e223]
+        - math [ref=e238]:
+          - generic [ref=e239]: K
+          - generic [ref=e240]: =
+          - generic [ref=e241]: X
+          - generic [ref=e242]:
+            - generic [ref=e243]: W
+            - generic [ref=e244]: K
+      - generic [ref=e246]:
+        - img [ref=e247]
+        - math [ref=e262]:
+          - generic [ref=e263]: V
+          - generic [ref=e264]: =
+          - generic [ref=e265]: X
+          - generic [ref=e266]:
+            - generic [ref=e267]: W
+            - generic [ref=e268]: V
+      - paragraph [ref=e269]: 可以这样理解：
+      - list [ref=e270]:
+        - listitem [ref=e271]:
+          - strong [ref=e272]: Q（Query）
+          - text: ：当前 Token 想寻找什么信息。
+        - listitem [ref=e273]:
+          - strong [ref=e274]: K（Key）
+          - text: ：当前 Token 可以如何被其他 Token 匹配。
+        - listitem [ref=e275]:
+          - strong [ref=e276]: V（Value）
+          - text: ：如果其他 Token 关注我，我真正提供什么信息。
+      - heading "2.1 计算 Scores" [level=3] [ref=e277]
+      - generic [ref=e279]:
+        - img [ref=e280]
+        - math [ref=e305]:
+          - generic [ref=e306]: S
+          - generic [ref=e307]: c
+          - generic [ref=e308]: o
+          - generic [ref=e309]: r
+          - generic [ref=e310]: e
+          - generic [ref=e311]: s
+          - generic [ref=e312]: =
+          - generic [ref=e313]: Q
+          - generic [ref=e314]:
+            - generic [ref=e315]: K
+            - generic [ref=e316]: T
+      - paragraph [ref=e317]: 这是一个矩阵乘法。
+      - paragraph [ref=e318]: 如果一句话有 4 个 Token，并且每个 Q/K 向量都是 3 维：
+      - generic [ref=e320]:
+        - img [ref=e321]
+        - math [ref=e339]:
+          - generic [ref=e340]: Q
+          - generic [ref=e341]: ∈
+          - generic [ref=e342]:
+            - generic [ref=e343]: R
+            - generic [ref=e344]:
+              - generic [ref=e345]: "4"
+              - generic [ref=e346]: ×
+              - generic [ref=e347]: "3"
+      - generic [ref=e349]:
+        - img [ref=e350]
+        - math [ref=e368]:
+          - generic [ref=e369]: K
+          - generic [ref=e370]: ∈
+          - generic [ref=e371]:
+            - generic [ref=e372]: R
+            - generic [ref=e373]:
+              - generic [ref=e374]: "4"
+              - generic [ref=e375]: ×
+              - generic [ref=e376]: "3"
+      - paragraph [ref=e377]: 那么：
+      - generic [ref=e379]:
+        - img [ref=e380]
+        - math [ref=e401]:
+          - generic [ref=e402]:
+            - generic [ref=e403]: K
+            - generic [ref=e404]: T
+          - generic [ref=e405]: ∈
+          - generic [ref=e406]:
+            - generic [ref=e407]: R
+            - generic [ref=e408]:
+              - generic [ref=e409]: "3"
+              - generic [ref=e410]: ×
+              - generic [ref=e411]: "4"
+      - paragraph [ref=e412]: 因此：
+      - generic [ref=e414]:
+        - img [ref=e415]
+        - math [ref=e456]:
+          - generic [ref=e457]: Q
+          - generic [ref=e458]:
+            - generic [ref=e459]: K
+            - generic [ref=e460]: T
+          - generic [ref=e461]: ":"
+          - generic [ref=e462]: (
+          - generic [ref=e463]: "4"
+          - generic [ref=e464]: ×
+          - generic [ref=e465]: "3"
+          - generic [ref=e466]: )
+          - generic [ref=e467]: (
+          - generic [ref=e468]: "3"
+          - generic [ref=e469]: ×
+          - generic [ref=e470]: "4"
+          - generic [ref=e471]: )
+          - generic [ref=e472]: →
+          - generic [ref=e473]: "4"
+          - generic [ref=e474]: ×
+          - generic [ref=e475]: "4"
+      - paragraph [ref=e476]: 最终 Scores 是一个 Token × Token 的矩阵。
+      - paragraph [ref=e477]: 其中：
+      - blockquote [ref=e478]:
+        - paragraph [ref=e479]:
+          - code [ref=e480]: Scores[i][j]
+          - text: 表示第 i 个 Token 的 Query 与第 j 个 Token 的 Key 的点积匹配分数。
+      - paragraph [ref=e481]: 也就是一次矩阵运算同时计算所有 Token 两两之间的注意力匹配程度。
+      - separator [ref=e482]
+      - heading "SECTION 03 3. 为什么维度越高，QK 点积的数值波动越大？" [level=2] [ref=e483]
+      - paragraph [ref=e484]: 对于一个 Query 和 Key：
+      - generic [ref=e486]:
+        - img [ref=e487]
+        - math [ref=e545]:
+          - generic [ref=e546]: q
+          - generic [ref=e547]: ⋅
+          - generic [ref=e548]: k
+          - generic [ref=e549]: =
+          - generic [ref=e550]:
+            - generic [ref=e551]: q
+            - generic [ref=e552]: "1"
+          - generic [ref=e553]:
+            - generic [ref=e554]: k
+            - generic [ref=e555]: "1"
+          - generic [ref=e556]: +
+          - generic [ref=e557]:
+            - generic [ref=e558]: q
+            - generic [ref=e559]: "2"
+          - generic [ref=e560]:
+            - generic [ref=e561]: k
+            - generic [ref=e562]: "2"
+          - generic [ref=e563]: +
+          - generic [ref=e564]: ⋯
+          - generic [ref=e565]: +
+          - generic [ref=e566]:
+            - generic [ref=e567]: q
+            - generic [ref=e569]:
+              - generic [ref=e570]: d
+              - generic [ref=e571]: k
+          - generic [ref=e572]:
+            - generic [ref=e573]: k
+            - generic [ref=e575]:
+              - generic [ref=e576]: d
+              - generic [ref=e577]: k
+      - paragraph [ref=e578]: 维度越高，参与累加的项越多。
+      - paragraph [ref=e579]:
+        - text: 如果假设每个
+        - generic [ref=e580]:
+          - img [ref=e581]
+          - math [ref=e590]:
+            - generic [ref=e591]:
+              - generic [ref=e592]: q
+              - generic [ref=e593]: i
+        - text: 、
+        - generic [ref=e594]:
+          - img [ref=e595]
+          - math [ref=e604]:
+            - generic [ref=e605]:
+              - generic [ref=e606]: k
+              - generic [ref=e607]: i
+        - text: 都近似均值为 0、方差为 1，那么：
+      - generic [ref=e609]:
+        - img [ref=e610]
+        - math [ref=e637]:
+          - generic [ref=e638]: V
+          - generic [ref=e639]: a
+          - generic [ref=e640]: r
+          - generic [ref=e641]: (
+          - generic [ref=e642]: q
+          - generic [ref=e643]: ⋅
+          - generic [ref=e644]: k
+          - generic [ref=e645]: )
+          - generic [ref=e646]: ≈
+          - generic [ref=e647]:
+            - generic [ref=e648]: d
+            - generic [ref=e649]: k
+      - paragraph [ref=e650]: 因此标准差约为：
+      - generic [ref=e652]:
+        - img [ref=e653]
+        - math [ref=e685]:
+          - generic [ref=e686]: S
+          - generic [ref=e687]: t
+          - generic [ref=e688]: d
+          - generic [ref=e689]: (
+          - generic [ref=e690]: q
+          - generic [ref=e691]: ⋅
+          - generic [ref=e692]: k
+          - generic [ref=e693]: )
+          - generic [ref=e694]: ≈
+          - generic [ref=e696]:
+            - generic [ref=e697]: d
+            - generic [ref=e698]: k
+      - paragraph [ref=e699]:
+        - text: 所以更准确的说法不是"维度越高，Scores 按
+        - generic [ref=e700]:
+          - img [ref=e701]
+          - math [ref=e710]:
+            - generic [ref=e711]:
+              - generic [ref=e712]: d
+              - generic [ref=e713]: k
+        - text: 放大"，而是：
+      - blockquote [ref=e714]:
+        - paragraph [ref=e715]:
+          - text: QK 点积的
+          - strong [ref=e716]:
+            - text: 方差随
+            - generic [ref=e717]:
+              - img [ref=e718]
+              - math [ref=e727]:
+                - generic [ref=e728]:
+                  - generic [ref=e729]: d
+                  - generic [ref=e730]: k
+            - text: 增长，典型波动尺度（标准差）随
+            - generic [ref=e731]:
+              - img [ref=e732]
+              - math [ref=e746]:
+                - generic [ref=e748]:
+                  - generic [ref=e749]: d
+                  - generic [ref=e750]: k
+            - text: 增长
+          - text: 。
+      - separator [ref=e751]
+      - heading "SECTION 04 4. 和 分别是什么？" [level=2] [ref=e752]:
+        - text: SECTION 04 4.
+        - generic [ref=e753]:
+          - img [ref=e754]
+          - math [ref=e763]:
+            - generic [ref=e764]:
+              - generic [ref=e765]: d
+              - generic [ref=e766]: k
+        - text: 和
+        - generic [ref=e767]:
+          - img [ref=e768]
+          - math [ref=e782]:
+            - generic [ref=e784]:
+              - generic [ref=e785]: d
+              - generic [ref=e786]: k
+        - text: 分别是什么？
+      - paragraph [ref=e787]:
+        - generic [ref=e788]:
+          - img [ref=e789]
+          - math [ref=e798]:
+            - generic [ref=e799]:
+              - generic [ref=e800]: d
+              - generic [ref=e801]: k
+        - text: 指的是每个 Query / Key 向量的维度。
+      - paragraph [ref=e802]: 例如：
+      - generic [ref=e803]:
+        - generic [ref=e804]:
+          - generic [ref=e805]: text
+          - button "复制" [ref=e806] [cursor=pointer]
+        - code [ref=e808]: Q = [q1, q2, q3, ..., q64] K = [k1, k2, k3, ..., k64]
+      - paragraph [ref=e809]: 那么：
+      - generic [ref=e811]:
+        - img [ref=e812]
+        - math [ref=e826]:
+          - generic [ref=e827]:
+            - generic [ref=e828]: d
+            - generic [ref=e829]: k
+          - generic [ref=e830]: =
+          - generic [ref=e831]: "64"
+      - paragraph [ref=e832]: 缩放因子：
+      - generic [ref=e834]:
+        - img [ref=e835]
+        - math [ref=e863]:
+          - generic [ref=e865]:
+            - generic [ref=e866]: d
+            - generic [ref=e867]: k
+          - generic [ref=e868]: =
+          - generic [ref=e870]: "64"
+          - generic [ref=e871]: =
+          - generic [ref=e872]: "8"
+      - paragraph [ref=e873]: 所以 Attention 中会计算：
+      - generic [ref=e875]:
+        - img [ref=e876]
+        - math [ref=e892]:
+          - generic [ref=e893]: Q
+          - generic [ref=e894]:
+            - generic [ref=e895]: K
+            - generic [ref=e896]: T
+          - generic [ref=e898]: /
+          - generic [ref=e899]: "8"
+      - paragraph [ref=e900]: 需要区分：
+      - blockquote [ref=e901]:
+        - paragraph [ref=e902]:
+          - strong [ref=e903]:
+            - generic [ref=e904]:
+              - img [ref=e905]
+              - math [ref=e914]:
+                - generic [ref=e915]:
+                  - generic [ref=e916]: d
+                  - generic [ref=e917]: k
+            - text: 是维度；
+            - generic [ref=e918]:
+              - img [ref=e919]
+              - math [ref=e933]:
+                - generic [ref=e935]:
+                  - generic [ref=e936]: d
+                  - generic [ref=e937]: k
+            - text: 不是维度，而是根据这个维度计算出来的缩放因子。
+      - separator [ref=e938]
+      - heading "SECTION 05 5. 为什么除以 ，而不是除以 ？" [level=2] [ref=e939]:
+        - text: SECTION 05 5. 为什么除以
+        - generic [ref=e940]:
+          - img [ref=e941]
+          - math [ref=e955]:
+            - generic [ref=e957]:
+              - generic [ref=e958]: d
+              - generic [ref=e959]: k
+        - text: ，而不是除以
+        - generic [ref=e960]:
+          - img [ref=e961]
+          - math [ref=e970]:
+            - generic [ref=e971]:
+              - generic [ref=e972]: d
+              - generic [ref=e973]: k
+        - text: ？
+      - paragraph [ref=e974]:
+        - text: 因为 QK 点积的典型波动大小按照
+        - generic [ref=e975]:
+          - img [ref=e976]
+          - math [ref=e990]:
+            - generic [ref=e992]:
+              - generic [ref=e993]: d
+              - generic [ref=e994]: k
+        - text: 增长。
+      - paragraph [ref=e995]: 前面已经得到：
+      - generic [ref=e997]:
+        - img [ref=e998]
+        - math [ref=e1026]:
+          - generic [ref=e1027]: V
+          - generic [ref=e1028]: a
+          - generic [ref=e1029]: r
+          - generic [ref=e1030]: (
+          - generic [ref=e1031]: Q
+          - generic [ref=e1032]:
+            - generic [ref=e1033]: K
+            - generic [ref=e1034]: T
+          - generic [ref=e1035]: )
+          - generic [ref=e1036]: ≈
+          - generic [ref=e1037]:
+            - generic [ref=e1038]: d
+            - generic [ref=e1039]: k
+      - paragraph [ref=e1040]: 所以：
+      - generic [ref=e1042]:
+        - img [ref=e1043]
+        - math [ref=e1076]:
+          - generic [ref=e1077]: S
+          - generic [ref=e1078]: t
+          - generic [ref=e1079]: d
+          - generic [ref=e1080]: (
+          - generic [ref=e1081]: Q
+          - generic [ref=e1082]:
+            - generic [ref=e1083]: K
+            - generic [ref=e1084]: T
+          - generic [ref=e1085]: )
+          - generic [ref=e1086]: ≈
+          - generic [ref=e1088]:
+            - generic [ref=e1089]: d
+            - generic [ref=e1090]: k
+      - paragraph [ref=e1091]:
+        - text: 除以
+        - generic [ref=e1092]:
+          - img [ref=e1093]
+          - math [ref=e1107]:
+            - generic [ref=e1109]:
+              - generic [ref=e1110]: d
+              - generic [ref=e1111]: k
+        - text: 后：
+      - generic [ref=e1113]:
+        - img [ref=e1114]
+        - math [ref=e1167]:
+          - generic [ref=e1168]: V
+          - generic [ref=e1169]: a
+          - generic [ref=e1170]: r
+          - generic [ref=e1171]:
+            - generic [ref=e1172]: (
+            - generic [ref=e1173]:
+              - generic [ref=e1174]:
+                - generic [ref=e1175]: Q
+                - generic [ref=e1176]:
+                  - generic [ref=e1177]: K
+                  - generic [ref=e1178]: T
+              - generic [ref=e1180]:
+                - generic [ref=e1181]: d
+                - generic [ref=e1182]: k
+            - generic [ref=e1183]: )
+          - generic [ref=e1184]: ≈
+          - generic [ref=e1185]:
+            - generic [ref=e1186]:
+              - generic [ref=e1187]: d
+              - generic [ref=e1188]: k
+            - generic [ref=e1189]:
+              - generic [ref=e1190]: d
+              - generic [ref=e1191]: k
+          - generic [ref=e1192]: =
+          - generic [ref=e1193]: "1"
+      - paragraph [ref=e1194]: 这样可以把 Scores 的数值尺度稳定在合理范围。
+      - paragraph [ref=e1195]: 例如：
+      - generic [ref=e1197]:
+        - img [ref=e1198]
+        - math [ref=e1212]:
+          - generic [ref=e1213]:
+            - generic [ref=e1214]: d
+            - generic [ref=e1215]: k
+          - generic [ref=e1216]: =
+          - generic [ref=e1217]: "64"
+      - paragraph [ref=e1218]: 那么：
+      - generic [ref=e1220]:
+        - img [ref=e1221]
+        - math [ref=e1239]:
+          - generic [ref=e1241]:
+            - generic [ref=e1242]: d
+            - generic [ref=e1243]: k
+          - generic [ref=e1244]: =
+          - generic [ref=e1245]: "8"
+      - paragraph [ref=e1246]: QK 点积的典型波动尺度大约为 8：
+      - generic [ref=e1247]:
+        - generic [ref=e1248]:
+          - generic [ref=e1249]: text
+          - button "复制" [ref=e1250] [cursor=pointer]
+        - code [ref=e1252]: QK ≈ 8 8 / √64 = 8 / 8 ≈ 1
+      - paragraph [ref=e1253]:
+        - text: 如果直接除以
+        - generic [ref=e1254]:
+          - img [ref=e1255]
+          - math [ref=e1264]:
+            - generic [ref=e1265]:
+              - generic [ref=e1266]: d
+              - generic [ref=e1267]: k
+        - text: ：
+      - generic [ref=e1268]:
+        - generic [ref=e1269]:
+          - generic [ref=e1270]: text
+          - button "复制" [ref=e1271] [cursor=pointer]
+        - code [ref=e1273]: 8 / 64 = 0.125
+      - paragraph [ref=e1274]: 就会缩得过度，使 Scores 更接近 0，Softmax 容易变得过于平均，从而削弱 Attention 区分"应该重点关注谁"的能力。
+      - paragraph [ref=e1275]: 因此：
+      - blockquote [ref=e1276]:
+        - paragraph [ref=e1277]:
+          - strong [ref=e1278]:
+            - text: 除以
+            - generic [ref=e1279]:
+              - img [ref=e1280]
+              - math [ref=e1294]:
+                - generic [ref=e1296]:
+                  - generic [ref=e1297]: d
+                  - generic [ref=e1298]: k
+            - text: 的本质，是按照 QK 点积实际增长的标准差尺度进行归一化。
+      - separator [ref=e1299]
+      - heading "SECTION 06 6. Scaled Dot-Product Attention 完整公式" [level=2] [ref=e1300]
+      - paragraph [ref=e1301]: 最终公式：
+      - generic [ref=e1303]:
+        - img [ref=e1304]
+        - math [ref=e1383]:
+          - generic [ref=e1384]: A
+          - generic [ref=e1385]: t
+          - generic [ref=e1386]: t
+          - generic [ref=e1387]: e
+          - generic [ref=e1388]: "n"
+          - generic [ref=e1389]: t
+          - generic [ref=e1390]: i
+          - generic [ref=e1391]: o
+          - generic [ref=e1392]: "n"
+          - generic [ref=e1393]: (
+          - generic [ref=e1394]: Q
+          - generic [ref=e1395]: ","
+          - generic [ref=e1396]: K
+          - generic [ref=e1397]: ","
+          - generic [ref=e1398]: V
+          - generic [ref=e1399]: )
+          - generic [ref=e1400]: =
+          - generic [ref=e1401]: S
+          - generic [ref=e1402]: o
+          - generic [ref=e1403]: f
+          - generic [ref=e1404]: t
+          - generic [ref=e1405]: m
+          - generic [ref=e1406]: a
+          - generic [ref=e1407]: x
+          - generic [ref=e1408]:
+            - generic [ref=e1409]: (
+            - generic [ref=e1410]:
+              - generic [ref=e1411]:
+                - generic [ref=e1412]: Q
+                - generic [ref=e1413]:
+                  - generic [ref=e1414]: K
+                  - generic [ref=e1415]: T
+              - generic [ref=e1417]:
+                - generic [ref=e1418]: d
+                - generic [ref=e1419]: k
+            - generic [ref=e1420]: )
+          - generic [ref=e1421]: V
+      - paragraph [ref=e1422]: 流程可以记成：
+      - generic [ref=e1423]:
+        - generic [ref=e1424]:
+          - generic [ref=e1425]: text
+          - button "复制" [ref=e1426] [cursor=pointer]
+        - code [ref=e1428]: 输入 X ↓ 线性投影 ↓ Q / K / V ↓ Q × Kᵀ ↓ Scores：Token 两两匹配分数 ↓ ÷ √d_k ↓ Softmax ↓ Attention 权重 ↓ × V ↓ 输出
+      - separator [ref=e1429]
+      - heading "SECTION 07 7. 为什么需要 Q / K / V？" [level=2] [ref=e1430]
+      - paragraph [ref=e1431]: 如果直接使用：
+      - generic [ref=e1433]:
+        - img [ref=e1434]
+        - math [ref=e1445]:
+          - generic [ref=e1446]: X
+          - generic [ref=e1447]:
+            - generic [ref=e1448]: X
+            - generic [ref=e1449]: T
+      - paragraph [ref=e1450]: 也可以计算 Token 之间的相似程度。
+      - paragraph [ref=e1451]: 但这样意味着：
+      - blockquote [ref=e1452]:
+        - paragraph [ref=e1453]: 判断"应该关注谁"的表示，与最终"提供什么信息"的表示完全相同。
+      - paragraph [ref=e1454]: Q/K/V 将这几个职责拆开：
+      - generic [ref=e1455]:
+        - generic [ref=e1456]:
+          - generic [ref=e1457]: text
+          - button "复制" [ref=e1458] [cursor=pointer]
+        - code [ref=e1460]: Q：我需要什么 ↓ Q × Kᵀ：我应该关注谁 ↓ Softmax：关注多少 ↓ 权重 × V：从这些 Token 获取什么信息
+      - paragraph [ref=e1461]: 通过不同的可学习线性投影，模型可以学习更丰富的关系。
+      - separator [ref=e1462]
+      - heading "SECTION 08 8. Self-Attention 相比 RNN 的优势" [level=2] [ref=e1463]
+      - heading "8.1 长距离依赖更加直接" [level=3] [ref=e1464]
+      - paragraph [ref=e1465]: RNN：
+      - generic [ref=e1466]:
+        - generic [ref=e1467]:
+          - generic [ref=e1468]: text
+          - button "复制" [ref=e1469] [cursor=pointer]
+        - code [ref=e1471]: Token1 → Token2 → Token3 → ... → Token100
+      - paragraph [ref=e1472]: 前面的信息需要经过很多时间步才能影响后面的 Token。
+      - paragraph [ref=e1473]: Self-Attention：
+      - generic [ref=e1474]:
+        - generic [ref=e1475]:
+          - generic [ref=e1476]: text
+          - button "复制" [ref=e1477] [cursor=pointer]
+        - code [ref=e1479]: Token1 ─────────────────→ Token100
+      - paragraph [ref=e1480]: 任意两个 Token 都可以直接建立注意力关系。
+      - heading "8.2 可以高度并行" [level=3] [ref=e1481]
+      - paragraph [ref=e1482]: RNN 的时间步之间存在顺序依赖。
+      - paragraph [ref=e1483]: Self-Attention 可以通过：
+      - generic [ref=e1485]:
+        - img [ref=e1486]
+        - math [ref=e1497]:
+          - generic [ref=e1498]: Q
+          - generic [ref=e1499]:
+            - generic [ref=e1500]: K
+            - generic [ref=e1501]: T
+      - paragraph [ref=e1502]: 一次矩阵运算并行计算 Token 之间的关系，因此非常适合 GPU。
+      - heading "8.3 缺点：标准 Attention 是" [level=3] [ref=e1503]:
+        - text: 8.3 缺点：标准 Attention 是
+        - generic [ref=e1504]:
+          - img [ref=e1505]
+          - math [ref=e1520]:
+            - generic [ref=e1521]: O
+            - generic [ref=e1522]: (
+            - generic [ref=e1523]:
+              - generic [ref=e1524]: "n"
+              - generic [ref=e1525]: "2"
+            - generic [ref=e1526]: )
+      - paragraph [ref=e1527]: 如果序列长度是 n，Attention Scores 矩阵大小就是：
+      - generic [ref=e1529]:
+        - img [ref=e1530]
+        - math [ref=e1540]:
+          - generic [ref=e1541]: "n"
+          - generic [ref=e1542]: ×
+          - generic [ref=e1543]: "n"
+      - paragraph [ref=e1544]: 因此标准 Self-Attention 的时间和显存开销会随着序列长度快速增长。
+      - separator [ref=e1545]
+      - heading "SECTION 09 9. Multi-Head Attention 与 Self-Attention 的区别" [level=1] [ref=e1546]
+      - paragraph [ref=e1547]: 一句话：
+      - blockquote [ref=e1548]:
+        - paragraph [ref=e1549]:
+          - strong [ref=e1550]: Self-Attention 描述一次注意力如何计算；Multi-Head Attention 则并行执行多组 Attention，让模型可以在多个不同的表示子空间中学习 Token 关系。
+      - paragraph [ref=e1551]: 单个 Head 仍然使用同样的公式：
+      - generic [ref=e1553]:
+        - img [ref=e1554]
+        - math [ref=e1612]:
+          - generic [ref=e1613]: h
+          - generic [ref=e1614]: e
+          - generic [ref=e1615]: a
+          - generic [ref=e1616]:
+            - generic [ref=e1617]: d
+            - generic [ref=e1618]: i
+          - generic [ref=e1619]: =
+          - generic [ref=e1620]: A
+          - generic [ref=e1621]: t
+          - generic [ref=e1622]: t
+          - generic [ref=e1623]: e
+          - generic [ref=e1624]: "n"
+          - generic [ref=e1625]: t
+          - generic [ref=e1626]: i
+          - generic [ref=e1627]: o
+          - generic [ref=e1628]: "n"
+          - generic [ref=e1629]: (
+          - generic [ref=e1630]:
+            - generic [ref=e1631]: Q
+            - generic [ref=e1632]: i
+          - generic [ref=e1633]: ","
+          - generic [ref=e1634]:
+            - generic [ref=e1635]: K
+            - generic [ref=e1636]: i
+          - generic [ref=e1637]: ","
+          - generic [ref=e1638]:
+            - generic [ref=e1639]: V
+            - generic [ref=e1640]: i
+          - generic [ref=e1641]: )
+      - paragraph [ref=e1642]: 而 Multi-Head Attention：
+      - generic [ref=e1644]:
+        - img [ref=e1645]
+        - math [ref=e1718]:
+          - generic [ref=e1719]: M
+          - generic [ref=e1720]: u
+          - generic [ref=e1721]: l
+          - generic [ref=e1722]: t
+          - generic [ref=e1723]: i
+          - generic [ref=e1724]: H
+          - generic [ref=e1725]: e
+          - generic [ref=e1726]: a
+          - generic [ref=e1727]: d
+          - generic [ref=e1728]: =
+          - generic [ref=e1729]: C
+          - generic [ref=e1730]: o
+          - generic [ref=e1731]: "n"
+          - generic [ref=e1732]: c
+          - generic [ref=e1733]: a
+          - generic [ref=e1734]: t
+          - generic [ref=e1735]: (
+          - generic [ref=e1736]: h
+          - generic [ref=e1737]: e
+          - generic [ref=e1738]: a
+          - generic [ref=e1739]:
+            - generic [ref=e1740]: d
+            - generic [ref=e1741]: "1"
+          - generic [ref=e1742]: ","
+          - generic [ref=e1743]: …
+          - generic [ref=e1744]: ","
+          - generic [ref=e1745]: h
+          - generic [ref=e1746]: e
+          - generic [ref=e1747]: a
+          - generic [ref=e1748]:
+            - generic [ref=e1749]: d
+            - generic [ref=e1750]: h
+          - generic [ref=e1751]: )
+          - generic [ref=e1752]:
+            - generic [ref=e1753]: W
+            - generic [ref=e1754]: O
+      - separator [ref=e1755]
+      - heading "SECTION 10 10. 为什么需要 Multi-Head Attention？" [level=2] [ref=e1756]
+      - paragraph [ref=e1757]: 一句话中可能同时存在多种关系，例如：
+      - generic [ref=e1758]:
+        - generic [ref=e1759]:
+          - generic [ref=e1760]: text
+          - button "复制" [ref=e1761] [cursor=pointer]
+        - code [ref=e1763]: 人物之间的关系 语法关系 动作与对象的关系 指代关系 位置关系
+      - paragraph [ref=e1764]: 如果只有一套 Q/K/V，模型主要是在一个表示空间里计算 Attention。
+      - paragraph [ref=e1765]: Multi-Head Attention 使用多套独立的投影参数：
+      - generic [ref=e1767]:
+        - img [ref=e1768]
+        - math [ref=e1797]:
+          - generic [ref=e1798]:
+            - generic [ref=e1799]: W
+            - generic [ref=e1800]: Q
+            - generic [ref=e1801]: i
+          - generic [ref=e1802]: ","
+          - generic [ref=e1803]:
+            - generic [ref=e1804]: W
+            - generic [ref=e1805]: K
+            - generic [ref=e1806]: i
+          - generic [ref=e1807]: ","
+          - generic [ref=e1808]:
+            - generic [ref=e1809]: W
+            - generic [ref=e1810]: V
+            - generic [ref=e1811]: i
+      - paragraph [ref=e1812]: 让不同 Head 可以把同一个输入映射到不同的表示子空间，再分别计算 Attention。
+      - paragraph [ref=e1813]: 为了帮助理解，可以想象：
+      - generic [ref=e1814]:
+        - generic [ref=e1815]:
+          - generic [ref=e1816]: text
+          - button "复制" [ref=e1817] [cursor=pointer]
+        - code [ref=e1819]: Head 1：可能更关注语法关系 Head 2：可能更关注人物关系 Head 3：可能更关注指代关系 Head 4：可能更关注位置关系
+      - paragraph [ref=e1820]: 但需要注意：
+      - blockquote [ref=e1821]:
+        - paragraph [ref=e1822]: 这些只是帮助理解的例子。训练过程中并没有人为规定每个 Head 必须学习什么，不同 Head 学到的模式是模型训练得到的，也可能存在一定冗余。
+      - separator [ref=e1823]
+      - heading "SECTION 11 11. Multi-Head Attention 的维度变化" [level=2] [ref=e1824]
+      - paragraph [ref=e1825]: 假设：
+      - generic [ref=e1827]:
+        - img [ref=e1828]
+        - math [ref=e1852]:
+          - generic [ref=e1853]:
+            - generic [ref=e1854]: d
+            - generic [ref=e1855]:
+              - generic [ref=e1856]: m
+              - generic [ref=e1857]: o
+              - generic [ref=e1858]: d
+              - generic [ref=e1859]: e
+              - generic [ref=e1860]: l
+          - generic [ref=e1861]: =
+          - generic [ref=e1862]: "512"
+      - paragraph [ref=e1863]: 有 8 个 Head：
+      - generic [ref=e1865]:
+        - img [ref=e1866]
+        - math [ref=e1876]:
+          - generic [ref=e1877]: h
+          - generic [ref=e1878]: =
+          - generic [ref=e1879]: "8"
+      - paragraph [ref=e1880]: 通常每个 Head 的维度为：
+      - generic [ref=e1882]:
+        - img [ref=e1883]
+        - math [ref=e1927]:
+          - generic [ref=e1928]:
+            - generic [ref=e1929]: d
+            - generic [ref=e1930]: k
+          - generic [ref=e1931]: =
+          - generic [ref=e1932]:
+            - generic [ref=e1933]:
+              - generic [ref=e1934]: d
+              - generic [ref=e1935]:
+                - generic [ref=e1936]: m
+                - generic [ref=e1937]: o
+                - generic [ref=e1938]: d
+                - generic [ref=e1939]: e
+                - generic [ref=e1940]: l
+            - generic [ref=e1941]: h
+          - generic [ref=e1942]: =
+          - generic [ref=e1943]:
+            - generic [ref=e1944]: "512"
+            - generic [ref=e1945]: "8"
+          - generic [ref=e1946]: =
+          - generic [ref=e1947]: "64"
+      - paragraph [ref=e1948]: 因此每个 Head 内部计算：
+      - generic [ref=e1950]:
+        - img [ref=e1951]
+        - math [ref=e2002]:
+          - generic [ref=e2003]: S
+          - generic [ref=e2004]: o
+          - generic [ref=e2005]: f
+          - generic [ref=e2006]: t
+          - generic [ref=e2007]: m
+          - generic [ref=e2008]: a
+          - generic [ref=e2009]: x
+          - generic [ref=e2010]:
+            - generic [ref=e2011]: (
+            - generic [ref=e2012]:
+              - generic [ref=e2013]:
+                - generic [ref=e2014]:
+                  - generic [ref=e2015]: Q
+                  - generic [ref=e2016]: i
+                - generic [ref=e2017]:
+                  - generic [ref=e2018]: K
+                  - generic [ref=e2019]: i
+                  - generic [ref=e2020]: T
+              - generic [ref=e2022]: "64"
+            - generic [ref=e2023]: )
+          - generic [ref=e2024]:
+            - generic [ref=e2025]: V
+            - generic [ref=e2026]: i
+      - paragraph [ref=e2027]: 每个 Head 输出 64 维：
+      - generic [ref=e2028]:
+        - generic [ref=e2029]:
+          - generic [ref=e2030]: text
+          - button "复制" [ref=e2031] [cursor=pointer]
+        - code [ref=e2033]: Head 1 → 64 Head 2 → 64 ... Head 8 → 64
+      - paragraph [ref=e2034]: 然后拼接：
+      - generic [ref=e2036]:
+        - img [ref=e2037]
+        - math [ref=e2085]:
+          - generic [ref=e2086]: C
+          - generic [ref=e2087]: o
+          - generic [ref=e2088]: "n"
+          - generic [ref=e2089]: c
+          - generic [ref=e2090]: a
+          - generic [ref=e2091]: t
+          - generic [ref=e2092]: (
+          - generic [ref=e2093]: h
+          - generic [ref=e2094]: e
+          - generic [ref=e2095]: a
+          - generic [ref=e2096]:
+            - generic [ref=e2097]: d
+            - generic [ref=e2098]: "1"
+          - generic [ref=e2099]: ","
+          - generic [ref=e2100]: …
+          - generic [ref=e2101]: ","
+          - generic [ref=e2102]: h
+          - generic [ref=e2103]: e
+          - generic [ref=e2104]: a
+          - generic [ref=e2105]:
+            - generic [ref=e2106]: d
+            - generic [ref=e2107]: "8"
+          - generic [ref=e2108]: )
+      - paragraph [ref=e2109]: 维度重新变成：
+      - generic [ref=e2111]:
+        - img [ref=e2112]
+        - math [ref=e2129]:
+          - generic [ref=e2130]: "8"
+          - generic [ref=e2131]: ×
+          - generic [ref=e2132]: "64"
+          - generic [ref=e2133]: =
+          - generic [ref=e2134]: "512"
+      - paragraph [ref=e2135]: 最后经过输出投影：
+      - generic [ref=e2137]:
+        - img [ref=e2138]
+        - math [ref=e2147]:
+          - generic [ref=e2148]:
+            - generic [ref=e2149]: W
+            - generic [ref=e2150]: O
+      - paragraph [ref=e2151]: 得到最终的 512 维输出。
+      - separator [ref=e2152]
+      - heading "SECTION 12 12. \"把 d_model 拆成多个 Head\"更严格的理解" [level=2] [ref=e2153]
+      - paragraph [ref=e2154]: 可以简单记成：
+      - blockquote [ref=e2155]:
+        - paragraph [ref=e2156]:
+          - text: 将
+          - generic [ref=e2157]:
+            - img [ref=e2158]
+            - math [ref=e2176]:
+              - generic [ref=e2177]:
+                - generic [ref=e2178]: d
+                - generic [ref=e2179]:
+                  - generic [ref=e2180]: m
+                  - generic [ref=e2181]: o
+                  - generic [ref=e2182]: d
+                  - generic [ref=e2183]: e
+                  - generic [ref=e2184]: l
+          - text: 拆成多个 Head，每个 Head 在较小的维度中做 Attention。
+      - paragraph [ref=e2185]: 但更严格地说：
+      - blockquote [ref=e2186]:
+        - paragraph [ref=e2187]:
+          - strong [ref=e2188]: 并不是先把输入 X 的 512 个维度机械切成 8 份，然后每份各算各的。
+      - paragraph [ref=e2189]: 而是每个 Head 都从同一个输入 X 出发，通过自己独立的：
+      - generic [ref=e2191]:
+        - img [ref=e2192]
+        - math [ref=e2221]:
+          - generic [ref=e2222]:
+            - generic [ref=e2223]: W
+            - generic [ref=e2224]: Q
+            - generic [ref=e2225]: i
+          - generic [ref=e2226]: ","
+          - generic [ref=e2227]:
+            - generic [ref=e2228]: W
+            - generic [ref=e2229]: K
+            - generic [ref=e2230]: i
+          - generic [ref=e2231]: ","
+          - generic [ref=e2232]:
+            - generic [ref=e2233]: W
+            - generic [ref=e2234]: V
+            - generic [ref=e2235]: i
+      - paragraph [ref=e2236]:
+        - text: 把输入
+        - strong [ref=e2237]: 投影到不同的 64 维表示子空间
+        - text: 。
+      - paragraph [ref=e2238]: 可以理解为：
+      - generic [ref=e2239]:
+        - generic [ref=e2240]:
+          - generic [ref=e2241]: text
+          - button "复制" [ref=e2242] [cursor=pointer]
+        - code [ref=e2244]: 输入 X：512维 │ ┌────────────────┼────────────────┐ ↓ ↓ ↓ Head 1 Head 2 ... Head 8 ↓ ↓ ↓ 独立 WQ/WK/WV 独立 WQ/WK/WV 独立 WQ/WK/WV ↓ ↓ ↓ 64维子空间 64维子空间 64维子空间 ↓ ↓ ↓ Self-Attention Self-Attention Self-Attention └────────────────┼────────────────┘ ↓ Concat ↓ 512维 ↓ W_O ↓ Output
+      - paragraph [ref=e2245]: 所以最准确的总结是：
+      - blockquote [ref=e2246]:
+        - paragraph [ref=e2247]:
+          - strong [ref=e2248]:
+            - text: Multi-Head Attention 将
+            - generic [ref=e2249]:
+              - img [ref=e2250]
+              - math [ref=e2268]:
+                - generic [ref=e2269]:
+                  - generic [ref=e2270]: d
+                  - generic [ref=e2271]:
+                    - generic [ref=e2272]: m
+                    - generic [ref=e2273]: o
+                    - generic [ref=e2274]: d
+                    - generic [ref=e2275]: e
+                    - generic [ref=e2276]: l
+            - text: 映射到多个 Head，每个 Head 通过独立的 Q/K/V 投影，在不同的表示子空间中学习 Token 之间的关系，最后将各 Head 的结果拼接并进行输出投影。
+      - separator [ref=e2277]
+      - heading "SECTION 13 13. Self-Attention vs Multi-Head Attention" [level=1] [ref=e2278]
+      - table [ref=e2280]:
+        - rowgroup [ref=e2281]:
+          - row "对比 Self-Attention Multi-Head Attention" [ref=e2282]:
+            - columnheader "对比" [ref=e2283]
+            - columnheader "Self-Attention" [ref=e2284]
+            - columnheader "Multi-Head Attention" [ref=e2285]
+        - rowgroup [ref=e2286]:
+          - row "Q/K/V 一组 多组独立投影" [ref=e2287]:
+            - cell "Q/K/V" [ref=e2288]
+            - cell "一组" [ref=e2289]
+            - cell "多组独立投影" [ref=e2290]
+          - row "Attention 一次 多个 Head 并行计算" [ref=e2291]:
+            - cell "Attention" [ref=e2292]
+            - cell "一次" [ref=e2293]
+            - cell "多个 Head 并行计算" [ref=e2294]
+          - row "表示空间 一个 多个表示子空间" [ref=e2295]:
+            - cell "表示空间" [ref=e2296]
+            - cell "一个" [ref=e2297]
+            - cell "多个表示子空间" [ref=e2298]
+          - row "结果处理 得到 Attention 输出 Concat + 输出投影" [ref=e2299]:
+            - cell "结果处理" [ref=e2300]
+            - cell "得到 Attention 输出" [ref=e2301]
+            - cell "Concat + 输出投影" [ref=e2302]
+          - row "表达能力 相对有限 可以从多个子空间建模关系" [ref=e2303]:
+            - cell "表达能力" [ref=e2304]
+            - cell "相对有限" [ref=e2305]
+            - cell "可以从多个子空间建模关系" [ref=e2306]
+      - paragraph [ref=e2307]: Multi-Head 并没有改变 Self-Attention 的核心计算。
+      - paragraph [ref=e2308]: 每个 Head 内仍然是：
+      - generic [ref=e2309]:
+        - generic [ref=e2310]:
+          - generic [ref=e2311]: text
+          - button "复制" [ref=e2312] [cursor=pointer]
+        - code [ref=e2314]: QKᵀ ↓ ÷ √d_k ↓ Softmax ↓ × V
+      - paragraph [ref=e2315]: Multi-Head 只是在外层增加：
+      - generic [ref=e2316]:
+        - generic [ref=e2317]:
+          - generic [ref=e2318]: text
+          - button "复制" [ref=e2319] [cursor=pointer]
+        - code [ref=e2321]: 多组独立 Q/K/V ↓ 多个 Attention 并行计算 ↓ Concat ↓ 输出投影 W_O
+      - separator [ref=e2322]
+      - heading "SECTION 14 14. 面试回答模板" [level=1] [ref=e2323]
+      - heading "SECTION 15 Self-Attention" [level=2] [ref=e2324]
+      - blockquote [ref=e2325]:
+        - paragraph [ref=e2326]:
+          - text: Self-Attention 的核心目的是让序列中的每个 Token 动态关注其他 Token，从而建立上下文关系。 计算时首先将输入 X 分别线性映射成 Q、K、V，然后通过
+          - generic [ref=e2327]:
+            - img [ref=e2328]
+            - math [ref=e2339]:
+              - generic [ref=e2340]: Q
+              - generic [ref=e2341]:
+                - generic [ref=e2342]: K
+                - generic [ref=e2343]: T
+          - text: 计算 Token 之间的匹配分数，再除以
+          - generic [ref=e2344]:
+            - img [ref=e2345]
+            - math [ref=e2359]:
+              - generic [ref=e2361]:
+                - generic [ref=e2362]: d
+                - generic [ref=e2363]: k
+          - text: 防止点积随着维度增加导致数值波动过大，之后经过 Softmax 得到注意力权重，最后使用这些权重对 V 做加权求和。 核心公式是：
+          - generic [ref=e2364]:
+            - img [ref=e2365]
+            - math [ref=e2443]:
+              - generic [ref=e2444]: A
+              - generic [ref=e2445]: t
+              - generic [ref=e2446]: t
+              - generic [ref=e2447]: e
+              - generic [ref=e2448]: "n"
+              - generic [ref=e2449]: t
+              - generic [ref=e2450]: i
+              - generic [ref=e2451]: o
+              - generic [ref=e2452]: "n"
+              - generic [ref=e2453]: (
+              - generic [ref=e2454]: Q
+              - generic [ref=e2455]: ","
+              - generic [ref=e2456]: K
+              - generic [ref=e2457]: ","
+              - generic [ref=e2458]: V
+              - generic [ref=e2459]: )
+              - generic [ref=e2460]: =
+              - generic [ref=e2461]: S
+              - generic [ref=e2462]: o
+              - generic [ref=e2463]: f
+              - generic [ref=e2464]: t
+              - generic [ref=e2465]: m
+              - generic [ref=e2466]: a
+              - generic [ref=e2467]: x
+              - generic [ref=e2468]: (
+              - generic [ref=e2469]: Q
+              - generic [ref=e2470]:
+                - generic [ref=e2471]: K
+                - generic [ref=e2472]: T
+              - generic [ref=e2474]: /
+              - generic [ref=e2476]:
+                - generic [ref=e2477]: d
+                - generic [ref=e2478]: k
+              - generic [ref=e2479]: )
+              - generic [ref=e2480]: V
+          - text: 。 相比 RNN，它可以直接建立长距离 Token 之间的依赖，并且能够通过矩阵运算高度并行；缺点是标准 Attention 对序列长度具有
+          - generic [ref=e2481]:
+            - img [ref=e2482]
+            - math [ref=e2497]:
+              - generic [ref=e2498]: O
+              - generic [ref=e2499]: (
+              - generic [ref=e2500]:
+                - generic [ref=e2501]: "n"
+                - generic [ref=e2502]: "2"
+              - generic [ref=e2503]: )
+          - text: 的复杂度。
+      - heading "SECTION 16 Multi-Head Attention" [level=2] [ref=e2504]
+      - blockquote [ref=e2505]:
+        - paragraph [ref=e2506]: Multi-Head Attention 本质上是并行执行多组 Attention。每个 Head 都有独立的 Q/K/V 投影参数，将同一个输入映射到不同的表示子空间，因此不同 Head 可以学习不同类型的 Token 关系。最后将多个 Head 的输出进行 Concat，再经过一个线性输出投影得到最终结果。 严格来说，不是简单把输入维度机械切成几份，而是通过不同的可学习投影矩阵，把同一个输入映射到多个低维子空间。
+      - separator [ref=e2507]
+      - heading "SECTION 17 15. 最终记忆版" [level=1] [ref=e2508]
+      - heading "Self-Attention" [level=3] [ref=e2509]
+      - generic [ref=e2510]:
+        - generic [ref=e2511]:
+          - generic [ref=e2512]: text
+          - button "复制" [ref=e2513] [cursor=pointer]
+        - code [ref=e2515]: Q：我想找什么 K：我能如何被匹配 V：我真正提供什么 QKᵀ → Token 两两匹配分数 → ÷ √d_k 稳定数值尺度 → Softmax 得到注意力权重 → × V 聚合信息
+      - heading "为什么是 √d_k？" [level=3] [ref=e2516]
+      - generic [ref=e2517]:
+        - generic [ref=e2518]:
+          - generic [ref=e2519]: text
+          - button "复制" [ref=e2520] [cursor=pointer]
+        - code [ref=e2522]: QK 点积包含 d_k 项累加 ↓ 方差 ≈ d_k ↓ 标准差 ≈ √d_k ↓ 所以除以 √d_k
+      - heading "Multi-Head Attention" [level=3] [ref=e2523]
+      - generic [ref=e2524]:
+        - generic [ref=e2525]:
+          - generic [ref=e2526]: text
+          - button "复制" [ref=e2527] [cursor=pointer]
+        - code [ref=e2529]: 同一个输入 X ↓ 多组独立 Q/K/V 投影 ↓ 多个不同表示子空间 ↓ 各自做 Self-Attention ↓ Concat ↓ W_O 输出投影
+      - paragraph [ref=e2530]: 一句话记忆：
+      - blockquote [ref=e2531]:
+        - paragraph [ref=e2532]:
+          - strong [ref=e2533]: Self-Attention 解决"一个 Token 应该关注谁以及获取什么信息"；Multi-Head Attention 则让模型同时从多个不同表示子空间去做这件事。
+  - button "返回顶部": ↑
+  - contentinfo [ref=e2534]: Self-Attention 与 Multi-Head Attention：计算流程、设计动机与面试重点

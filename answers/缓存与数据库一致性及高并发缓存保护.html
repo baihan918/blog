@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="缓存与数据库一致性及高并发缓存保护">
+  <title>缓存与数据库一致性及高并发缓存保护</title>
+  <link rel="stylesheet" href="../assets/answer-pages.css?v=2">
+  <script>window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] } };</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">MD</span><span class="brand-title">缓存与数据库一致性及高并发缓存保护</span></div>
+    <div class="top-actions"><a class="source-link" href="0-md/%E7%BC%93%E5%AD%98%E4%B8%8E%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%80%E8%87%B4%E6%80%A7%E5%8F%8A%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E4%BF%9D%E6%8A%A4.md">查看 Markdown</a><button class="menu-button" id="menuToggle" type="button" aria-label="打开目录" aria-expanded="false">☰</button><button class="icon-button" id="themeToggle" type="button" aria-label="切换深浅主题">◐</button></div>
+  </header>
+  <section class="hero"><div class="eyebrow">Markdown Reading Page</div><h1>缓存与数据库一致性及高并发缓存保护</h1></section>
+  <main class="layout" id="main">
+    <aside class="toc-shell" id="tocShell"><nav class="toc" aria-label="页面目录"><p class="toc-title">READING MAP</p><a href="#1-缓存与数据库一致性策略如何取舍" data-toc="1-缓存与数据库一致性策略如何取舍" data-level="2">1. 缓存与数据库一致性策略如何取舍？</a>
+<a href="#2-cache-aside-读流程" data-toc="2-cache-aside-读流程" data-level="2">2. Cache Aside 读流程</a>
+<a href="#3-写数据为什么推荐-更新-db-删除缓存" data-toc="3-写数据为什么推荐-更新-db-删除缓存" data-level="2">3. 写数据为什么推荐&quot;更新 DB → 删除缓存&quot;？</a>
+<a href="#4-更新-db-删除缓存-是不是绝对一致" data-toc="4-更新-db-删除缓存-是不是绝对一致" data-level="2">4. &quot;更新 DB → 删除缓存&quot;是不是绝对一致？</a>
+<a href="#5-如何进一步降低不一致概率" data-toc="5-如何进一步降低不一致概率" data-level="2">5. 如何进一步降低不一致概率？</a>
+<a href="#5-1-ttl" data-toc="5-1-ttl" data-level="3">5.1 TTL</a>
+<a href="#5-2-删除失败重试-mq-补偿" data-toc="5-2-删除失败重试-mq-补偿" data-level="3">5.2 删除失败重试 / MQ 补偿</a>
+<a href="#5-3-延迟双删" data-toc="5-3-延迟双删" data-level="3">5.3 延迟双删</a>
+<a href="#6-哪些场景使用什么一致性策略" data-toc="6-哪些场景使用什么一致性策略" data-level="1">6. 哪些场景使用什么一致性策略？</a>
+<a href="#7-为什么缓存不应该轻易作为事实源" data-toc="7-为什么缓存不应该轻易作为事实源" data-level="1">7. 为什么缓存不应该轻易作为事实源？</a>
+<a href="#8-强一致业务为什么不能单纯依赖缓存" data-toc="8-强一致业务为什么不能单纯依赖缓存" data-level="1">8. 强一致业务为什么不能单纯依赖缓存？</a>
+<a href="#9-缓存击穿-大量并发同时-cache-miss-怎么办" data-toc="9-缓存击穿-大量并发同时-cache-miss-怎么办" data-level="1">9. 缓存击穿：大量并发同时 Cache Miss 怎么办？</a>
+<a href="#10-方案一-互斥锁" data-toc="10-方案一-互斥锁" data-level="1">10. 方案一：互斥锁</a>
+<a href="#11-为什么抢到锁之后还要再查一次缓存" data-toc="11-为什么抢到锁之后还要再查一次缓存" data-level="1">11. 为什么抢到锁之后还要再查一次缓存？</a>
+<a href="#12-方案二-singleflight-请求合并" data-toc="12-方案二-singleflight-请求合并" data-level="1">12. 方案二：Singleflight / 请求合并</a>
+<a href="#13-singleflight-的局限" data-toc="13-singleflight-的局限" data-level="1">13. Singleflight 的局限</a>
+<a href="#单机请求合并" data-toc="单机请求合并" data-level="3">单机请求合并</a>
+<a href="#分布式请求合并" data-toc="分布式请求合并" data-level="3">分布式请求合并</a>
+<a href="#14-方案三-逻辑过期" data-toc="14-方案三-逻辑过期" data-level="1">14. 方案三：逻辑过期</a>
+<a href="#15-逻辑过期的本质-用一致性换可用性" data-toc="15-逻辑过期的本质-用一致性换可用性" data-level="1">15. 逻辑过期的本质：用一致性换可用性</a>
+<a href="#16-方案四-提前刷新缓存" data-toc="16-方案四-提前刷新缓存" data-level="1">16. 方案四：提前刷新缓存</a>
+<a href="#17-方案五-限流-降级-熔断" data-toc="17-方案五-限流-降级-熔断" data-level="1">17. 方案五：限流、降级、熔断</a>
+<a href="#返回系统繁忙" data-toc="返回系统繁忙" data-level="3">返回系统繁忙</a>
+<a href="#返回旧缓存" data-toc="返回旧缓存" data-level="3">返回旧缓存</a>
+<a href="#服务降级" data-toc="服务降级" data-level="3">服务降级</a>
+<a href="#18-完整的高并发缓存保护体系" data-toc="18-完整的高并发缓存保护体系" data-level="1">18. 完整的高并发缓存保护体系</a>
+<a href="#19-缓存穿透-缓存击穿-缓存雪崩的区别" data-toc="19-缓存穿透-缓存击穿-缓存雪崩的区别" data-level="1">19. 缓存穿透、缓存击穿、缓存雪崩的区别</a>
+<a href="#19-1-缓存穿透" data-toc="19-1-缓存穿透" data-level="2">19.1 缓存穿透</a>
+<a href="#19-2-缓存击穿" data-toc="19-2-缓存击穿" data-level="2">19.2 缓存击穿</a>
+<a href="#19-3-缓存雪崩" data-toc="19-3-缓存雪崩" data-level="2">19.3 缓存雪崩</a>
+<a href="#20-三种缓存问题快速记忆" data-toc="20-三种缓存问题快速记忆" data-level="1">20. 三种缓存问题快速记忆</a>
+<a href="#21-面试回答-缓存和数据库一致性怎么保证" data-toc="21-面试回答-缓存和数据库一致性怎么保证" data-level="1">21. 面试回答：缓存和数据库一致性怎么保证？</a>
+<a href="#22-面试回答-缓存击穿怎么解决" data-toc="22-面试回答-缓存击穿怎么解决" data-level="1">22. 面试回答：缓存击穿怎么解决？</a>
+<a href="#23-最终理解框架" data-toc="23-最终理解框架" data-level="1">23. 最终理解框架</a></nav></aside>
+    <article class="article"><h2 id="1-缓存与数据库一致性策略如何取舍" data-section="SECTION 01">1. 缓存与数据库一致性策略如何取舍？</h2>
+<p>缓存与数据库一致性的核心，不是追求所有场景下的&quot;绝对一致&quot;，而是根据业务对 <strong>一致性、性能、复杂度</strong> 的要求做取舍。</p>
+<p>最常见、也是业务系统里比较推荐的方案是：</p>
+<blockquote><p><strong>Cache Aside（旁路缓存） + 更新数据库后删除缓存</strong></p></blockquote>
+<hr>
+<h2 id="2-cache-aside-读流程" data-section="SECTION 02">2. Cache Aside 读流程</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>请求
+ ↓
+查 Redis
+ ↓ 命中
+直接返回
+
+ ↓ 未命中
+查 DB
+ ↓
+写 Redis
+ ↓
+返回</code></pre></div>
+<p>基本逻辑：</p>
+<ol><li>请求先查询 Redis。</li><li>Redis 命中，直接返回。</li><li>Redis 未命中，查询数据库。</li><li>将数据库查询结果写入 Redis。</li><li>返回数据。</li></ol>
+<p>这种模式下：</p>
+<blockquote><p><strong>数据库是事实源（Source of Truth），Redis 是性能加速层。</strong></p></blockquote>
+<p>缓存即使出现问题，也可以删除并重新从数据库构建。</p>
+<hr>
+<h2 id="3-写数据为什么推荐-更新-db-删除缓存" data-section="SECTION 03">3. 写数据为什么推荐&quot;更新 DB → 删除缓存&quot;？</h2>
+<p>推荐：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>更新 DB
+  ↓
+删除 Redis</code></pre></div>
+<p>而不是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>更新 DB
+  ↓
+更新 Redis</code></pre></div>
+<p>原因是直接更新缓存，在高并发情况下容易发生写入顺序错乱。</p>
+<p>例如两个并发请求：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>请求 A：DB 写成 10
+请求 B：DB 写成 20
+
+请求 B 先更新缓存 = 20
+请求 A 后更新缓存 = 10</code></pre></div>
+<p>最终可能变成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB = 20
+Cache = 10</code></pre></div>
+<p>数据库已经是最新值 20，但是缓存却被旧请求覆盖成 10。</p>
+<p>因此更常见的策略是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>更新数据库
+↓
+删除缓存
+↓
+下一次查询缓存 miss
+↓
+重新查询 DB
+↓
+重新构建缓存</code></pre></div>
+<p>这样缓存只负责失效，而不是主动维护复杂的并发更新顺序。</p>
+<hr>
+<h2 id="4-更新-db-删除缓存-是不是绝对一致" data-section="SECTION 04">4. &quot;更新 DB → 删除缓存&quot;是不是绝对一致？</h2>
+<p>不是。</p>
+<p>Cache Aside 本质上通常提供的是 <strong>最终一致性</strong>。</p>
+<p>仍然存在一个经典并发问题。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>线程 A：
+1. 查缓存，没有
+2. 查 DB，读到旧值 10
+
+线程 B：
+3. 更新 DB = 20
+4. 删除缓存
+
+线程 A：
+5. 把刚才读到的旧值 10 写入缓存</code></pre></div>
+<p>最终：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB = 20
+Cache = 10</code></pre></div>
+<p>因此：</p>
+<blockquote><p><strong>删除缓存并不意味着理论上的强一致，只是大幅降低了缓存与数据库不一致的复杂度。</strong></p></blockquote>
+<hr>
+<h2 id="5-如何进一步降低不一致概率" data-section="SECTION 05">5. 如何进一步降低不一致概率？</h2>
+<p>工程上常见组合：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Cache Aside
++
+TTL
++
+删除失败重试 / MQ 补偿
++
+必要时延迟双删</code></pre></div>
+<h3 id="5-1-ttl">5.1 TTL</h3>
+<p>给缓存设置合理的过期时间。</p>
+<p>即使因为极端并发产生了脏缓存：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB = 新值
+Redis = 旧值</code></pre></div>
+<p>缓存最终也会自动过期，然后重新从 DB 构建。</p>
+<p>TTL 相当于最终一致性的兜底机制之一。</p>
+<hr>
+<h3 id="5-2-删除失败重试-mq-补偿">5.2 删除失败重试 / MQ 补偿</h3>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>更新 DB 成功
+↓
+删除 Redis
+↓
+删除失败
+↓
+发送 MQ / 写入重试队列
+↓
+后台重新删除 Redis</code></pre></div>
+<p>这样可以避免：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>数据库已经更新
+但缓存删除失败
+↓
+旧缓存一直存在</code></pre></div>
+<p>对于比较重要的数据，这是比单纯&quot;删一次缓存&quot;更可靠的方式。</p>
+<hr>
+<h3 id="5-3-延迟双删">5.3 延迟双删</h3>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>更新 DB
+ ↓
+删除 Redis
+ ↓
+等待一小段时间
+ ↓
+再次删除 Redis</code></pre></div>
+<p>目的就是处理前面提到的并发场景：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>A 查询到旧 DB
+↓
+B 更新 DB
+↓
+B 删除缓存
+↓
+A 又把旧数据写回缓存</code></pre></div>
+<p>第二次删除尝试把 A 回填的旧缓存再次删除。</p>
+<p>但是延迟双删并不是所有业务都应该默认使用，因为：</p>
+<ul><li>增加系统复杂度。</li><li>延迟时间很难精确确定。</li><li>仍然不是严格意义上的强一致。</li></ul>
+<p>因此通常根据业务一致性要求决定是否采用。</p>
+<hr>
+<h1 id="6-哪些场景使用什么一致性策略" data-section="SECTION 06">6. 哪些场景使用什么一致性策略？</h1>
+<div class="table-wrap"><table><thead><tr><th>场景</th><th>推荐策略</th></tr></thead><tbody><tr><td>商品详情、配置、普通业务数据</td><td>Cache Aside + DB 更新后删缓存 + TTL</td></tr><tr><td>高并发读、低频写</td><td>Cache Aside</td></tr><tr><td>缓存删除偶尔失败</td><td>MQ / 重试队列补偿删除</td></tr><tr><td>可以容忍几秒旧数据</td><td>TTL + 最终一致性</td></tr><tr><td>余额、库存扣减、支付状态</td><td>不依赖普通缓存保证一致性</td></tr><tr><td>极高一致性要求</td><td>DB 事务 / 原子操作 / 必要的分布式事务</td></tr></tbody></table></div>
+<hr>
+<h1 id="7-为什么缓存不应该轻易作为事实源" data-section="SECTION 07">7. 为什么缓存不应该轻易作为事实源？</h1>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Redis: 余额 = 100
+DB:    余额 = 80</code></pre></div>
+<p>此时到底相信谁？</p>
+<p>一般设计应该是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB = 事实源
+Redis = 性能层</code></pre></div>
+<p>缓存错了：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>删除缓存
+↓
+重新读取 DB
+↓
+重建缓存</code></pre></div>
+<p>因此普通业务缓存应该尽量做到：</p>
+<blockquote><p><strong>缓存可以丢，数据库不能错。</strong></p></blockquote>
+<hr>
+<h1 id="8-强一致业务为什么不能单纯依赖缓存" data-section="SECTION 08">8. 强一致业务为什么不能单纯依赖缓存？</h1>
+<p>例如库存：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>库存剩余：1
+
+用户 A → 下单
+用户 B → 同时下单</code></pre></div>
+<p>这时候真正的问题已经不是：</p>
+<blockquote><p>Redis 和数据库缓存是否一致？</p></blockquote>
+<p>而是：</p>
+<blockquote><p>两个并发请求如何保证只有一个请求成功扣减库存？</p></blockquote>
+<p>因此核心应该转向：</p>
+<ul><li>数据库事务</li><li>乐观锁 / 悲观锁</li><li>CAS</li><li>Redis 原子操作</li><li>Lua Script</li><li>库存预扣</li><li>消息队列</li><li>分布式事务</li></ul>
+<p>也就是说：</p>
+<blockquote><p><strong>缓存一致性解决的是&quot;读到什么数据&quot;的问题，而库存并发控制解决的是&quot;业务状态能不能被正确修改&quot;的问题。</strong></p></blockquote>
+<p>两者不能混为一谈。</p>
+<hr>
+<h1 id="9-缓存击穿-大量并发同时-cache-miss-怎么办" data-section="SECTION 09">9. 缓存击穿：大量并发同时 Cache Miss 怎么办？</h1>
+<p>假设某一个热点 Key：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>product:123</code></pre></div>
+<p>平时：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>10 万 QPS
+↓
+Redis
+↓
+DB 几乎没有压力</code></pre></div>
+<p>突然缓存失效：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>product:123 过期</code></pre></div>
+<p>这时候 10 万个请求同时：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Redis MISS
+↓
+全部查询 DB</code></pre></div>
+<p>数据库可能瞬间被打垮。</p>
+<p>这就是典型的：</p>
+<blockquote><p><strong>缓存击穿（Cache Breakdown / Hot Key Expiration）</strong></p></blockquote>
+<hr>
+<h1 id="10-方案一-互斥锁" data-section="SECTION 10">10. 方案一：互斥锁</h1>
+<p>核心思想：</p>
+<blockquote><p><strong>缓存失效之后，只允许一个请求查询数据库。</strong></p></blockquote>
+<p>流程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>大量请求
+   ↓
+查 Redis
+   ↓ MISS
+抢分布式锁
+   ↓
+┌────────────────┐
+│ 抢到锁的请求    │
+│ 查询 DB         │
+│ 写 Redis        │
+│ 释放锁          │
+└────────────────┘
+
+其他请求
+↓
+没有抢到锁
+↓
+等待 / 重试
+↓
+重新读取 Redis</code></pre></div>
+<p>Redis 中可以使用类似：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>SET lock:product:123 1 NX EX 5</code></pre></div>
+<p>含义：</p>
+<ul><li><code>NX</code>：Key 不存在时才写入。</li><li><code>EX 5</code>：锁 5 秒后自动过期。</li><li>防止服务异常导致死锁。</li></ul>
+<hr>
+<h1 id="11-为什么抢到锁之后还要再查一次缓存" data-section="SECTION 11">11. 为什么抢到锁之后还要再查一次缓存？</h1>
+<p>这是一个非常重要的细节。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>A 查 Redis → MISS
+B 查 Redis → MISS
+
+A 抢到锁
+A 查询 DB
+A 写 Redis
+A 释放锁
+
+B 此时才抢到锁</code></pre></div>
+<p>如果 B 抢到锁之后直接：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>查询 DB</code></pre></div>
+<p>实际上这次数据库查询完全没有必要。</p>
+<p>因为 A 已经：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB → Redis</code></pre></div>
+<p>完成了缓存回填。</p>
+<p>所以正确流程应该是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>查缓存
+↓
+MISS
+↓
+抢锁
+↓
+再次查缓存
+↓
+仍然 MISS
+↓
+查询 DB</code></pre></div>
+<p>这就是：</p>
+<blockquote><p><strong>Double Check（双重检查）</strong></p></blockquote>
+<hr>
+<h1 id="12-方案二-singleflight-请求合并" data-section="SECTION 12">12. 方案二：Singleflight / 请求合并</h1>
+<p>如果大量请求同时查询：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>product:123</code></pre></div>
+<p>其实没有必要产生：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>1000 个请求
+=
+1000 次 DB 查询</code></pre></div>
+<p>可以让：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第一个请求
+↓
+真正查询 DB
+
+其他 999 个请求
+↓
+等待第一个请求的查询结果</code></pre></div>
+<p>最终：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>1000 个请求
+↓
+1 次 DB 查询</code></pre></div>
+<p>这就是：</p>
+<blockquote><p><strong>Singleflight / Request Coalescing（请求合并）</strong></p></blockquote>
+<p>Node.js 中可以维护一个正在执行的 Promise：</p>
+<div class="code-card"><div class="code-head"><span>js</span><button class="copy-button" type="button">复制</button></div><pre><code>const pending = new Map();
+
+async function getProduct(id) {
+  const key = `product:${id}`;
+
+  const cached = await redis.get(key);
+
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  if (pending.has(key)) {
+    return pending.get(key);
+  }
+
+  const task = (async () =&gt; {
+    try {
+      const data = await db.getProduct(id);
+
+      await redis.set(
+        key,
+        JSON.stringify(data),
+        { EX: 60 }
+      );
+
+      return data;
+    } finally {
+      pending.delete(key);
+    }
+  })();
+
+  pending.set(key, task);
+
+  return task;
+}</code></pre></div>
+<p>效果：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>请求 A ────────────────┐
+请求 B ────────────────┤
+请求 C ────────────────┤
+请求 D ────────────────┤
+                       ↓
+                同一个 Promise
+                       ↓
+                    查询 DB
+                       ↓
+                  返回所有请求</code></pre></div>
+<hr>
+<h1 id="13-singleflight-的局限" data-section="SECTION 13">13. Singleflight 的局限</h1>
+<p>假设系统部署：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>20 个 Node.js 实例</code></pre></div>
+<p>每个实例内部都有自己的：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>pending Map</code></pre></div>
+<p>那么：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>实例 1 → 1 次 DB
+实例 2 → 1 次 DB
+实例 3 → 1 次 DB
+...
+实例 20 → 1 次 DB</code></pre></div>
+<p>最终仍然可能产生：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>20 次 DB 查询</code></pre></div>
+<p>因此：</p>
+<h3 id="单机请求合并">单机请求合并</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>本地 Singleflight</code></pre></div>
+<p>解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>同一个服务实例内部的并发</code></pre></div>
+<h3 id="分布式请求合并">分布式请求合并</h3>
+<p>可以进一步使用：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>本地 Singleflight
++
+Redis 分布式锁</code></pre></div>
+<p>这样能够进一步控制多个服务实例同时访问数据库。</p>
+<hr>
+<h1 id="14-方案三-逻辑过期" data-section="SECTION 14">14. 方案三：逻辑过期</h1>
+<p>对于超级热点 Key，可以不让 Redis Key 真正消失。</p>
+<p>例如 Redis 保存：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  &quot;data&quot;: {
+    &quot;name&quot;: &quot;商品 A&quot;
+  },
+  &quot;expireTime&quot;: 1780000000
+}</code></pre></div>
+<p>Redis Key 本身：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>不设置物理 TTL</code></pre></div>
+<p>或者设置一个非常长的 TTL。</p>
+<p>业务代码自己判断：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>expireTime</code></pre></div>
+<p>如果没有过期：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>直接返回数据</code></pre></div>
+<p>如果已经逻辑过期：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>仍然返回旧数据
++
+后台异步刷新缓存</code></pre></div>
+<p>流程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>请求
+ ↓
+读取 Redis
+ ↓
+发现逻辑过期
+ ↓
+仍然返回旧数据
+ ↓
+尝试抢刷新锁
+ ↓
+一个线程查询 DB
+ ↓
+更新 Redis</code></pre></div>
+<p>这样就不会出现：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>缓存突然消失
+↓
+所有请求直接访问 DB</code></pre></div>
+<hr>
+<h1 id="15-逻辑过期的本质-用一致性换可用性" data-section="SECTION 15">15. 逻辑过期的本质：用一致性换可用性</h1>
+<p>逻辑过期意味着：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>缓存已经过期
+↓
+用户仍然可能看到旧数据</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>DB：
+
+商品价格 = 100
+
+Redis：
+
+商品价格 = 90</code></pre></div>
+<p>缓存正在异步刷新期间，部分用户可能仍然看到 90。</p>
+<p>因此它适合：</p>
+<ul><li>首页数据</li><li>热门商品</li><li>排行榜</li><li>活动配置</li><li>热点内容</li><li>推荐内容</li></ul>
+<p>不适合直接用于要求强一致的：</p>
+<ul><li>账户余额</li><li>最终支付金额</li><li>精确库存状态</li><li>强一致业务状态</li></ul>
+<hr>
+<h1 id="16-方案四-提前刷新缓存" data-section="SECTION 16">16. 方案四：提前刷新缓存</h1>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>TTL = 10 分钟</code></pre></div>
+<p>不要等到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>10:00:00</code></pre></div>
+<p>Key 真正消失之后再重建。</p>
+<p>可以在：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>TTL 剩余 60 秒</code></pre></div>
+<p>时由后台任务提前刷新。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>09:59:00
+↓
+后台刷新缓存
+
+10:00:00
+↓
+新的缓存已经存在</code></pre></div>
+<p>这样避免：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>热点 Key 突然失效
+↓
+大量请求 Cache Miss</code></pre></div>
+<p>特别适合：</p>
+<ul><li>可以预测的热点。</li><li>首页。</li><li>大促商品。</li><li>活动配置。</li><li>热门榜单。</li></ul>
+<hr>
+<h1 id="17-方案五-限流-降级-熔断" data-section="SECTION 17">17. 方案五：限流、降级、熔断</h1>
+<p>即使缓存保护措施全部失效，也不能让无限流量直接进入数据库。</p>
+<p>例如数据库最大安全能力：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>500 QPS</code></pre></div>
+<p>如果突然出现：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>50,000 QPS</code></pre></div>
+<p>系统入口应该有限流能力：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>请求
+ ↓
+限流
+ ↓
+缓存
+ ↓
+DB</code></pre></div>
+<p>超过系统承载能力，可以：</p>
+<h3 id="返回系统繁忙">返回系统繁忙</h3>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  &quot;message&quot;: &quot;系统繁忙，请稍后重试&quot;
+}</code></pre></div>
+<h3 id="返回旧缓存">返回旧缓存</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Redis 数据虽然已经逻辑过期
+↓
+但是 DB 压力过大
+↓
+继续返回旧数据</code></pre></div>
+<h3 id="服务降级">服务降级</h3>
+<p>例如首页推荐：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>正常：
+个性化推荐
+
+降级：
+热门商品列表</code></pre></div>
+<p>核心思想：</p>
+<blockquote><p><strong>数据库应该是最后一道防线，而不是缓存一失效，所有流量都直接进入数据库。</strong></p></blockquote>
+<hr>
+<h1 id="18-完整的高并发缓存保护体系" data-section="SECTION 18">18. 完整的高并发缓存保护体系</h1>
+<p>一个比较完整的系统可以设计为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                 请求
+                  ↓
+                限流
+                  ↓
+              查询 Redis
+             ↙          ↘
+          HIT            MISS
+           ↓               ↓
+         返回         Singleflight
+                           ↓
+                    Redis 分布式锁
+                           ↓
+                      Double Check
+                           ↓
+                        查询 DB
+                           ↓
+                       回填 Redis</code></pre></div>
+<p>对于超级热点 Key：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                 请求
+                  ↓
+              查询 Redis
+                  ↓
+            数据逻辑过期？
+             ↙          ↘
+           否             是
+           ↓              ↓
+         返回          返回旧数据
+                          +
+                      抢刷新锁
+                          ↓
+                    后台查询 DB
+                          ↓
+                     更新 Redis</code></pre></div>
+<hr>
+<h1 id="19-缓存穿透-缓存击穿-缓存雪崩的区别" data-section="SECTION 19">19. 缓存穿透、缓存击穿、缓存雪崩的区别</h1>
+<p>这三个概念经常一起出现。</p>
+<h2 id="19-1-缓存穿透" data-section="SECTION 20">19.1 缓存穿透</h2>
+<p>含义：</p>
+<blockquote><p>查询一个根本不存在的数据。</p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>GET /product/999999999</code></pre></div>
+<p>Redis：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>没有</code></pre></div>
+<p>DB：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>也没有</code></pre></div>
+<p>每一次请求都会：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Redis MISS
+↓
+DB MISS</code></pre></div>
+<p>攻击者甚至可以不断生成随机 ID：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>product:123456
+product:837462
+product:918273
+...</code></pre></div>
+<p>导致数据库压力巨大。</p>
+<p>解决方案：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>缓存空值
++
+Bloom Filter（布隆过滤器）</code></pre></div>
+<hr>
+<h2 id="19-2-缓存击穿" data-section="SECTION 21">19.2 缓存击穿</h2>
+<p>含义：</p>
+<blockquote><p>一个超级热点 Key 突然失效。</p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>iPhone 商品详情</code></pre></div>
+<p>缓存突然过期：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>大量请求
+↓
+Redis MISS
+↓
+DB</code></pre></div>
+<p>解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>互斥锁
+Singleflight
+逻辑过期
+提前刷新</code></pre></div>
+<hr>
+<h2 id="19-3-缓存雪崩" data-section="SECTION 22">19.3 缓存雪崩</h2>
+<p>含义：</p>
+<blockquote><p>大量缓存 Key 在同一时间失效。</p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>product:1   TTL = 3600
+product:2   TTL = 3600
+product:3   TTL = 3600
+...
+product:100000 TTL = 3600</code></pre></div>
+<p>这些缓存恰好同一时间创建。</p>
+<p>一个小时之后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>10 万个 Key
+同时过期</code></pre></div>
+<p>大量请求：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Redis MISS
+↓
+DB</code></pre></div>
+<p>解决方案：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>TTL 随机化
++
+分批过期
++
+多级缓存
++
+限流
++
+降级</code></pre></div>
+<p>例如不要全部：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>TTL = 3600</code></pre></div>
+<p>而是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>TTL = 3600 + random(0, 300)</code></pre></div>
+<p>让缓存失效时间分散。</p>
+<hr>
+<h1 id="20-三种缓存问题快速记忆" data-section="SECTION 23">20. 三种缓存问题快速记忆</h1>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>缓存穿透
+=
+查“根本不存在”的数据
+=
+缓存空值 / Bloom Filter
+
+
+缓存击穿
+=
+一个“超级热点 Key”失效
+=
+互斥锁 / Singleflight / 逻辑过期
+
+
+缓存雪崩
+=
+“大量 Key”同时失效
+=
+随机 TTL / 分批过期 / 多级缓存 / 限流</code></pre></div>
+<hr>
+<h1 id="21-面试回答-缓存和数据库一致性怎么保证" data-section="SECTION 24">21. 面试回答：缓存和数据库一致性怎么保证？</h1>
+<p>可以这样回答：</p>
+<blockquote><p>我通常使用 Cache Aside Pattern。读请求先查缓存，未命中再查询数据库并回填缓存；写请求先更新数据库，再删除缓存，而不是直接更新缓存，这样可以降低并发情况下缓存更新顺序错乱导致的不一致问题。  这种方案本质上还是最终一致性，仍然存在并发读写导致旧数据重新写入缓存的问题，所以会根据业务要求增加 TTL、删除失败重试、MQ 补偿，必要时使用延迟双删。  如果是余额、库存、支付这类强一致业务，不会依赖普通缓存保证最终业务正确性，而是让数据库事务或者原子操作负责业务状态正确，缓存主要作为查询加速层。</p></blockquote>
+<hr>
+<h1 id="22-面试回答-缓存击穿怎么解决" data-section="SECTION 25">22. 面试回答：缓存击穿怎么解决？</h1>
+<p>可以这样回答：</p>
+<blockquote><p>对热点 Key 缓存失效导致的大量并发请求，我首先会避免所有请求同时访问数据库。  常见方案是基于 Redis 分布式锁或者 Singleflight 做请求合并，只让一个请求查询数据库并回填缓存，其他请求等待之后重新读取缓存。同时抢到锁之后还要再次查询缓存，也就是 Double Check，避免其他请求已经完成缓存回填之后仍然重复查询数据库。  如果是超级热点数据，我会考虑逻辑过期，让旧缓存继续提供服务，然后只让一个线程异步刷新缓存，从根本上避免缓存失效瞬间大量流量直接进入数据库。  最后还要配合随机 TTL、提前刷新、限流和降级，避免缓存异常进一步演变成数据库雪崩。</p></blockquote>
+<hr>
+<h1 id="23-最终理解框架" data-section="SECTION 26">23. 最终理解框架</h1>
+<p>缓存相关问题可以按照下面几个层次理解：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第一层：正常缓存
+
+Cache Aside
+DB = Source of Truth
+Redis = Performance Layer
+
+
+第二层：一致性
+
+更新 DB
+↓
+删除缓存
+↓
+TTL / MQ 补偿 / 必要时延迟双删
+
+
+第三层：单热点高并发
+
+缓存击穿
+↓
+Singleflight
+↓
+分布式锁
+↓
+Double Check
+
+
+第四层：超级热点
+
+逻辑过期
+↓
+旧数据继续服务
+↓
+后台异步刷新
+
+
+第五层：大量缓存同时失效
+
+缓存雪崩
+↓
+随机 TTL
+↓
+分批失效
+↓
+多级缓存
+
+
+第六层：最后防线
+
+限流
+↓
+降级
+↓
+熔断
+↓
+保护 DB</code></pre></div>
+<p>判断具体方案时，优先问三个问题：</p>
+<ol><li><strong>业务能不能接受短时间脏数据？</strong></li><li><strong>这个数据是读多写少，还是写操作也非常频繁？</strong></li><li><strong>缓存错误只是影响展示，还是会造成资金、库存、支付等业务损失？</strong></li></ol>
+<p>这三个问题基本决定了应该采用最终一致性、逻辑过期，还是需要把一致性保证下沉到数据库事务和原子业务操作。</p></article>
+  </main>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+  <footer>缓存与数据库一致性及高并发缓存保护</footer>
+  <script src="../assets/answer-pages.js"></script>
+</body>
+</html>

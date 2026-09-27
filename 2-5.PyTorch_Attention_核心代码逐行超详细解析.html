@@ -1,0 +1,1179 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PyTorch Attention 核心代码逐行超详细解析：Q、K、V、缩放点积、Softmax、Value 汇总、Mask 与完整单头实现。">
+  <meta name="theme-color" content="#f5f2e9">
+  <link rel="icon" href="data:,">
+  <title>PyTorch Attention 核心代码逐行超详细解析</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page:#f5f2e9;--paper:#fffdf8;--paper-strong:#fff;--ink:#17202f;--muted:#687182;--line:#dedbd1;--line-soft:#ebe8df;
+      --blue:#3776ab;--blue-deep:#24557d;--blue-soft:#e7f2fb;--yellow:#efbd16;--yellow-deep:#745c00;--yellow-soft:#fff5c7;
+      --mint:#2d8a73;--mint-soft:#e7f5ef;--purple:#8260b3;--purple-soft:#f1ebf8;--coral:#e56b4e;--coral-soft:#fff0eb;
+      --code:#18202c;--code-ink:#e8eef7;--shadow:0 22px 60px rgba(51,46,34,.10);
+      --sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+      --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    }
+    [data-theme="dark"] {color-scheme:dark;--page:#121720;--paper:#19212c;--paper-strong:#1f2936;--ink:#edf2f7;--muted:#a8b2c1;--line:#344151;--line-soft:#2b3645;--blue-soft:#172d42;--blue-deep:#78b9ec;--yellow-soft:#3c3517;--yellow-deep:#f6d654;--mint-soft:#17352f;--purple-soft:#2e2540;--coral-soft:#3d2521;--code:#0d1118;--code-ink:#e9eef7;--shadow:0 24px 70px rgba(0,0,0,.28)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:90px}body{margin:0;color:var(--ink);background:radial-gradient(circle at 7% 2%,color-mix(in srgb,var(--blue) 14%,transparent),transparent 29rem),radial-gradient(circle at 94% 13%,color-mix(in srgb,var(--yellow) 18%,transparent),transparent 27rem),var(--page);font-family:var(--sans);line-height:1.76;-webkit-font-smoothing:antialiased}
+    button,a{-webkit-tap-highlight-color:transparent}button{color:inherit;font:inherit;cursor:pointer}code{font-family:var(--mono)}::selection{background:color-mix(in srgb,var(--blue) 23%,transparent)}
+    .skip-link{position:fixed;top:8px;left:8px;z-index:200;transform:translateY(-160%);padding:9px 13px;color:var(--paper);background:var(--ink);border-radius:10px}.skip-link:focus{transform:translateY(0)}
+    .progress-track{position:fixed;inset:0 0 auto;z-index:110;height:4px}.progress-bar{width:0;height:100%;background:linear-gradient(90deg,var(--blue),var(--purple),var(--yellow))}
+    .topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;min-height:68px;padding:10px clamp(16px,4vw,48px);border-bottom:1px solid color-mix(in srgb,var(--line) 78%,transparent);background:color-mix(in srgb,var(--page) 84%,transparent);backdrop-filter:blur(5px)}
+    .brand,.top-actions{display:flex;align-items:center;gap:11px}.brand{min-width:0;font-weight:850}.brand-mark{display:grid;place-items:center;width:40px;height:40px;flex:0 0 auto;border-radius:13px;color:#fff;background:linear-gradient(135deg,var(--blue),var(--purple));box-shadow:0 8px 20px rgba(55,118,171,.2);font:800 10px/1 var(--mono)}
+    .top-actions a,.icon-button{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 13px;border:1px solid var(--line);border-radius:11px;color:var(--ink);background:var(--paper);text-decoration:none}.icon-button{width:40px;padding:0}.top-actions a:hover,.icon-button:hover{border-color:var(--blue);transform:translateY(-1px)}
+    .hero{position:relative;max-width:1280px;margin:0 auto;padding:clamp(58px,8vw,104px) clamp(20px,5vw,70px) 52px;overflow:hidden}.hero::after{content:"QKᵀ";position:absolute;right:1%;top:7%;color:color-mix(in srgb,var(--blue) 7%,transparent);font:900 clamp(90px,18vw,230px)/1 Georgia,serif;transform:rotate(-7deg);pointer-events:none}
+    .eyebrow{position:relative;z-index:1;display:flex;align-items:center;gap:9px;color:var(--blue-deep);font:800 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase}.eyebrow::before{content:"";width:28px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--yellow))}
+    h1{position:relative;z-index:1;max-width:980px;margin:20px 0 0;font-size:clamp(40px,7vw,78px);line-height:1.04;letter-spacing:-.05em}h1 span{color:var(--blue)}.hero-copy{position:relative;z-index:1;max-width:850px;margin:24px 0 0;color:var(--muted);font-size:clamp(16px,2vw,20px)}
+    .hero-facts{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,160px));gap:12px;margin-top:32px}.fact{padding:15px 17px;border:1px solid var(--line);border-radius:15px;background:color-mix(in srgb,var(--paper) 92%,transparent)}.fact b{display:block;color:var(--blue);font:900 22px/1 var(--mono)}.fact:nth-child(2) b{color:var(--purple)}.fact:nth-child(3) b{color:var(--mint)}.fact:nth-child(4) b{color:var(--coral)}.fact span{display:block;margin-top:7px;color:var(--muted);font-size:12px}
+    .overview{max-width:1240px;margin:0 auto;padding:0 22px 28px}.lab{padding:21px;border:1px solid var(--line);border-radius:20px;background:var(--paper);box-shadow:var(--shadow)}.lab-title{display:flex;align-items:end;justify-content:space-between;gap:20px}.lab-title h2{margin:0;font-size:22px}.lab-title p{margin:0;color:var(--muted);font-size:12px}
+    .stepper{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:18px}.step{position:relative;min-width:0;min-height:88px;padding:13px 10px;overflow:hidden;border:1px solid var(--line);border-radius:14px;color:var(--muted);background:var(--paper-strong);text-align:left}.step::after{content:"→";position:absolute;right:-10px;top:31px;z-index:2;font-weight:900}.step:last-child::after{display:none}.step b,.step small{display:block}.step b{color:var(--ink);font-size:12px}.step small{margin-top:6px;font:700 9px/1.4 var(--mono);overflow-wrap:anywhere}.step.active{color:var(--blue-deep);border-color:var(--blue);background:var(--blue-soft)}
+    .stage{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,.6fr);gap:16px;margin-top:16px}.stage-code{padding:18px;border-radius:15px;color:var(--code-ink);background:var(--code);font:13px/1.7 var(--mono);overflow:auto}.stage-code span{display:block;white-space:nowrap}.stage-code .active-line{margin:0 -8px;padding:0 8px;border-left:3px solid var(--yellow);background:rgba(239,189,22,.12)}.stage-reading{padding:17px 19px;border:1px solid color-mix(in srgb,var(--yellow) 42%,var(--line));border-radius:15px;background:linear-gradient(115deg,var(--yellow-soft),var(--paper))}.stage-reading b{color:var(--yellow-deep)}.stage-reading p{margin:6px 0 0;color:var(--muted);font-size:13px}.shape-chain{margin-top:10px;color:var(--blue-deep);font:750 11px/1.6 var(--mono);overflow-wrap:anywhere}
+    .layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:clamp(28px,5vw,70px);max-width:1240px;margin:0 auto;padding:58px 22px 100px}.toc{position:sticky;top:88px;max-height:calc(100vh - 110px);padding:17px;overflow-y:auto;border:1px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--paper) 93%,transparent);box-shadow:0 12px 32px rgba(45,40,28,.06)}.toc-title{margin:0 0 10px;color:var(--muted);font:800 11px/1 var(--mono);letter-spacing:.1em}.toc a{display:grid;grid-template-columns:24px 1fr;gap:3px;margin:2px 0;padding:7px 8px;border-radius:9px;color:var(--muted);text-decoration:none;font-size:11px;line-height:1.4}.toc a span{font:700 9px/1.6 var(--mono)}.toc a:hover,.toc a.active{color:var(--blue-deep);background:var(--blue-soft)}
+    .article{min-width:0}.article>h2{margin:84px 0 10px;padding-top:5px;font-size:clamp(28px,4vw,43px);line-height:1.18;letter-spacing:-.035em}.article>h2:first-child{margin-top:0}.article h3{margin:42px 0 10px;font-size:22px;line-height:1.3}.article h4{margin:28px 0 8px;font-size:17px}.article p{margin:10px 0;color:var(--muted)}.article h2+p{font-size:16px}.article strong{color:var(--ink)}.article p code,.article li code,.article h2 code,.article h3 code,.article h4 code{padding:2px 6px;border-radius:6px;color:var(--blue-deep);background:var(--blue-soft);font-size:.88em}.article ul{margin:12px 0;padding:16px 20px 16px 42px;border:1px solid var(--line-soft);border-radius:14px;background:color-mix(in srgb,var(--paper) 78%,transparent);color:var(--muted)}.article li+li{margin-top:6px}
+    blockquote{margin:16px 0;padding:17px 20px;border:1px solid color-mix(in srgb,var(--yellow) 42%,var(--line));border-left:5px solid var(--yellow);border-radius:14px;background:linear-gradient(105deg,var(--yellow-soft),var(--paper));color:var(--ink);font-weight:750}
+    .code-card{margin:14px 0 20px;overflow:hidden;border:1px solid #303a48;border-radius:17px;background:var(--code);box-shadow:0 12px 30px rgba(15,20,28,.12)}.code-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #303a48;color:#bfc9d8;font:700 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase}.copy-button{padding:4px 8px;border:1px solid #465365;border-radius:7px;color:#c9d3e1;background:transparent;font:700 10px/1 var(--mono)}.copy-button:hover{color:#fff;border-color:#7890aa}.code-card pre{margin:0;padding:18px;overflow:auto;color:var(--code-ink);background:var(--code);font:12px/1.72 var(--mono);tab-size:4}
+    .article>h2:nth-of-type(3n+1)::before{background:var(--blue)}.article>h2:nth-of-type(3n+2)::before{background:var(--purple)}.article>h2:nth-of-type(3n)::before{background:var(--mint)}.article>h2::before{content:"";display:block;width:38px;height:4px;margin-bottom:13px;border-radius:4px}
+    footer{max-width:1240px;margin:0 auto;padding:0 22px 50px;color:var(--muted);font-size:12px}
+    @media(max-width:1000px){.stepper{grid-template-columns:repeat(4,1fr)}.step::after{display:none}.layout{grid-template-columns:1fr}.toc{position:relative;top:0;display:grid;grid-template-columns:repeat(3,1fr);max-height:none}.toc-title{grid-column:1/-1}.stage{grid-template-columns:1fr}}
+    @media(max-width:700px){.topbar{min-height:60px}.brand span:last-child,.top-actions a{display:none}.hero{padding-top:52px}.hero h1 span{display:inline-block}.hero-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.stepper{grid-template-columns:repeat(2,minmax(0,1fr))}.lab-title{align-items:start;flex-direction:column}.layout{padding-inline:14px}.toc{grid-template-columns:1fr 1fr}.article>h2{margin-top:66px}.code-card pre{font-size:11px}.stage-code{font-size:11px}}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">ATTN</span><span>PyTorch · Attention by Hand</span></div>
+    <div class="top-actions"><a href="PyTorch_Attention_核心代码逐行超详细解析.md">查看原始 Markdown</a><button class="icon-button" id="themeButton" type="button" aria-label="切换深浅色">◐</button></div>
+  </header>
+  <section class="hero">
+    <div class="eyebrow">S2 · CORE CODE WALKTHROUGH</div>
+    <h1>7 行代码，看懂 <span>Attention</span> 的信息流</h1>
+    <p class="hero-copy">不跳步：从 <code>[B, L, D]</code> 输入出发，逐行看清 Q/K/V 投影、两两打分、缩放、Softmax 和 Value 汇总。正文完整保留原 Markdown 的超详细解释。</p>
+    <div class="hero-facts"><div class="fact"><b>7</b><span>核心计算行</span></div><div class="fact"><b>15</b><span>完整章节</span></div><div class="fact"><b>[B,L,D]</b><span>输入与输出 Shape</span></div><div class="fact"><b>[B,L,L]</b><span>注意力关系矩阵</span></div></div>
+  </section>
+  <section class="overview" aria-labelledby="flow-title">
+    <div class="lab">
+      <div class="lab-title"><div><div class="eyebrow">INTERACTIVE FLOW</div><h2 id="flow-title">先抓住一条主线</h2></div><p>点击步骤，观察当前代码、Shape 与自然语言含义</p></div>
+      <div class="stepper" id="stepper"></div>
+      <div class="stage"><div class="stage-code" id="stageCode" aria-live="polite"></div><div class="stage-reading"><b id="stageTitle"></b><p id="stageText"></p><div class="shape-chain" id="shapeChain"></div></div></div>
+    </div>
+  </section>
+  <main class="layout" id="main">
+    <nav class="toc" aria-label="章节目录"><p class="toc-title">15 CHAPTERS</p><a href="#1-输入-x-到底是什么"><span>01</span>输入 x 到底是什么</a>
+<a href="#2-q-self-q-proj-x"><span>02</span>q = self.q_proj(x)</a>
+<a href="#3-k-self-k-proj-x"><span>03</span>k = self.k_proj(x)</a>
+<a href="#4-v-self-v-proj-x"><span>04</span>v = self.v_proj(x)</a>
+<a href="#5-为什么-q-k-v-都来自同一个-x"><span>05</span>为什么 Q、K、V 都来自同一个 x</a>
+<a href="#6-scores-q-k-transpose-2-1"><span>06</span>scores = q @ k.transpose(-2, -1)</a>
+<a href="#7-scores-scores-math-sqrt-q-size-1"><span>07</span>scores = scores / math.sqrt(q.size(-1))</a>
+<a href="#8-weights-torch-softmax-scores-dim-1"><span>08</span>weights = torch.softmax(scores, dim=-1)</a>
+<a href="#9-output-weights-v"><span>09</span>output = weights @ v</a>
+<a href="#10-用完整-shape-流程串联代码"><span>10</span>用完整 Shape 流程串联代码</a>
+<a href="#11-使用一个最小数字例子完整计算-attention"><span>11</span>使用一个最小数字例子完整计算 Attention</a>
+<a href="#12-把每一行翻译成自然语言"><span>12</span>把每一行翻译成自然语言</a>
+<a href="#13-这段代码中容易混淆的细节"><span>13</span>这段代码中容易混淆的细节</a>
+<a href="#14-加上因果-mask-后代码的位置"><span>14</span>加上因果 Mask 后代码的位置</a>
+<a href="#15-对应的完整-single-head-self-attention-代码"><span>15</span>对应的完整 Single-Head Self-Attention 代码</a></nav>
+    <article class="article"><p>本文只围绕下面这段 PyTorch Attention 核心代码展开，不做压缩总结，完整解释每一行在做什么、为什么这样写、张量 Shape 如何变化，以及对应的数学含义。</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q = self.q_proj(x)
+k = self.k_proj(x)
+v = self.v_proj(x)
+
+scores = q @ k.transpose(-2, -1)
+scores = scores / math.sqrt(q.size(-1))
+
+weights = torch.softmax(scores, dim=-1)
+
+output = weights @ v</code></pre></div>
+<h2 id="1-输入-x-到底是什么">1. 输入 <code>x</code> 到底是什么</h2>
+<p>Attention 接收到的 <code>x</code> 通常不是原始字符串。</p>
+<p>原始文本会先经过以下步骤：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>原始文本
+  ↓
+Tokenizer
+  ↓
+Token ID
+  ↓
+Embedding
+  ↓
+输入张量 x</code></pre></div>
+<p>例如原始句子：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>我喜欢吃苹果</code></pre></div>
+<p>Tokenizer 可能把它拆成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>["我", "喜欢", "吃", "苹果"]</code></pre></div>
+<p>这里一共有 4 个 Token。</p>
+<p>Embedding 层会把每个 Token 转成一个向量。假设每个 Token 用 8 个数字表示：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>“我”：
+[0.2, 0.8, 0.1, 0.4, 0.7, 0.3, 0.5, 0.9]
+
+“喜欢”：
+[0.6, 0.2, 0.7, 0.1, 0.3, 0.8, 0.4, 0.5]
+
+“吃”：
+[0.4, 0.9, 0.2, 0.6, 0.1, 0.5, 0.7, 0.3]
+
+“苹果”：
+[0.8, 0.3, 0.6, 0.2, 0.9, 0.1, 0.4, 0.7]</code></pre></div>
+<p>这 4 个 Token 向量组合起来，就构成一句话的输入。</p>
+<p>在 PyTorch 中，<code>x</code> 通常是一个三维张量：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>x.shape == [B, L, D]</code></pre></div>
+<p>三个维度分别表示：</p>
+<ul><li><code>B</code>：Batch Size，一次处理多少条样本</li><li><code>L</code>：Sequence Length，每条样本有多少个 Token</li><li><code>D</code>：Hidden Size，每个 Token 使用多少个数字表示</li></ul>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>x.shape == [2, 4, 8]</code></pre></div>
+<p>含义是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>一次处理 2 句话；
+每句话有 4 个 Token；
+每个 Token 是一个 8 维向量。</code></pre></div>
+<p>可以展开理解为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Batch 0
+  Token 0 -&gt; 8 个数字
+  Token 1 -&gt; 8 个数字
+  Token 2 -&gt; 8 个数字
+  Token 3 -&gt; 8 个数字
+
+Batch 1
+  Token 0 -&gt; 8 个数字
+  Token 1 -&gt; 8 个数字
+  Token 2 -&gt; 8 个数字
+  Token 3 -&gt; 8 个数字</code></pre></div>
+<p><code>x</code> 中每个 Token 已经有了向量表示，但还没有区分以下三种角色：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query：我想寻找什么
+Key：别人可以怎样找到我
+Value：我真正可以提供什么信息</code></pre></div>
+<p>Attention 接下来会把同一个 <code>x</code> 分别投影为 Q、K、V。</p>
+<h2 id="2-q-self-q-proj-x">2. <code>q = self.q_proj(x)</code></h2>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q = self.q_proj(x)</code></pre></div>
+<p>这一行把输入 <code>x</code> 转换成 Query，也就是查询向量 Q。</p>
+<h3 id="2-1-self-q-proj-是什么">2.1 <code>self.q_proj</code> 是什么</h3>
+<p><code>self.q_proj</code> 通常在类的初始化方法中定义：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>self.q_proj = nn.Linear(d_model, d_model)</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>self.q_proj = nn.Linear(8, 8)</code></pre></div>
+<p>它表示：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>输入维度：8
+输出维度：8</code></pre></div>
+<p>这个线性层内部包含两部分可训练参数：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>权重矩阵 Wq
+偏置向量 bq</code></pre></div>
+<p>计算过程可以表示为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Q = XWq + bq</code></pre></div>
+<p>因此：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q = self.q_proj(x)</code></pre></div>
+<p>可以近似理解为：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q = x @ Wq + bq</code></pre></div>
+<p>实际代码不需要手动写 <code>Wq</code> 和 <code>bq</code>，因为它们由 <code>nn.Linear</code> 自动创建和维护。</p>
+<h3 id="2-2-query-的含义">2.2 Query 的含义</h3>
+<p>Query 可以理解为：</p>
+<blockquote>当前 Token 想寻找什么信息？</blockquote>
+<p>每个 Token 都会生成自己的 Query。</p>
+<p>例如句子：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>小明把苹果给了小红，因为她饿了</code></pre></div>
+<p>当模型处理“她”时，“她”的 Query 可以抽象理解为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>我应该指代前面的哪个人物？</code></pre></div>
+<p>当模型处理“饿”时，“饿”的 Query 可以抽象理解为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>是谁处于饥饿状态？</code></pre></div>
+<p>模型内部并不存在这样的中文句子。</p>
+<p>内部只有一组数字向量，但训练会让 Query 向量逐渐具备这种“查询信息”的能力。</p>
+<h3 id="2-3-为什么不能直接使用-x-作为-query">2.3 为什么不能直接使用 <code>x</code> 作为 Query</h3>
+<p>输入 <code>x</code> 是 Token 的通用表示。</p>
+<p>如果直接拿 <code>x</code> 做所有工作，那么模型只能用同一种表示完成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>查询
+匹配
+信息传递</code></pre></div>
+<p>增加一层：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>self.q_proj</code></pre></div>
+<p>相当于让模型单独学习：</p>
+<blockquote>输入 <code>x</code> 应该如何变换，才能更适合表达“我要找什么”。</blockquote>
+<p><code>Wq</code> 是可训练参数。</p>
+<p>训练过程中，反向传播会不断调整 <code>Wq</code>，让生成的 Query 更适合当前任务。</p>
+<h3 id="2-4-q-的-shape">2.4 Q 的 Shape</h3>
+<p>假设输入：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>x.shape == [B, L, D]</code></pre></div>
+<p>线性层定义为：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>self.q_proj = nn.Linear(D, D)</code></pre></div>
+<p>那么输出：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q.shape == [B, L, D]</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>x.shape = [2, 4, 8]
+q.shape = [2, 4, 8]</code></pre></div>
+<p>Batch 数量没有变化。</p>
+<p>Token 数量没有变化。</p>
+<p>每个 Token 的向量维度也没有变化。</p>
+<p>变化的是每个 Token 向量内部的数值和它承担的语义角色。</p>
+<p>可以理解为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Shape 没变，但表示方式变了。</code></pre></div>
+<h3 id="2-5-nn-linear-如何处理三维张量">2.5 <code>nn.Linear</code> 如何处理三维张量</h3>
+<p><code>nn.Linear</code> 不只可以处理二维矩阵。</p>
+<p>它会自动对输入张量的最后一个维度执行线性变换。</p>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>x.shape == [2, 4, 8]
+self.q_proj = nn.Linear(8, 8)</code></pre></div>
+<p>PyTorch 会对 2 个 Batch 中的 4 个 Token 分别执行同一个线性变换。</p>
+<p>可以近似理解为：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>for batch_index in range(2):
+    for token_index in range(4):
+        q[batch_index, token_index] = (
+            x[batch_index, token_index] @ Wq + bq
+        )</code></pre></div>
+<p>所有 Token 共用同一组 <code>Wq</code> 和 <code>bq</code>。</p>
+<p>这意味着模型不是给每个 Token 单独训练一套参数，而是学习一套通用的 Query 投影规则。</p>
+<h2 id="3-k-self-k-proj-x">3. <code>k = self.k_proj(x)</code></h2>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>k = self.k_proj(x)</code></pre></div>
+<p>这一行把输入 <code>x</code> 转换成 Key，也就是索引向量 K。</p>
+<h3 id="3-1-self-k-proj-是什么">3.1 <code>self.k_proj</code> 是什么</h3>
+<p>它也是一个线性层：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>self.k_proj = nn.Linear(d_model, d_model)</code></pre></div>
+<p>计算过程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>K = XWk + bk</code></pre></div>
+<p>其中：</p>
+<ul><li><code>Wk</code>：Key 的权重矩阵</li><li><code>bk</code>：Key 的偏置</li><li><code>K</code>：生成的 Key 向量</li></ul>
+<p>需要注意：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Wq 和 Wk 不是同一组参数。</code></pre></div>
+<p>也就是说：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Wq != Wk</code></pre></div>
+<p>Query 和 Key 都来自 <code>x</code>，但因为使用不同参数，最终表示也不同。</p>
+<h3 id="3-2-key-的含义">3.2 Key 的含义</h3>
+<p>Key 可以理解为：</p>
+<blockquote>当前 Token 有哪些特征，别人可以通过什么方式找到我？</blockquote>
+<p>仍然使用这个句子：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>小明把苹果给了小红，因为她饿了</code></pre></div>
+<p>可以把不同 Token 的 Key 抽象理解为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>“小明”：
+人物、男性、主语
+
+“苹果”：
+物品、食物、被传递对象
+
+“小红”：
+人物、女性、接收者
+
+“她”：
+代词、女性指代</code></pre></div>
+<p>模型内部不会真的保存这些中文标签。</p>
+<p>Key 仍然是一串数字。</p>
+<p>只是训练完成后，这些数字会编码出某些可被查询和匹配的特征。</p>
+<h3 id="3-3-query-和-key-如何配合">3.3 Query 和 Key 如何配合</h3>
+<p>Query 表达：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>我想找什么？</code></pre></div>
+<p>Key 表达：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>我有什么特征？</code></pre></div>
+<p>模型会把一个 Token 的 Query 和所有 Token 的 Key 做比较。</p>
+<p>例如“她”的 Query 会分别和下面这些 Key 比较：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>“小明”的 Key
+“苹果”的 Key
+“小红”的 Key
+“因为”的 Key
+“她”的 Key
+“饿”的 Key</code></pre></div>
+<p>假设“她”的 Query 与“小红”的 Key 最匹配，那么“她”就会对“小红”分配更高的注意力权重。</p>
+<h3 id="3-4-k-的-shape">3.4 K 的 Shape</h3>
+<p>如果：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>x.shape == [B, L, D]</code></pre></div>
+<p>并且：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>self.k_proj = nn.Linear(D, D)</code></pre></div>
+<p>那么：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>k.shape == [B, L, D]</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>x.shape = [2, 4, 8]
+k.shape = [2, 4, 8]</code></pre></div>
+<p>Shape 没有变化，但每个向量被重新编码成适合“被查询”的表示。</p>
+<h2 id="4-v-self-v-proj-x">4. <code>v = self.v_proj(x)</code></h2>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>v = self.v_proj(x)</code></pre></div>
+<p>这一行把输入 <code>x</code> 转换成 Value，也就是真正携带信息的向量 V。</p>
+<h3 id="4-1-self-v-proj-是什么">4.1 <code>self.v_proj</code> 是什么</h3>
+<p>它同样是一个线性层：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>self.v_proj = nn.Linear(d_model, d_model)</code></pre></div>
+<p>计算过程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>V = XWv + bv</code></pre></div>
+<p>其中：</p>
+<ul><li><code>Wv</code>：Value 的权重矩阵</li><li><code>bv</code>：Value 的偏置</li><li><code>V</code>：后续真正参与信息汇总的向量</li></ul>
+<p>三组参数彼此不同：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Wq != Wk
+Wq != Wv
+Wk != Wv</code></pre></div>
+<h3 id="4-2-value-的含义">4.2 Value 的含义</h3>
+<p>Value 可以理解为：</p>
+<blockquote>当前 Token 真正可以提供给其他 Token 的信息。</blockquote>
+<p>Q 和 K 主要负责计算：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>谁应该关注谁</code></pre></div>
+<p>V 负责提供：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>关注之后真正拿走什么信息</code></pre></div>
+<p>可以使用搜索引擎类比：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Q：用户输入的搜索词
+K：网页标题、关键词、标签
+V：网页正文内容</code></pre></div>
+<p>搜索系统先用 Q 和 K 匹配。</p>
+<p>匹配完成后，真正需要读取的是 V。</p>
+<p>Attention 也是一样：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Q 和 K 负责决定关注关系；
+V 负责提供被汇总的信息。</code></pre></div>
+<h3 id="4-3-为什么最终不是-weights-k">4.3 为什么最终不是 <code>weights @ k</code></h3>
+<p>Key 只负责匹配。</p>
+<p>它类似目录、索引或标签。</p>
+<p>真正需要传递给其他 Token 的内容保存在 Value 中。</p>
+<p>因此代码写的是：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>output = weights @ v</code></pre></div>
+<p>而不是：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>output = weights @ k</code></pre></div>
+<p>如果继续用搜索系统类比：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>你先通过标题和关键词找到网页，
+最终读取的是网页正文，
+而不是把所有网页标题拼接起来。</code></pre></div>
+<h3 id="4-4-v-的-shape">4.4 V 的 Shape</h3>
+<p>如果：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>x.shape == [B, L, D]</code></pre></div>
+<p>并且：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>self.v_proj = nn.Linear(D, D)</code></pre></div>
+<p>那么：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>v.shape == [B, L, D]</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>v.shape = [2, 4, 8]</code></pre></div>
+<h2 id="5-为什么-q-k-v-都来自同一个-x">5. 为什么 Q、K、V 都来自同一个 <code>x</code></h2>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q = self.q_proj(x)
+k = self.k_proj(x)
+v = self.v_proj(x)</code></pre></div>
+<p>三者都来自同一个输入 <code>x</code>，这是因为这里实现的是 Self-Attention。</p>
+<p>Self-Attention 的意思是：</p>
+<blockquote>一个序列内部的所有 Token 相互查看、相互匹配、相互传递信息。</blockquote>
+<p>同一个 Token 同时扮演三种角色：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Q：我想寻找什么
+K：别人可以怎样找到我
+V：我真正可以提供什么</code></pre></div>
+<p>虽然都来自同一个 <code>x</code>，但是经过三组不同参数：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>Q = X @ Wq
+K = X @ Wk
+V = X @ Wv</code></pre></div>
+<p>所以最终数值不同。</p>
+<p>可以把它类比成同一个人在会议中：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>他可以提出问题；
+他可以被别人点名；
+他可以提供自己的意见。</code></pre></div>
+<p>同一个人，但角色不同。</p>
+<h2 id="6-scores-q-k-transpose-2-1">6. <code>scores = q @ k.transpose(-2, -1)</code></h2>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = q @ k.transpose(-2, -1)</code></pre></div>
+<p>这一行的作用是：</p>
+<blockquote>计算每个 Query 和所有 Key 之间的相关性分数。</blockquote>
+<p>这是 Attention 中最核心的步骤之一。</p>
+<h3 id="6-1-是什么">6.1 <code>@</code> 是什么</h3>
+<p>Python 中：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>@</code></pre></div>
+<p>表示矩阵乘法。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>a @ b</code></pre></div>
+<p>通常等价于：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>torch.matmul(a, b)</code></pre></div>
+<p>因此：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = q @ k.transpose(-2, -1)</code></pre></div>
+<p>也可以写成：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = torch.matmul(q, k.transpose(-2, -1))</code></pre></div>
+<h3 id="6-2-为什么不能直接写-q-k">6.2 为什么不能直接写 <code>q @ k</code></h3>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>q.shape = [B, L, D]
+k.shape = [B, L, D]</code></pre></div>
+<p>只看最后两个维度：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>q: [L, D]
+k: [L, D]</code></pre></div>
+<p>矩阵乘法要求：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[A, B] @ [B, C]</code></pre></div>
+<p>也就是前一个矩阵的最后一维，必须等于后一个矩阵的倒数第二维。</p>
+<p>但直接相乘时：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[L, D] @ [L, D]</code></pre></div>
+<p>中间两个维度是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>D 和 L</code></pre></div>
+<p>通常不相等，所以不能直接相乘。</p>
+<p>因此需要先转置 K。</p>
+<h3 id="6-3-k-transpose-2-1-是什么">6.3 <code>k.transpose(-2, -1)</code> 是什么</h3>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>k.shape == [B, L, D]</code></pre></div>
+<p>这里：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>-1 表示最后一个维度 D
+-2 表示倒数第二个维度 L</code></pre></div>
+<p>执行：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>k.transpose(-2, -1)</code></pre></div>
+<p>就是交换 L 和 D。</p>
+<p>原来：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, L, D]</code></pre></div>
+<p>转置后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, D, L]</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>原来：
+[2, 4, 8]
+
+转置后：
+[2, 8, 4]</code></pre></div>
+<p>Batch 维度没有变化。</p>
+<p>只交换最后两个维度。</p>
+<h3 id="6-4-为什么使用负数索引">6.4 为什么使用负数索引</h3>
+<p>也可以写成：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>k.transpose(1, 2)</code></pre></div>
+<p>对于三维张量 <code>[B, L, D]</code>，这同样可以交换 L 和 D。</p>
+<p>但是：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>k.transpose(-2, -1)</code></pre></div>
+<p>更通用。</p>
+<p>因为在 Multi-Head Attention 中，张量可能是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, H, L, D]</code></pre></div>
+<p>其中：</p>
+<ul><li><code>B</code>：Batch</li><li><code>H</code>：Head 数量</li><li><code>L</code>：Token 数量</li><li><code>D</code>：每个 Head 的维度</li></ul>
+<p>此时依然只需要交换最后两个维度：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, H, L, D]
+        ↓
+[B, H, D, L]</code></pre></div>
+<p>所以使用：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>transpose(-2, -1)</code></pre></div>
+<p>不需要关心前面有多少维。</p>
+<h3 id="6-5-shape-如何变化">6.5 Shape 如何变化</h3>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>q.shape = [B, L, D]
+k.shape = [B, L, D]</code></pre></div>
+<p>K 转置以后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>k.transpose(-2, -1).shape = [B, D, L]</code></pre></div>
+<p>矩阵乘法：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, L, D] @ [B, D, L]</code></pre></div>
+<p>中间的 D 被消掉，结果是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, L, L]</code></pre></div>
+<p>因此：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores.shape == [B, L, L]</code></pre></div>
+<h3 id="6-6-b-l-l-表示什么">6.6 <code>[B, L, L]</code> 表示什么</h3>
+<p>假设一句话有 4 个 Token：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>我  喜欢  吃  苹果</code></pre></div>
+<p>那么对于每句话，<code>scores</code> 是一个 <code>4 × 4</code> 的矩阵：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>          Key
+          我    喜欢    吃    苹果
+Query 我   ?      ?      ?      ?
+Query 喜欢 ?      ?      ?      ?
+Query 吃   ?      ?      ?      ?
+Query 苹果 ?      ?      ?      ?</code></pre></div>
+<p>行代表 Query。</p>
+<p>列代表 Key。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores[0, 2, 3]</code></pre></div>
+<p>假设：</p>
+<ul><li>第一个索引 <code>0</code>：Batch 0</li><li>第二个索引 <code>2</code>：第 3 个 Token“吃”的 Query</li><li>第三个索引 <code>3</code>：第 4 个 Token“苹果”的 Key</li></ul>
+<p>那么：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores[0, 2, 3]</code></pre></div>
+<p>表示：</p>
+<blockquote>Batch 0 中，“吃”对“苹果”的原始相关性分数。</blockquote>
+<h3 id="6-7-q-和-k-的点积如何计算">6.7 Q 和 K 的点积如何计算</h3>
+<p>假设一个 Query 向量是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>q = [1, 2]</code></pre></div>
+<p>一个 Key 向量是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>k = [3, 4]</code></pre></div>
+<p>点积计算：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>1 × 3 + 2 × 4
+= 3 + 8
+= 11</code></pre></div>
+<p>这个结果 <code>11</code> 就是二者的匹配分数。</p>
+<p>如果另一个 Key 是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>k2 = [-1, 0]</code></pre></div>
+<p>那么：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>q · k2
+= 1 × (-1) + 2 × 0
+= -1</code></pre></div>
+<p>相对来说：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>q 与 k 的匹配程度更高；
+q 与 k2 的匹配程度更低。</code></pre></div>
+<p>在真实模型里，向量维度可能是 64、128，甚至更大。</p>
+<p>点积会把所有维度的匹配情况累加成一个标量分数。</p>
+<h3 id="6-8-为什么点积可以表示相似度">6.8 为什么点积可以表示相似度</h3>
+<p>当两个向量方向比较接近时，点积通常较大。</p>
+<p>当两个向量方向差异较大时，点积较小。</p>
+<p>当两个向量方向相反时，点积可能为负数。</p>
+<p>因此模型可以通过训练，让需要互相关注的 Query 和 Key 在向量空间中更加匹配。</p>
+<p>需要注意：</p>
+<blockquote>Attention 中的 Q 和 K 都是模型学习出来的表示，不是固定的原始 Embedding。</blockquote>
+<p>所以模型可以自己学习什么样的特征组合应该得到更高的分数。</p>
+<h2 id="7-scores-scores-math-sqrt-q-size-1">7. <code>scores = scores / math.sqrt(q.size(-1))</code></h2>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = scores / math.sqrt(q.size(-1))</code></pre></div>
+<p>这一行的作用是：</p>
+<blockquote>对 Q 和 K 的点积分数进行缩放，避免分数随着向量维度增加而变得过大。</blockquote>
+<p>这一步对应 Scaled Dot-Product Attention 中的“Scaled”。</p>
+<h3 id="7-1-q-size-1-是什么">7.1 <code>q.size(-1)</code> 是什么</h3>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q.shape == [B, L, D]</code></pre></div>
+<p>那么：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q.size(-1)</code></pre></div>
+<p>表示读取最后一个维度的大小，也就是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>D</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q.shape == [2, 4, 64]</code></pre></div>
+<p>那么：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q.size(-1) == 64</code></pre></div>
+<p>在 Attention 公式中，这个维度通常写成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>dₖ</code></pre></div>
+<p>代表 Key 或 Query 的向量维度。</p>
+<h3 id="7-2-math-sqrt-q-size-1">7.2 <code>math.sqrt(q.size(-1))</code></h3>
+<p>如果：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q.size(-1) == 64</code></pre></div>
+<p>那么：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>math.sqrt(q.size(-1))</code></pre></div>
+<p>就是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>√64 = 8</code></pre></div>
+<p>所以：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = scores / math.sqrt(q.size(-1))</code></pre></div>
+<p>相当于：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = scores / 8</code></pre></div>
+<h3 id="7-3-为什么维度越大-点积越容易变大">7.3 为什么维度越大，点积越容易变大</h3>
+<p>Q 和 K 的点积是多个数字乘积的累加。</p>
+<p>假设维度是 2：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>q · k
+= q1k1 + q2k2</code></pre></div>
+<p>假设维度是 64：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>q · k
+= q1k1 + q2k2 + ... + q64k64</code></pre></div>
+<p>维度越多，累加项越多。</p>
+<p>即使每一项不是很大，最终结果的绝对值也容易变大。</p>
+<p>因此，当 <code>dₖ</code> 很大时，<code>scores</code> 中可能出现较大的正数和负数。</p>
+<h3 id="7-4-分数太大为什么有问题">7.4 分数太大为什么有问题</h3>
+<p>下一步会执行 Softmax。</p>
+<p>假设原始分数是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[2, 5, 30]</code></pre></div>
+<p>Softmax 需要计算指数：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>e²
+e⁵
+e³⁰</code></pre></div>
+<p>因为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>e³⁰</code></pre></div>
+<p>远大于前两个数字，所以最终权重会非常接近：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0, 0, 1]</code></pre></div>
+<p>模型几乎把全部注意力都分给第三个位置。</p>
+<p>如果这种极端情况在训练早期频繁出现，会导致：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Softmax 输出过于尖锐；
+部分位置的梯度非常小；
+参数更新困难；
+训练不稳定。</code></pre></div>
+<h3 id="7-5-除以-dₖ-后发生什么">7.5 除以 <code>√dₖ</code> 后发生什么</h3>
+<p>仍然假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = [2, 5, 30]
+dₖ = 64
+√dₖ = 8</code></pre></div>
+<p>缩放后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[2/8, 5/8, 30/8]
+=
+[0.25, 0.625, 3.75]</code></pre></div>
+<p>这些数仍然保留原来的大小关系：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>3.75 最大；
+0.625 第二；
+0.25 最小。</code></pre></div>
+<p>但差距没有原来那么极端。</p>
+<p>Softmax 得到的分布会更平滑。</p>
+<h3 id="7-6-为什么是除以-dₖ-而不是除以-dₖ">7.6 为什么是除以 <code>√dₖ</code>，而不是除以 <code>dₖ</code></h3>
+<p>如果 Q 和 K 的每个元素都近似满足：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>均值为 0；
+方差为 1。</code></pre></div>
+<p>那么点积：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Q · K</code></pre></div>
+<p>的方差会随着 <code>dₖ</code> 增长。</p>
+<p>大致可以理解为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>点积方差 ≈ dₖ</code></pre></div>
+<p>标准差大约是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>√dₖ</code></pre></div>
+<p>所以除以：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>√dₖ</code></pre></div>
+<p>可以把数值尺度拉回相对稳定的范围。</p>
+<p>作为 AI 应用工程师，重点需要理解：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>向量维度越大，点积分数越容易变大；
+除以 √dₖ 是为了控制数值范围；
+这样 Softmax 不会过早进入极端状态；
+训练会更加稳定。</code></pre></div>
+<p>不需要手动推导概率分布和方差公式。</p>
+<h2 id="8-weights-torch-softmax-scores-dim-1">8. <code>weights = torch.softmax(scores, dim=-1)</code></h2>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>weights = torch.softmax(scores, dim=-1)</code></pre></div>
+<p>这一行的作用是：</p>
+<blockquote>把原始相关性分数转换成 Attention 权重。</blockquote>
+<h3 id="8-1-scores-还不是权重">8.1 <code>scores</code> 还不是权重</h3>
+<p>假设某个 Token 对所有 Token 的分数是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[2.0, 1.0, -1.0, 3.0]</code></pre></div>
+<p>这些值可能：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>大于 1；
+小于 0；
+总和不等于 1。</code></pre></div>
+<p>它们只是原始匹配分数，不能直接理解为比例。</p>
+<p>Softmax 会把它们转换成类似：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0.24, 0.09, 0.01, 0.66]</code></pre></div>
+<p>转换后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>每个值都在 0 到 1 之间；
+所有值加起来等于 1。</code></pre></div>
+<p>因此可以把它们理解为注意力分配比例。</p>
+<h3 id="8-2-softmax-的计算公式">8.2 Softmax 的计算公式</h3>
+<p>对于一组分数：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>z1, z2, ..., zn</code></pre></div>
+<p>Softmax 对第 i 个分数的计算是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>softmax(zi)
+=
+exp(zi)
+/
+Σ exp(zj)</code></pre></div>
+<p>例如分数：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[1, 2]</code></pre></div>
+<p>先计算指数：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>e¹ ≈ 2.718
+e² ≈ 7.389</code></pre></div>
+<p>总和：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>2.718 + 7.389 = 10.107</code></pre></div>
+<p>最终权重：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第一个位置：
+2.718 / 10.107 ≈ 0.269
+
+第二个位置：
+7.389 / 10.107 ≈ 0.731</code></pre></div>
+<p>得到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0.269, 0.731]</code></pre></div>
+<p>总和：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>0.269 + 0.731 = 1</code></pre></div>
+<h3 id="8-3-dim-1-是什么意思">8.3 <code>dim=-1</code> 是什么意思</h3>
+<p><code>scores</code> 的 Shape 是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, L, L]</code></pre></div>
+<p>最后一个维度表示：</p>
+<blockquote>当前 Query 可以关注的所有 Key。</blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>scores[0, 2, :]</code></pre></div>
+<p>表示：</p>
+<blockquote>Batch 0 中，第 3 个 Token 对所有 Token 的相关性分数。</blockquote>
+<p>所以需要沿最后一个维度做 Softmax：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>torch.softmax(scores, dim=-1)</code></pre></div>
+<p>这会让每一行的权重和等于 1。</p>
+<h3 id="8-4-一个-4-4-的例子">8.4 一个 <code>4 × 4</code> 的例子</h3>
+<p>假设一句话有 4 个 Token：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>我  喜欢  吃  苹果</code></pre></div>
+<p>某个 <code>scores</code> 矩阵可能是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>          我    喜欢    吃    苹果
+我        2.0   1.0   0.5   0.2
+喜欢      0.8   2.1   1.2   0.7
+吃        0.2   0.6   1.0   2.5
+苹果      0.3   0.4   1.4   2.0</code></pre></div>
+<p>Softmax 按行计算。</p>
+<p>对于“吃”这一行：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0.2, 0.6, 1.0, 2.5]</code></pre></div>
+<p>转换后可能得到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0.07, 0.10, 0.15, 0.68]</code></pre></div>
+<p>这表示：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>“吃”关注“我”：7%
+“吃”关注“喜欢”：10%
+“吃”关注“吃”：15%
+“吃”关注“苹果”：68%</code></pre></div>
+<p>可以看到，“吃”最关注“苹果”。</p>
+<h3 id="8-5-为什么需要-softmax">8.5 为什么需要 Softmax</h3>
+<p>如果直接使用原始分数：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0.2, 0.6, 1.0, 2.5]</code></pre></div>
+<p>这些数没有统一尺度。</p>
+<p>不同 Query 的分数范围可能完全不同。</p>
+<p>Softmax 把每一行转换成一个标准化分布：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>所有权重都是正数；
+所有权重总和等于 1；
+分数更高的位置获得更大权重。</code></pre></div>
+<p>这样下一步可以使用这些权重对 V 做加权求和。</p>
+<h3 id="8-6-softmax-不代表真实概率">8.6 Softmax 不代表真实概率</h3>
+<p>Attention 权重看起来像概率，因为它们：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>位于 0 到 1；
+总和为 1。</code></pre></div>
+<p>但更准确的说法是：</p>
+<blockquote>它们是归一化后的注意力分配权重。</blockquote>
+<p>它们表示模型当前把多少信息读取比例分配给不同 Token。</p>
+<p>不能简单把它理解为语言学上的真实概率或因果解释。</p>
+<h2 id="9-output-weights-v">9. <code>output = weights @ v</code></h2>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>output = weights @ v</code></pre></div>
+<p>这一行的作用是：</p>
+<blockquote>使用 Attention 权重，对所有 Token 的 Value 做加权求和。</blockquote>
+<p>这是 Attention 真正完成上下文信息融合的步骤。</p>
+<h3 id="9-1-shape-如何变化">9.1 Shape 如何变化</h3>
+<p>已知：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>weights.shape = [B, L, L]
+v.shape       = [B, L, D]</code></pre></div>
+<p>矩阵乘法：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, L, L] @ [B, L, D]</code></pre></div>
+<p>中间的 L 被消掉，结果是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, L, D]</code></pre></div>
+<p>因此：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>output.shape == [B, L, D]</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>weights.shape = [2, 4, 4]
+v.shape       = [2, 4, 8]
+
+output.shape  = [2, 4, 8]</code></pre></div>
+<p>输出与输入的 Shape 相同。</p>
+<p>但是输出中每个 Token 的向量，已经融合了其他 Token 的信息。</p>
+<h3 id="9-2-weights-v-到底算了什么">9.2 <code>weights @ v</code> 到底算了什么</h3>
+<p>假设当前 Token 对 4 个 Token 的权重是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0.1, 0.2, 0.1, 0.6]</code></pre></div>
+<p>对应 4 个 Value：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>V1
+V2
+V3
+V4</code></pre></div>
+<p>那么当前 Token 的输出就是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>output
+=
+0.1 × V1
++
+0.2 × V2
++
+0.1 × V3
++
+0.6 × V4</code></pre></div>
+<p>也就是说：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>从 V1 读取 10% 的信息；
+从 V2 读取 20% 的信息；
+从 V3 读取 10% 的信息；
+从 V4 读取 60% 的信息。</code></pre></div>
+<p>最终把这些信息相加，形成新的上下文向量。</p>
+<h3 id="9-3-使用二维向量做具体计算">9.3 使用二维向量做具体计算</h3>
+<p>假设有 3 个 Token，它们的 Value 是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>V1 = [1, 0]
+V2 = [0, 2]
+V3 = [3, 1]</code></pre></div>
+<p>某个 Query 对这三个 Token 的 Attention 权重是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0.2, 0.3, 0.5]</code></pre></div>
+<p>那么输出：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>output
+=
+0.2 × [1, 0]
++
+0.3 × [0, 2]
++
+0.5 × [3, 1]</code></pre></div>
+<p>分别计算：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>0.2 × [1, 0]
+=
+[0.2, 0]
+
+0.3 × [0, 2]
+=
+[0, 0.6]
+
+0.5 × [3, 1]
+=
+[1.5, 0.5]</code></pre></div>
+<p>相加：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0.2, 0]
++
+[0, 0.6]
++
+[1.5, 0.5]
+=
+[1.7, 1.1]</code></pre></div>
+<p>所以当前 Token 的输出向量是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[1.7, 1.1]</code></pre></div>
+<p>这个输出同时融合了三个 Token 的信息，但不同 Token 的贡献比例不同。</p>
+<h3 id="9-4-为什么输出维度仍然是-d">9.4 为什么输出维度仍然是 D</h3>
+<p>权重矩阵：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, L, L]</code></pre></div>
+<p>只负责决定：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>每个 Query 应该从每个 Value 读取多少信息。</code></pre></div>
+<p>Value 的每个 Token 仍然是 D 维向量：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, L, D]</code></pre></div>
+<p>加权求和只是把多个 D 维向量混合起来。</p>
+<p>所以结果仍然是 D 维向量：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, L, D]</code></pre></div>
+<h3 id="9-5-输出和输入有什么不同">9.5 输出和输入有什么不同</h3>
+<p>输入：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>x[i]</code></pre></div>
+<p>主要是第 i 个 Token 自己的基础表示。</p>
+<p>输出：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>output[i]</code></pre></div>
+<p>是第 i 个 Token 根据 Attention 权重，从整个序列读取信息后的上下文表示。</p>
+<p>例如原始 Token：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>“苹果”</code></pre></div>
+<p>输入向量主要表达“苹果”本身。</p>
+<p>经过 Attention 后，它可能融合：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>“吃”的动作信息；
+“喜欢”的情感信息；
+句子中主语“我”的信息。</code></pre></div>
+<p>因此输出不再只是孤立 Token 的表示，而是：</p>
+<blockquote>带有上下文信息的 Token 表示。</blockquote>
+<h2 id="10-用完整-shape-流程串联代码">10. 用完整 Shape 流程串联代码</h2>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>B = 2
+L = 4
+D = 8</code></pre></div>
+<p>输入：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>x.shape = [2, 4, 8]</code></pre></div>
+<p>生成 Q：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q = self.q_proj(x)</code></pre></div>
+<p>Shape：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>q.shape = [2, 4, 8]</code></pre></div>
+<p>生成 K：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>k = self.k_proj(x)</code></pre></div>
+<p>Shape：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>k.shape = [2, 4, 8]</code></pre></div>
+<p>生成 V：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>v = self.v_proj(x)</code></pre></div>
+<p>Shape：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>v.shape = [2, 4, 8]</code></pre></div>
+<p>转置 K：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>k.transpose(-2, -1)</code></pre></div>
+<p>Shape：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[2, 4, 8]
+    ↓
+[2, 8, 4]</code></pre></div>
+<p>计算分数：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = q @ k.transpose(-2, -1)</code></pre></div>
+<p>Shape：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[2, 4, 8] @ [2, 8, 4]
+             ↓
+          [2, 4, 4]</code></pre></div>
+<p>缩放：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = scores / math.sqrt(q.size(-1))</code></pre></div>
+<p>Shape 不变：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>scores.shape = [2, 4, 4]</code></pre></div>
+<p>Softmax：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>weights = torch.softmax(scores, dim=-1)</code></pre></div>
+<p>Shape 不变：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>weights.shape = [2, 4, 4]</code></pre></div>
+<p>汇总 Value：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>output = weights @ v</code></pre></div>
+<p>Shape：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[2, 4, 4] @ [2, 4, 8]
+             ↓
+          [2, 4, 8]</code></pre></div>
+<p>最终：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>output.shape = [2, 4, 8]</code></pre></div>
+<h2 id="11-使用一个最小数字例子完整计算-attention">11. 使用一个最小数字例子完整计算 Attention</h2>
+<p>为了看清楚每一步，假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Batch Size = 1
+Token 数量 = 2
+向量维度 = 2</code></pre></div>
+<p>简化后，假设已经得到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Q =
+[
+  [1, 0],
+  [0, 1]
+]
+
+K =
+[
+  [1, 0],
+  [1, 1]
+]
+
+V =
+[
+  [10, 0],
+  [0, 20]
+]</code></pre></div>
+<h3 id="11-1-计算-kᵀ">11.1 计算 <code>Kᵀ</code></h3>
+<p>原始 K：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>K =
+[
+  [1, 0],
+  [1, 1]
+]</code></pre></div>
+<p>转置：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Kᵀ =
+[
+  [1, 1],
+  [0, 1]
+]</code></pre></div>
+<h3 id="11-2-计算-qkᵀ">11.2 计算 <code>QKᵀ</code></h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>QKᵀ
+=
+[
+  [1, 0],
+  [0, 1]
+]
+@
+[
+  [1, 1],
+  [0, 1]
+]</code></pre></div>
+<p>第一行第一列：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>1 × 1 + 0 × 0 = 1</code></pre></div>
+<p>第一行第二列：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>1 × 1 + 0 × 1 = 1</code></pre></div>
+<p>第二行第一列：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>0 × 1 + 1 × 0 = 0</code></pre></div>
+<p>第二行第二列：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>0 × 1 + 1 × 1 = 1</code></pre></div>
+<p>因此：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>scores =
+[
+  [1, 1],
+  [0, 1]
+]</code></pre></div>
+<p>解释：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Token 1 对 Token 1 的分数是 1；
+Token 1 对 Token 2 的分数是 1；
+
+Token 2 对 Token 1 的分数是 0；
+Token 2 对 Token 2 的分数是 1。</code></pre></div>
+<h3 id="11-3-除以-dₖ">11.3 除以 <code>√dₖ</code></h3>
+<p>这里：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>dₖ = 2
+√dₖ ≈ 1.414</code></pre></div>
+<p>缩放后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>scaled_scores =
+[
+  [1 / 1.414, 1 / 1.414],
+  [0 / 1.414, 1 / 1.414]
+]</code></pre></div>
+<p>约等于：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[
+  [0.707, 0.707],
+  [0, 0.707]
+]</code></pre></div>
+<h3 id="11-4-对每一行执行-softmax">11.4 对每一行执行 Softmax</h3>
+<p>第一行：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0.707, 0.707]</code></pre></div>
+<p>两个分数相同，所以权重相同：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0.5, 0.5]</code></pre></div>
+<p>第二行：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0, 0.707]</code></pre></div>
+<p>Softmax 后约为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[0.33, 0.67]</code></pre></div>
+<p>因此：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>weights =
+[
+  [0.5, 0.5],
+  [0.33, 0.67]
+]</code></pre></div>
+<h3 id="11-5-计算-weights-v">11.5 计算 <code>weights @ V</code></h3>
+<p>Value：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>V =
+[
+  [10, 0],
+  [0, 20]
+]</code></pre></div>
+<p>第一个 Token 的输出：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>0.5 × [10, 0]
++
+0.5 × [0, 20]</code></pre></div>
+<p>分别计算：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[5, 0] + [0, 10]
+=
+[5, 10]</code></pre></div>
+<p>第二个 Token 的输出：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>0.33 × [10, 0]
++
+0.67 × [0, 20]</code></pre></div>
+<p>分别计算：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[3.3, 0] + [0, 13.4]
+=
+[3.3, 13.4]</code></pre></div>
+<p>最终：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>output =
+[
+  [5, 10],
+  [3.3, 13.4]
+]</code></pre></div>
+<p>这表示：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第一个 Token 平均读取了两个 Token 的信息；
+第二个 Token 更偏向读取第二个 Token 的信息。</code></pre></div>
+<h2 id="12-把每一行翻译成自然语言">12. 把每一行翻译成自然语言</h2>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q = self.q_proj(x)</code></pre></div>
+<p>自然语言：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>让每个 Token 生成一个查询：
+“我现在需要寻找什么信息？”</code></pre></div>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>k = self.k_proj(x)</code></pre></div>
+<p>自然语言：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>让每个 Token 生成一个索引：
+“我具备哪些可被匹配的特征？”</code></pre></div>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>v = self.v_proj(x)</code></pre></div>
+<p>自然语言：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>让每个 Token 准备真正可以提供的内容。</code></pre></div>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = q @ k.transpose(-2, -1)</code></pre></div>
+<p>自然语言：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>让每个 Token 的 Query 和所有 Token 的 Key 逐一匹配，
+得到两两之间的相关性分数。</code></pre></div>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = scores / math.sqrt(q.size(-1))</code></pre></div>
+<p>自然语言：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>把分数缩小到比较稳定的范围，
+避免向量维度较大时 Softmax 过于极端。</code></pre></div>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>weights = torch.softmax(scores, dim=-1)</code></pre></div>
+<p>自然语言：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>把相关性分数转换成注意力分配比例，
+使每个 Query 对所有 Key 的权重总和为 1。</code></pre></div>
+<p>代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>output = weights @ v</code></pre></div>
+<p>自然语言：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>每个 Token 按照注意力比例，
+从所有 Token 的 Value 中读取并融合信息。</code></pre></div>
+<h2 id="13-这段代码中容易混淆的细节">13. 这段代码中容易混淆的细节</h2>
+<h3 id="13-1-q-k-v-不是三个不同输入">13.1 Q、K、V 不是三个不同输入</h3>
+<p>在 Self-Attention 中：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q = self.q_proj(x)
+k = self.k_proj(x)
+v = self.v_proj(x)</code></pre></div>
+<p>Q、K、V 都来自同一个 <code>x</code>。</p>
+<p>区别在于它们经过不同的线性层。</p>
+<h3 id="13-2-q-k-v-不是固定规则生成的">13.2 Q、K、V 不是固定规则生成的</h3>
+<p><code>q_proj</code>、<code>k_proj</code>、<code>v_proj</code> 中的参数都会训练。</p>
+<p>模型不是由程序员提前规定：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>哪个 Token 应该关注哪个 Token。</code></pre></div>
+<p>而是通过训练数据自动学习这些关系。</p>
+<h3 id="13-3-scores-不是最终权重">13.3 <code>scores</code> 不是最终权重</h3>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = q @ k.transpose(-2, -1)</code></pre></div>
+<p>得到的是原始匹配分数。</p>
+<p>它们可能为负，也可能很大。</p>
+<p>经过：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>weights = torch.softmax(scores, dim=-1)</code></pre></div>
+<p>之后才得到 Attention 权重。</p>
+<h3 id="13-4-权重矩阵的行和列不要看反">13.4 权重矩阵的行和列不要看反</h3>
+<p>对于：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>weights.shape = [B, L, L]</code></pre></div>
+<p>通常可以理解为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>行：Query，也就是“谁在看”
+列：Key，也就是“正在看谁”</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>weights[0, 2, 3]</code></pre></div>
+<p>表示：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Batch 0 中，
+第 3 个 Token
+对第 4 个 Token
+分配了多少注意力。</code></pre></div>
+<h3 id="13-5-输出不是把-token-数量压缩成一个">13.5 输出不是把 Token 数量压缩成一个</h3>
+<p>输入 Shape：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, L, D]</code></pre></div>
+<p>输出 Shape：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, L, D]</code></pre></div>
+<p>每个 Token 都会得到一个新的上下文向量。</p>
+<p>Attention 并不是默认把整句话压缩成一个向量。</p>
+<h3 id="13-6-q-size-1-在-multi-head-attention-中通常是-head-dim">13.6 <code>q.size(-1)</code> 在 Multi-Head Attention 中通常是 <code>head_dim</code></h3>
+<p>在单头示例中：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>q.size(-1) = d_model</code></pre></div>
+<p>在多头 Attention 中，Q 通常会被拆成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[B, H, L, head_dim]</code></pre></div>
+<p>这时：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q.size(-1)</code></pre></div>
+<p>获取的是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>head_dim</code></pre></div>
+<p>缩放因子应当是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>√head_dim</code></pre></div>
+<p>而不是整个 <code>d_model</code>。</p>
+<h2 id="14-加上因果-mask-后代码的位置">14. 加上因果 Mask 后代码的位置</h2>
+<p>生成式模型不能看到未来 Token。</p>
+<p>例如序列：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>我 喜欢 吃 苹果</code></pre></div>
+<p>在预测“喜欢”后面的内容时，当前 Token 不能提前读取“吃”和“苹果”。</p>
+<p>因果 Mask 一般加在 Softmax 之前：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = q @ k.transpose(-2, -1)
+scores = scores / math.sqrt(q.size(-1))
+
+scores = scores.masked_fill(~mask, float("-inf"))
+
+weights = torch.softmax(scores, dim=-1)
+output = weights @ v</code></pre></div>
+<p>Mask 可能是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>[
+  [1, 0, 0, 0],
+  [1, 1, 0, 0],
+  [1, 1, 1, 0],
+  [1, 1, 1, 1]
+]</code></pre></div>
+<p>其中：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>1：允许关注
+0：禁止关注</code></pre></div>
+<p>被禁止的位置会被填成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>负无穷</code></pre></div>
+<p>因为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>softmax(-∞) = 0</code></pre></div>
+<p>所以这些位置最终不会获得注意力权重。</p>
+<h2 id="15-对应的完整-single-head-self-attention-代码">15. 对应的完整 Single-Head Self-Attention 代码</h2>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>import math
+
+import torch
+from torch import Tensor, nn
+
+
+class SingleHeadSelfAttention(nn.Module):
+    def __init__(self, d_model: int) -&gt; None:
+        super().__init__()
+
+        self.q_proj = nn.Linear(d_model, d_model)
+        self.k_proj = nn.Linear(d_model, d_model)
+        self.v_proj = nn.Linear(d_model, d_model)
+        self.out_proj = nn.Linear(d_model, d_model)
+
+    def forward(
+        self,
+        x: Tensor,
+        mask: Tensor | None = None,
+    ) -&gt; tuple[Tensor, Tensor]:
+        q = self.q_proj(x)
+        k = self.k_proj(x)
+        v = self.v_proj(x)
+
+        scores = q @ k.transpose(-2, -1)
+        scores = scores / math.sqrt(q.size(-1))
+
+        if mask is not None:
+            scores = scores.masked_fill(~mask, float("-inf"))
+
+        weights = torch.softmax(scores, dim=-1)
+
+        context = weights @ v
+
+        output = self.out_proj(context)
+
+        return output, weights</code></pre></div>
+<p>其中：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>context = weights @ v</code></pre></div>
+<p>是 Attention 汇总后的上下文。</p>
+<p>随后：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>output = self.out_proj(context)</code></pre></div>
+<p>再通过一个输出线性层，把上下文映射回模型需要的表示空间。</p>
+<p><code>out_proj</code> 在完整 Attention 中通常存在，但最核心的 Attention 计算仍然是：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>scores = q @ k.transpose(-2, -1)
+scores = scores / math.sqrt(q.size(-1))
+weights = torch.softmax(scores, dim=-1)
+context = weights @ v</code></pre></div></article>
+  </main>
+  <footer>基于《PyTorch Attention 核心代码逐行超详细解析》生成 · 重点：代码、Shape、数学含义和自然语言解释保持一一对应。</footer>
+  <script>
+    (() => {
+      const stages = [
+        {label:'Q 投影',shape:'[B,L,D] → [B,L,D]',title:'生成 Query：我想找什么？',text:'线性层只变换最后一维。Shape 不变，但每个 Token 的表示被重编码为“查询角色”。',active:0},
+        {label:'K 投影',shape:'[B,L,D] → [B,L,D]',title:'生成 Key：我能怎样被找到？',text:'K 与 Q 来自同一个 x，但使用另一组可训练参数，承担“被匹配特征”的角色。',active:1},
+        {label:'V 投影',shape:'[B,L,D] → [B,L,D]',title:'生成 Value：我能提供什么？',text:'Q 和 K 决定谁关注谁；V 才是注意力完成匹配后真正读取和汇总的信息。',active:2},
+        {label:'点积打分',shape:'[B,L,D] @ [B,D,L] → [B,L,L]',title:'每个 Query 与所有 Key 两两匹配',text:'转置 K 的最后两维，让 D 对齐并消去；结果的行是“谁在看”，列是“正在看谁”。',active:3},
+        {label:'缩放',shape:'[B,L,L] → [B,L,L]',title:'除以 √dₖ，控制数值尺度',text:'维度越大点积越容易变大。缩放保留相对顺序，同时避免 Softmax 过早变得极端。',active:4},
+        {label:'Softmax',shape:'每一行之和 = 1',title:'把原始分数变成注意力分配比例',text:'dim=-1 表示沿最后一维，也就是让每个 Query 在全部 Key 之间独立分配注意力。',active:5},
+        {label:'汇总 V',shape:'[B,L,L] @ [B,L,D] → [B,L,D]',title:'按权重读取 Value，得到上下文表示',text:'每个 Token 都保留一个输出位置，但新的向量已经融合了序列中其他 Token 的信息。',active:6}
+      ];
+      const code = ['q = self.q_proj(x)','k = self.k_proj(x)','v = self.v_proj(x)','scores = q @ k.transpose(-2, -1)','scores = scores / math.sqrt(q.size(-1))','weights = torch.softmax(scores, dim=-1)','output = weights @ v'];
+      const stepper = document.getElementById('stepper');
+      const stageCode = document.getElementById('stageCode');
+      function renderStage(index) {
+        const s = stages[index];
+        [...stepper.children].forEach((el,i) => { el.classList.toggle('active',i===index); el.setAttribute('aria-pressed',String(i===index)); });
+        stageCode.innerHTML = code.map((line,i) => '<span class="'+(i===s.active?'active-line':'')+'">'+line.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>').join('');
+        document.getElementById('stageTitle').textContent = s.title;
+        document.getElementById('stageText').textContent = s.text;
+        document.getElementById('shapeChain').textContent = s.shape;
+      }
+      stages.forEach((s,i) => { const b=document.createElement('button'); b.type='button'; b.className='step'; b.innerHTML='<b>'+(i+1)+'. '+s.label+'</b><small>'+s.shape+'</small>'; b.addEventListener('click',()=>renderStage(i)); stepper.appendChild(b); });
+      renderStage(0);
+      const root = document.documentElement;
+      const themeButton = document.getElementById('themeButton');
+      const saved = localStorage.getItem('attention-theme');
+      if (saved) root.dataset.theme = saved;
+      themeButton.addEventListener('click', () => { const next=root.dataset.theme==='dark'?'light':'dark'; root.dataset.theme=next; localStorage.setItem('attention-theme',next); });
+      const progress = document.getElementById('progressBar');
+      function updateProgress(){const max=document.documentElement.scrollHeight-innerHeight;progress.style.width=(max>0?scrollY/max*100:0)+'%'}
+      addEventListener('scroll',updateProgress,{passive:true});updateProgress();
+      const links=[...document.querySelectorAll('.toc a')];
+      const targets=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+      const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+entry.target.id));}})},{rootMargin:'-18% 0px -70% 0px'});
+      targets.forEach(t=>observer.observe(t));
+      document.querySelectorAll('.copy-button').forEach(button=>button.addEventListener('click',async()=>{const text=button.closest('.code-card').querySelector('code').textContent;try{await navigator.clipboard.writeText(text);button.textContent='已复制';setTimeout(()=>button.textContent='复制',1200)}catch{button.textContent='复制失败'}}));
+    })();
+  </script>
+</body>
+</html>

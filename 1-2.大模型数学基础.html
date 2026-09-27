@@ -1,0 +1,2002 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="用直觉、例子和可操作实验理解线性代数、微积分、概率统计与优化器。">
+  <meta name="theme-color" content="#f7f5ef">
+  <title>大模型数学基础 · 通俗学习手册</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f2e9;
+      --paper: #fffdf8;
+      --paper-strong: #ffffff;
+      --ink: #17202f;
+      --muted: #687182;
+      --line: #dedbd1;
+      --line-soft: #ebe8df;
+      --python: #3776ab;
+      --python-deep: #24557d;
+      --python-soft: #e7f2fb;
+      --javascript: #d7ad00;
+      --javascript-deep: #755d00;
+      --javascript-soft: #fff5c7;
+      --coral: #e56b4e;
+      --mint: #2d8a73;
+      --shadow: 0 22px 60px rgba(51, 46, 34, 0.1);
+      --sidebar-width: 310px;
+      --content-width: 920px;
+      --radius-lg: 26px;
+      --radius-md: 16px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page: #121720;
+      --paper: #19212c;
+      --paper-strong: #1f2936;
+      --ink: #edf2f7;
+      --muted: #a8b2c1;
+      --line: #344151;
+      --line-soft: #2b3645;
+      --python-soft: #172d42;
+      --javascript-soft: #3c3517;
+      --javascript-deep: #f6d654;
+      --python-deep: #78b9ec;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 8% 3%, rgba(55, 118, 171, 0.13), transparent 27rem),
+        radial-gradient(circle at 93% 16%, rgba(247, 223, 30, 0.16), transparent 25rem),
+        var(--page);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.78;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 180ms ease, color 180ms ease;
+    }
+
+    ::selection { background: rgba(55, 118, 171, 0.22); }
+    a { color: inherit; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    .skip-link {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      transform: translateY(-160%);
+      padding: 10px 14px;
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 10px;
+    }
+    .skip-link:focus { transform: translateY(0); }
+
+    .progress-track {
+      position: fixed;
+      inset: 0 0 auto 0;
+      height: 4px;
+      z-index: 90;
+      background: transparent;
+    }
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--python), #66a5d5 48%, #f7df1e);
+      transition: width 80ms linear;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 70;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+      padding: 0 clamp(18px, 4vw, 58px);
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+      background: color-mix(in srgb, var(--page) 82%, transparent);
+      backdrop-filter: blur(5px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 760;
+      letter-spacing: -0.02em;
+    }
+    .brand-mark {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: 38px;
+      height: 38px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(31, 39, 54, 0.1);
+    }
+    .brand-mark span {
+      display: grid;
+      place-items: center;
+      font: 800 11px/1 var(--mono);
+    }
+    .brand-mark .py { color: #fff; background: var(--python); }
+    .brand-mark .js { color: #171717; background: #f7df1e; }
+    .top-actions { display: flex; align-items: center; gap: 9px; }
+    .icon-button {
+      display: inline-grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper);
+      cursor: pointer;
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+    }
+    .icon-button:hover { transform: translateY(-2px); border-color: var(--python); }
+    .menu-button { display: none; }
+
+    .hero {
+      position: relative;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: clamp(62px, 9vw, 118px) clamp(22px, 5vw, 70px) clamp(52px, 7vw, 82px);
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      top: 64px;
+      right: 8%;
+      width: 280px;
+      height: 280px;
+      border: 1px solid color-mix(in srgb, var(--python) 25%, transparent);
+      border-radius: 50%;
+      box-shadow: 0 0 0 34px color-mix(in srgb, var(--javascript) 8%, transparent), 0 0 0 68px color-mix(in srgb, var(--python) 5%, transparent);
+      pointer-events: none;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 18px;
+      color: var(--python-deep);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 3px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--python), #f7df1e);
+    }
+    .hero h1 {
+      position: relative;
+      z-index: 1;
+      max-width: 850px;
+      margin: 0;
+      font-size: clamp(46px, 7vw, 88px);
+      line-height: 1.02;
+      letter-spacing: -0.055em;
+    }
+    .hero h1 .python-word { color: var(--python); }
+    .hero h1 .javascript-word {
+      color: var(--javascript-deep);
+      text-decoration: underline;
+      text-decoration-color: #f7df1e;
+      text-decoration-thickness: 0.16em;
+      text-underline-offset: 0.12em;
+    }
+    .hero-description {
+      position: relative;
+      z-index: 1;
+      max-width: 710px;
+      margin: 26px 0 0;
+      color: var(--muted);
+      font-size: clamp(17px, 2vw, 21px);
+    }
+    .hero-stats {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 34px;
+    }
+    .stat {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 10px 15px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--paper) 88%, transparent);
+      box-shadow: 0 8px 24px rgba(45, 40, 28, 0.05);
+    }
+    .stat strong { color: var(--ink); font: 800 18px/1 var(--mono); }
+    .stat span { color: var(--muted); font-size: 13px; }
+
+    .language-ribbon {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      max-width: 1180px;
+      margin: 0 auto 54px;
+      padding: 0 clamp(22px, 4vw, 44px);
+    }
+    .ribbon-side {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      min-height: 88px;
+      padding: 18px 24px;
+      border: 1px solid var(--line);
+    }
+    .ribbon-side:first-child { border-radius: 20px 0 0 20px; background: var(--python-soft); }
+    .ribbon-side:last-child { border-left: 0; border-radius: 0 20px 20px 0; background: var(--javascript-soft); }
+    .ribbon-logo {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 50px;
+      height: 50px;
+      border-radius: 15px;
+      color: #fff;
+      background: var(--python);
+      font: 800 18px/1 var(--mono);
+    }
+    .ribbon-side:last-child .ribbon-logo { color: #171717; background: #f7df1e; }
+    .ribbon-side strong { display: block; font-size: 16px; }
+    .ribbon-side small { display: block; margin-top: 3px; color: var(--muted); }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) minmax(0, var(--content-width));
+      align-items: start;
+      justify-content: center;
+      gap: 30px;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 24px 100px;
+    }
+    .sidebar {
+      position: sticky;
+      top: 88px;
+      max-height: calc(100vh - 110px);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: color-mix(in srgb, var(--paper) 94%, transparent);
+      box-shadow: 0 14px 45px rgba(51, 46, 34, 0.07);
+    }
+    .sidebar-head {
+      padding: 20px 20px 14px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .sidebar-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .shortcut { color: var(--muted); font: 600 11px/1 var(--mono); }
+    .toc-search {
+      width: 100%;
+      padding: 10px 12px;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      outline: none;
+      background: var(--paper-strong);
+      font-size: 13px;
+    }
+    .toc-search:focus { border-color: var(--python); box-shadow: 0 0 0 3px rgba(55, 118, 171, 0.12); }
+    .toc {
+      max-height: calc(100vh - 215px);
+      padding: 10px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line) transparent;
+    }
+    .toc-link {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 9px 10px;
+      color: var(--muted);
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.45;
+      transition: color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+    .toc-link:hover { color: var(--ink); background: var(--line-soft); transform: translateX(2px); }
+    .toc-link.active { color: var(--python-deep); background: var(--python-soft); font-weight: 720; }
+    .toc-number { color: var(--python); font: 700 11px/1.8 var(--mono); }
+    .toc-branch { color: var(--line); text-align: center; }
+    .toc-link.depth-3 { padding-top: 6px; padding-bottom: 6px; padding-left: 18px; font-size: 12px; }
+    .toc-link.is-hidden { display: none; }
+
+    .content {
+      min-width: 0;
+      padding: clamp(28px, 5vw, 68px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .content > h2 {
+      position: relative;
+      margin: 86px 0 28px;
+      padding: 28px 30px 28px 82px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(110deg, var(--python-soft), color-mix(in srgb, var(--paper) 90%, transparent) 55%, var(--javascript-soft));
+      font-size: clamp(26px, 4vw, 36px);
+      line-height: 1.25;
+      letter-spacing: -0.035em;
+    }
+    .content > h2:first-child { margin-top: 0; }
+    .content > h2::before {
+      content: counter(chapter, decimal-leading-zero);
+      counter-increment: chapter;
+      position: absolute;
+      left: 25px;
+      top: 27px;
+      color: var(--python);
+      font: 800 17px/1.6 var(--mono);
+    }
+    .content { counter-reset: chapter; }
+    .content h3 {
+      margin: 54px 0 18px;
+      padding-bottom: 9px;
+      border-bottom: 2px solid var(--line-soft);
+      font-size: clamp(21px, 3vw, 27px);
+      line-height: 1.35;
+      letter-spacing: -0.025em;
+    }
+    .content h4 { margin: 36px 0 12px; font-size: 18px; }
+    .heading-anchor {
+      margin-left: 10px;
+      color: var(--line);
+      text-decoration: none;
+      opacity: 0;
+      transition: color 140ms ease, opacity 140ms ease;
+    }
+    h2:hover .heading-anchor, h3:hover .heading-anchor, h4:hover .heading-anchor, .heading-anchor:focus { color: var(--python); opacity: 1; }
+    .content p { margin: 14px 0; }
+    .content strong { color: var(--ink); font-weight: 760; }
+    .content a:not(.heading-anchor) { color: var(--python-deep); text-underline-offset: 3px; }
+    .content ul, .content ol { padding-left: 1.35em; }
+    .content li { margin: 6px 0; padding-left: 4px; }
+    .content li::marker { color: var(--python); font-weight: 800; }
+    .content hr { height: 1px; margin: 60px 0; border: 0; background: var(--line); }
+    .content blockquote {
+      position: relative;
+      margin: 24px 0;
+      padding: 18px 22px 18px 54px;
+      border: 1px solid color-mix(in srgb, var(--python) 24%, var(--line));
+      border-left: 4px solid var(--python);
+      border-radius: 14px;
+      background: var(--python-soft);
+      color: var(--muted);
+    }
+    .content blockquote::before {
+      content: "i";
+      position: absolute;
+      left: 19px;
+      top: 19px;
+      display: grid;
+      place-items: center;
+      width: 21px;
+      height: 21px;
+      color: #fff;
+      border-radius: 50%;
+      background: var(--python);
+      font: 800 13px/1 serif;
+    }
+    .content blockquote p { margin: 0; }
+    .content :not(pre) > code {
+      padding: 0.16em 0.42em;
+      color: var(--coral);
+      border: 1px solid color-mix(in srgb, var(--coral) 18%, var(--line));
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--coral) 7%, var(--paper-strong));
+      font: 0.88em/1.5 var(--mono);
+      overflow-wrap: anywhere;
+    }
+
+    .code-card {
+      margin: 20px 0 26px;
+      overflow: hidden;
+      border: 1px solid #2d3948;
+      border-radius: var(--radius-md);
+      background: #111821;
+      box-shadow: 0 14px 34px rgba(15, 23, 34, 0.16);
+    }
+    .code-python { border-top: 3px solid #4b91c7; }
+    .code-javascript { border-top: 3px solid #f7df1e; }
+    .code-neutral { border-top: 3px solid #8090a5; }
+    .code-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 42px;
+      padding: 0 12px 0 16px;
+      color: #aeb9c7;
+      border-bottom: 1px solid #293544;
+      background: #17212c;
+    }
+    .language-badge { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+    .language-dot { width: 8px; height: 8px; border-radius: 50%; background: #8090a5; }
+    .code-python .language-dot { background: #4b91c7; box-shadow: 0 0 0 3px rgba(75, 145, 199, 0.16); }
+    .code-javascript .language-dot { background: #f7df1e; box-shadow: 0 0 0 3px rgba(247, 223, 30, 0.12); }
+    .copy-code {
+      padding: 5px 9px;
+      color: #aeb9c7;
+      border: 1px solid #354354;
+      border-radius: 7px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .copy-code:hover { color: #fff; border-color: #718096; }
+    .copy-code.copied { color: #9ae6b4; border-color: #32724c; }
+    pre {
+      margin: 0;
+      padding: 19px 20px 22px;
+      overflow-x: auto;
+      color: #d9e1ea;
+      tab-size: 4;
+      scrollbar-width: thin;
+      scrollbar-color: #415064 transparent;
+    }
+    pre code { font: 13.5px/1.72 var(--mono); white-space: pre; }
+    .tok-comment { color: #7d8b9c; font-style: italic; }
+    .tok-string { color: #a9dc76; }
+    .tok-number { color: #fc9867; }
+    .tok-keyword { color: #78b9ec; font-weight: 650; }
+    .code-javascript .tok-keyword { color: #ffd866; }
+    .tok-constant { color: #ab9df2; }
+
+    .table-wrap { overflow-x: auto; }
+    table {
+      display: table;
+      width: 100%;
+      margin: 22px 0 30px;
+      overflow: hidden;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      font-size: 14px;
+    }
+    thead { background: linear-gradient(90deg, var(--python-soft), var(--javascript-soft)); }
+    th, td { padding: 12px 14px; border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: top; }
+    th { color: var(--ink); font-weight: 760; }
+    tr:last-child td { border-bottom: 0; }
+    th:last-child, td:last-child { border-right: 0; }
+    tbody tr:nth-child(even) { background: color-mix(in srgb, var(--line-soft) 38%, transparent); }
+    tbody tr:hover { background: var(--python-soft); }
+
+    .footer {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 0 24px 70px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+    }
+    .footer-rule { width: 60px; height: 3px; margin: 0 auto 20px; border-radius: 3px; background: linear-gradient(90deg, var(--python), #f7df1e); }
+    .back-to-top {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      color: #fff;
+      border: 0;
+      border-radius: 14px;
+      background: var(--ink);
+      box-shadow: 0 10px 28px rgba(19, 27, 39, 0.2);
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+    .back-to-top.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .sidebar-overlay { display: none; }
+
+    @media (max-width: 1040px) {
+      .workspace { grid-template-columns: 260px minmax(0, 1fr); gap: 20px; }
+      .content { padding: 34px; }
+      .hero::after { opacity: 0.5; right: -100px; }
+    }
+
+    @media (max-width: 820px) {
+      .menu-button { display: inline-grid; }
+      .workspace { display: block; padding: 0 14px 70px; }
+      .content { padding: 26px 20px; border-radius: 20px; }
+      .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 95;
+        width: min(86vw, 330px);
+        max-height: none;
+        border-radius: 0 22px 22px 0;
+        transform: translateX(-105%);
+        transition: transform 220ms ease;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .toc { max-height: calc(100vh - 128px); }
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        background: rgba(8, 13, 20, 0.5);
+        backdrop-filter: blur(2px);
+      }
+      .sidebar-overlay.visible { display: block; }
+      .language-ribbon { margin-bottom: 30px; }
+      .hero { padding-top: 58px; }
+    }
+
+    @media (max-width: 620px) {
+      .brand-text { display: none; }
+      .topbar { padding: 0 14px; }
+      .hero h1 { font-size: clamp(41px, 13vw, 62px); }
+      .hero-description { font-size: 16px; }
+      .language-ribbon { grid-template-columns: 1fr; padding: 0 14px; }
+      .ribbon-side:first-child { border-radius: 17px 17px 0 0; }
+      .ribbon-side:last-child { border-left: 1px solid var(--line); border-top: 0; border-radius: 0 0 17px 17px; }
+      .content > h2 { margin-top: 62px; padding: 24px 20px 24px 62px; }
+      .content > h2::before { left: 18px; top: 25px; }
+      .content h3 { margin-top: 42px; }
+      table { font-size: 12.5px; }
+      th, td { min-width: 116px; padding: 10px; }
+      pre { padding: 16px; }
+      pre code { font-size: 12.5px; }
+      .heading-anchor { display: none; }
+    }
+
+    @media print {
+      .topbar, .sidebar, .sidebar-overlay, .back-to-top, .copy-code, .progress-track { display: none !important; }
+      body { background: #fff; }
+      .hero { padding: 30px 0; }
+      .hero::after { display: none; }
+      .language-ribbon { padding: 0; }
+      .workspace { display: block; max-width: none; padding: 0; }
+      .content { max-width: none; padding: 0; border: 0; box-shadow: none; }
+      .code-card { break-inside: avoid; }
+      h2, h3, table { break-after: avoid; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
+  
+
+  .math-ribbon {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    max-width: 1180px;
+    margin: 0 auto 54px;
+    padding: 0 clamp(22px, 4vw, 44px);
+  }
+  .math-ribbon article {
+    min-height: 112px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    box-shadow: 0 10px 30px rgba(51, 46, 34, 0.05);
+  }
+  .math-ribbon b { display: block; margin-bottom: 6px; font-size: 16px; }
+  .math-ribbon span { color: var(--muted); font-size: 12px; line-height: 1.55; }
+  .math-ribbon article:nth-child(1) { border-top: 4px solid var(--python); }
+  .math-ribbon article:nth-child(2) { border-top: 4px solid #9b72cf; }
+  .math-ribbon article:nth-child(3) { border-top: 4px solid var(--mint); }
+  .math-ribbon article:nth-child(4) { border-top: 4px solid #f0c41d; }
+
+  .concept-map {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 26px 0 30px;
+  }
+  .concept-card {
+    position: relative;
+    min-height: 170px;
+    padding: 25px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--paper-strong);
+  }
+  .concept-card::after {
+    content: "";
+    position: absolute;
+    right: -24px;
+    bottom: -38px;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    opacity: 0.13;
+    background: currentColor;
+  }
+  .concept-card.algebra { color: var(--python-deep); background: var(--python-soft); }
+  .concept-card.calculus { color: #7856a6; background: color-mix(in srgb, #9b72cf 10%, var(--paper)); }
+  .concept-card.probability { color: var(--mint); background: color-mix(in srgb, var(--mint) 9%, var(--paper)); }
+  .concept-card.optimizer { color: var(--javascript-deep); background: var(--javascript-soft); }
+  .concept-index { display: block; margin-bottom: 14px; font: 800 12px/1 var(--mono); opacity: 0.7; }
+  .concept-card strong { display: block; color: currentColor; font-size: 22px; }
+  .concept-card p { margin: 7px 0 10px; color: var(--ink); line-height: 1.55; }
+  .concept-card small { color: var(--muted); font: 600 11px/1.4 var(--mono); }
+
+  .one-line-summary {
+    margin: 26px 0;
+    padding: 20px 22px;
+    border: 1px solid color-mix(in srgb, var(--javascript) 35%, var(--line));
+    border-radius: 14px;
+    background: linear-gradient(100deg, var(--javascript-soft), var(--paper));
+  }
+  .formula-card {
+    margin: 22px 0;
+    padding: 24px;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: linear-gradient(120deg, var(--python-soft), var(--paper-strong));
+    text-align: center;
+  }
+  .formula-card.emphasized { border-color: color-mix(in srgb, var(--python) 45%, var(--line)); box-shadow: inset 4px 0 0 var(--python); }
+  .formula-label { display: block; margin-bottom: 10px; color: var(--python-deep); font: 750 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+  .formula { color: var(--ink); font: 700 clamp(20px, 4vw, 30px)/1.5 Georgia, "Times New Roman", serif; white-space: nowrap; }
+  .formula.small { font-size: clamp(17px, 3vw, 23px); }
+  .formula-sub { margin-top: 6px; color: var(--muted); font-size: 13px; }
+  .formula-symbol { margin-top: 8px; color: var(--python-deep); font: 650 15px/1.5 var(--mono); }
+
+  .analogy {
+    display: grid;
+    grid-template-columns: 94px 1fr;
+    gap: 17px;
+    align-items: start;
+    margin: 24px 0;
+    padding: 19px;
+    border-radius: 15px;
+    background: color-mix(in srgb, var(--mint) 9%, var(--paper));
+    border: 1px solid color-mix(in srgb, var(--mint) 23%, var(--line));
+  }
+  .analogy > span { padding: 5px 8px; color: #fff; border-radius: 8px; background: var(--mint); text-align: center; font-size: 12px; font-weight: 750; }
+  .analogy p { margin: 0; }
+
+  .matrix-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 190px;
+    margin: 24px 0;
+    padding: 34px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--python-soft);
+  }
+  .matrix-name { font: 750 22px/1 Georgia, serif; }
+  .matrix-grid { display: grid; gap: 8px 20px; padding: 10px 4px; }
+  .matrix-grid.rows-2 { grid-template-rows: repeat(2, 1fr); }
+  .matrix-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .matrix-grid span { display: grid; place-items: center; min-width: 28px; font: 700 20px/1 var(--mono); }
+  .matrix-bracket { width: 10px; align-self: stretch; max-height: 82px; border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }
+  .matrix-bracket.left { border-left: 2px solid var(--ink); }
+  .matrix-bracket.right { border-right: 2px solid var(--ink); }
+  .matrix-shape { position: absolute; bottom: 16px; color: var(--muted); font: 650 12px/1 var(--mono); }
+
+  .rule-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+    margin: 24px 0;
+    padding: 20px;
+    border: 1px dashed var(--python);
+    border-radius: 15px;
+    background: var(--paper-strong);
+  }
+  .rule-card strong { flex-basis: 100%; text-align: center; }
+  .rule-card span { padding: 7px 10px; border-radius: 8px; background: var(--python-soft); font: 650 12px/1 var(--mono); }
+  .rule-card p { flex-basis: 100%; margin: 2px 0 0; color: var(--muted); text-align: center; font-size: 13px; }
+
+  .interactive-lab {
+    margin: 32px 0;
+    padding: 24px;
+    border: 1px solid color-mix(in srgb, var(--python) 34%, var(--line));
+    border-radius: 20px;
+    background: linear-gradient(145deg, var(--paper-strong), var(--python-soft));
+    box-shadow: 0 16px 42px rgba(45, 75, 104, 0.09);
+  }
+  .lab-head { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 18px; }
+  .lab-head h4 { margin: 3px 0 0; font-size: 20px; }
+  .lab-kicker { color: var(--python-deep); font: 750 10px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
+  .lab-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(230px, 0.8fr); gap: 22px; align-items: center; }
+  #gradientCanvas { display: block; width: 100%; height: 300px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+  .lab-controls label { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; font-weight: 700; }
+  .lab-controls output { color: var(--ink); font-family: var(--mono); }
+  .lab-controls input[type="range"] { width: 100%; margin: 12px 0 20px; accent-color: var(--python); }
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .metric-grid > div { padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--paper-strong); }
+  .metric-grid span { display: block; color: var(--muted); font-size: 10px; }
+  .metric-grid strong { display: block; margin-top: 3px; font: 750 15px/1.3 var(--mono); }
+  .lab-button { padding: 9px 13px; border-radius: 10px; cursor: pointer; font-weight: 700; }
+  .lab-button.primary { width: 100%; color: #fff; border: 1px solid var(--python); background: var(--python); }
+  .lab-button.secondary { border: 1px solid var(--line); background: var(--paper); }
+  .lab-tip { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+  .probability-lab { border-color: color-mix(in srgb, var(--mint) 34%, var(--line)); background: linear-gradient(145deg, var(--paper-strong), color-mix(in srgb, var(--mint) 8%, var(--paper))); }
+  .probability-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: center; }
+  .coin-scene { display: grid; grid-template-columns: 96px 1fr; gap: 20px; align-items: center; }
+  .coin { display: grid; place-items: center; width: 88px; height: 88px; border: 5px solid #e1b811; border-radius: 50%; background: #f7df1e; box-shadow: inset 0 0 0 4px rgba(255,255,255,0.35), 0 12px 25px rgba(108, 86, 0, 0.18); transition: transform 180ms ease; }
+  .coin span { color: #4e4000; font-size: 26px; font-weight: 850; }
+  .probability-bars > div { display: grid; grid-template-columns: 34px 1fr 38px; gap: 7px; align-items: center; margin: 10px 0; color: var(--muted); font-size: 11px; }
+  .probability-bars i { height: 9px; overflow: hidden; border-radius: 9px; background: var(--line-soft); }
+  .probability-bars b { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--mint); transition: width 160ms ease; }
+  .probability-bars div:last-child b { background: var(--coral); }
+  .probability-bars strong { font: 700 11px/1 var(--mono); }
+
+  .training-loop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 28px 0;
+    padding: 22px;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 17px;
+    background: var(--paper-strong);
+  }
+  .training-loop > span { min-width: 120px; padding: 14px; border-radius: 12px; background: var(--python-soft); text-align: center; font-weight: 730; }
+  .training-loop > span:nth-of-type(2) { background: var(--javascript-soft); }
+  .training-loop > span:nth-of-type(3) { background: color-mix(in srgb, #9b72cf 11%, var(--paper)); }
+  .training-loop > span:nth-of-type(4) { background: color-mix(in srgb, var(--mint) 10%, var(--paper)); }
+  .training-loop b { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: 4px; color: #fff; border-radius: 50%; background: var(--ink); font-size: 11px; }
+  .training-loop small { color: var(--muted); font: 600 10px/1 var(--mono); }
+  .training-loop i { color: var(--muted); font-style: normal; }
+
+  .notebook-figure { margin: 26px auto; padding: 14px; border: 1px solid var(--line); border-radius: 17px; background: #fff; }
+  .notebook-figure img { display: block; width: 100%; max-width: 650px; height: auto; margin: 0 auto; border-radius: 8px; }
+  .notebook-figure figcaption { padding: 10px 5px 2px; color: #5d6878; text-align: center; font-size: 12px; }
+
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    margin: 28px 0;
+    padding: 20px;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--paper-strong);
+  }
+  .pipeline > b { display: grid; place-items: center; color: var(--muted); }
+  .pipeline-step { display: flex; flex-direction: column; justify-content: center; min-width: 128px; min-height: 90px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; text-align: center; background: var(--paper); }
+  .pipeline-step span { font-size: 13px; font-weight: 760; }
+  .pipeline-step small { margin-top: 4px; color: var(--muted); font-size: 9px; line-height: 1.45; }
+  .pipeline-step.algebra { background: var(--python-soft); }
+  .pipeline-step.calculus { background: color-mix(in srgb, #9b72cf 10%, var(--paper)); }
+  .pipeline-step.probability { background: color-mix(in srgb, var(--mint) 9%, var(--paper)); }
+  .pipeline-step.optimizer { background: var(--javascript-soft); }
+
+  .completion-card {
+    margin: 42px 0 10px;
+    padding: 34px;
+    border-radius: 20px;
+    background: linear-gradient(125deg, #18324a, #244f70 56%, #6e5d13);
+    color: #fff;
+    box-shadow: 0 20px 45px rgba(24, 50, 74, 0.22);
+  }
+  .completion-card span { display: inline-block; margin-bottom: 12px; padding: 5px 9px; border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; font-size: 10px; letter-spacing: 0.1em; }
+  .completion-card strong { display: block; color: #fff; font-size: 24px; }
+  .completion-card p { margin-bottom: 0; color: rgba(255,255,255,0.78); }
+
+  @media (max-width: 820px) {
+    .math-ribbon { grid-template-columns: repeat(2, 1fr); }
+    .lab-grid { grid-template-columns: 1fr; }
+    .probability-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .math-ribbon, .concept-map { grid-template-columns: 1fr; }
+    .math-ribbon article { min-height: auto; }
+    .analogy { grid-template-columns: 1fr; }
+    .analogy > span { width: fit-content; }
+    .matrix-stage { padding-left: 18px; padding-right: 18px; }
+    .matrix-grid { gap: 8px 12px; }
+    .coin-scene { grid-template-columns: 82px 1fr; gap: 12px; }
+    .coin { width: 74px; height: 74px; }
+  }
+</style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><span class="py">Σ</span><span class="js">AI</span></span>
+      <span class="brand-text">大模型学习手册</span>
+    </div>
+    <div class="top-actions">
+      <button class="icon-button menu-button" id="menuButton" type="button" aria-label="打开章节目录" aria-expanded="false">☰</button>
+      <button class="icon-button" id="themeButton" type="button" aria-label="切换深浅色模式" title="切换深浅色模式">◐</button>
+    </div>
+  </header>
+  <section class="hero" aria-labelledby="page-title">
+    <div class="eyebrow">Math intuition for large language models</div>
+    <h1 id="page-title"><span class="python-word">大模型</span><br>数学基础 · <span class="javascript-word">通俗版</span></h1>
+    <p class="hero-description">用直觉、例子和可操作实验理解线性代数、微积分、概率统计与优化器。把公式翻译成人话，再把四类数学串成一条完整训练链路。</p>
+    <div class="hero-stats" aria-label="内容统计">
+      <div class="stat"><strong>8</strong><span>个学习章节</span></div>
+      <div class="stat"><strong>4</strong><span>类核心数学</span></div>
+      <div class="stat"><strong>2</strong><span>个可操作实验</span></div>
+      <div class="stat"><strong>20</strong><span>段代码与推演</span></div>
+      <div class="stat"><strong>8</strong><span>张速查表</span></div>
+    </div>
+  </section>
+  <section class="math-ribbon" aria-label="四类核心数学">
+    <article><b>01 · 线性代数</b><span>信息如何表示与变换</span></article>
+    <article><b>02 · 微积分</b><span>参数应该往哪里调整</span></article>
+    <article><b>03 · 概率统计</b><span>模型如何表达不确定性</span></article>
+    <article><b>04 · 优化器</b><span>怎样真正迈出更新一步</span></article>
+  </section>
+  <div class="workspace">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-head">
+        <div class="sidebar-title"><span>学习目录</span><span class="shortcut">⌘ K</span></div>
+        <input class="toc-search" id="tocSearch" type="search" placeholder="搜索章节…" aria-label="搜索章节">
+      </div>
+      <nav class="toc" id="toc"><a class="toc-link depth-2" href="#section-1" data-toc-link="section-1"><span class="toc-number">01</span><span>一、先看全局：四类数学各自负责什么</span></a>
+<a class="toc-link depth-2" href="#section-2" data-toc-link="section-2"><span class="toc-number">02</span><span>二、线性代数：把语言变成可以计算的数字</span></a>
+<a class="toc-link depth-3" href="#section-3" data-toc-link="section-3"><span class="toc-branch">↳</span><span>2.1 为什么大模型离不开线性代数</span></a>
+<a class="toc-link depth-3" href="#section-4" data-toc-link="section-4"><span class="toc-branch">↳</span><span>2.2 向量：一张“特征清单”</span></a>
+<a class="toc-link depth-3" href="#section-5" data-toc-link="section-5"><span class="toc-branch">↳</span><span>2.3 向量加法：把对应位置的信息相加</span></a>
+<a class="toc-link depth-3" href="#section-6" data-toc-link="section-6"><span class="toc-branch">↳</span><span>2.4 点积：衡量两个方向有多“对得上”</span></a>
+<a class="toc-link depth-3" href="#section-7" data-toc-link="section-7"><span class="toc-branch">↳</span><span>2.5 矩阵：一次处理多组信息</span></a>
+<a class="toc-link depth-3" href="#section-8" data-toc-link="section-8"><span class="toc-branch">↳</span><span>2.6 矩阵乘向量：每一行都和输入做一次点积</span></a>
+<a class="toc-link depth-3" href="#section-9" data-toc-link="section-9"><span class="toc-branch">↳</span><span>2.7 它怎样出现在 Transformer 中</span></a>
+<a class="toc-link depth-2" href="#section-10" data-toc-link="section-10"><span class="toc-number">03</span><span>三、微积分：告诉模型参数应该往哪里改</span></a>
+<a class="toc-link depth-3" href="#section-11" data-toc-link="section-11"><span class="toc-branch">↳</span><span>3.1 为什么训练模型需要微积分</span></a>
+<a class="toc-link depth-3" href="#section-12" data-toc-link="section-12"><span class="toc-branch">↳</span><span>3.2 导数：某一点的“即时变化速度”</span></a>
+<a class="toc-link depth-3" href="#section-13" data-toc-link="section-13"><span class="toc-branch">↳</span><span>3.3 梯度：多维世界里的方向箭头</span></a>
+<a class="toc-link depth-3" href="#section-14" data-toc-link="section-14"><span class="toc-branch">↳</span><span>3.4 梯度下降：顺着下坡方向一步步走</span></a>
+<a class="toc-link depth-3" href="#section-15" data-toc-link="section-15"><span class="toc-branch">↳</span><span>3.5 Notebook 示例：寻找 (w - 2)² 的最低点</span></a>
+<a class="toc-link depth-3" href="#section-16" data-toc-link="section-16"><span class="toc-branch">↳</span><span>3.6 学习率为什么重要</span></a>
+<a class="toc-link depth-3" href="#section-17" data-toc-link="section-17"><span class="toc-branch">↳</span><span>3.7 它怎样出现在大模型训练中</span></a>
+<a class="toc-link depth-2" href="#section-18" data-toc-link="section-18"><span class="toc-number">04</span><span>四、概率与统计：模型不是选答案，而是分配可能性</span></a>
+<a class="toc-link depth-3" href="#section-19" data-toc-link="section-19"><span class="toc-branch">↳</span><span>4.1 为什么大模型需要概率</span></a>
+<a class="toc-link depth-3" href="#section-20" data-toc-link="section-20"><span class="toc-branch">↳</span><span>4.2 随机变量：结果还没发生时的占位符</span></a>
+<a class="toc-link depth-3" href="#section-21" data-toc-link="section-21"><span class="toc-branch">↳</span><span>4.3 期望：重复很多次后的平均结果</span></a>
+<a class="toc-link depth-3" href="#section-22" data-toc-link="section-22"><span class="toc-branch">↳</span><span>4.4 方差：结果围绕平均值波动多大</span></a>
+<a class="toc-link depth-3" href="#section-23" data-toc-link="section-23"><span class="toc-branch">↳</span><span>4.5 概率分布：给所有候选结果分配概率</span></a>
+<a class="toc-link depth-3" href="#section-24" data-toc-link="section-24"><span class="toc-branch">↳</span><span>4.6 Softmax：把任意分数变成概率</span></a>
+<a class="toc-link depth-3" href="#section-25" data-toc-link="section-25"><span class="toc-branch">↳</span><span>4.7 最大似然：让训练文本中的正确答案越来越可能</span></a>
+<a class="toc-link depth-3" href="#section-26" data-toc-link="section-26"><span class="toc-branch">↳</span><span>4.8 温度：控制概率分布的“尖锐程度”</span></a>
+<a class="toc-link depth-2" href="#section-27" data-toc-link="section-27"><span class="toc-number">05</span><span>五、优化器：拿着梯度，真正更新参数</span></a>
+<a class="toc-link depth-3" href="#section-28" data-toc-link="section-28"><span class="toc-branch">↳</span><span>5.1 梯度和优化器有什么区别</span></a>
+<a class="toc-link depth-3" href="#section-29" data-toc-link="section-29"><span class="toc-branch">↳</span><span>5.2 三种常见更新方式</span></a>
+<a class="toc-link depth-3" href="#section-33" data-toc-link="section-33"><span class="toc-branch">↳</span><span>5.3 Adam：同时考虑惯性和参数自己的步幅</span></a>
+<a class="toc-link depth-3" href="#section-34" data-toc-link="section-34"><span class="toc-branch">↳</span><span>5.4 Notebook 示例：用直线拟合带噪声的数据</span></a>
+<a class="toc-link depth-3" href="#section-35" data-toc-link="section-35"><span class="toc-branch">↳</span><span>5.5 损失函数：用均方误差衡量直线画得好不好</span></a>
+<a class="toc-link depth-3" href="#section-36" data-toc-link="section-36"><span class="toc-branch">↳</span><span>5.6 一次训练循环发生了什么</span></a>
+<a class="toc-link depth-3" href="#section-37" data-toc-link="section-37"><span class="toc-branch">↳</span><span>5.7 Notebook 的实际训练结果</span></a>
+<a class="toc-link depth-2" href="#section-38" data-toc-link="section-38"><span class="toc-number">06</span><span>六、把四部分串起来：大模型一次训练发生了什么</span></a>
+<a class="toc-link depth-2" href="#section-39" data-toc-link="section-39"><span class="toc-number">07</span><span>七、常见误区</span></a>
+<a class="toc-link depth-3" href="#section-40" data-toc-link="section-40"><span class="toc-branch">↳</span><span>误区 1：向量的每一维都有明确的人类含义</span></a>
+<a class="toc-link depth-3" href="#section-41" data-toc-link="section-41"><span class="toc-branch">↳</span><span>误区 2：点积大就一定语义相似</span></a>
+<a class="toc-link depth-3" href="#section-42" data-toc-link="section-42"><span class="toc-branch">↳</span><span>误区 3：梯度等于参数更新量</span></a>
+<a class="toc-link depth-3" href="#section-43" data-toc-link="section-43"><span class="toc-branch">↳</span><span>误区 4：损失下降就代表模型回答一定正确</span></a>
+<a class="toc-link depth-3" href="#section-44" data-toc-link="section-44"><span class="toc-branch">↳</span><span>误区 5：概率最高的词一定会被选中</span></a>
+<a class="toc-link depth-3" href="#section-45" data-toc-link="section-45"><span class="toc-branch">↳</span><span>误区 6：优化器能保证找到全局最优解</span></a>
+<a class="toc-link depth-2" href="#section-46" data-toc-link="section-46"><span class="toc-number">08</span><span>八、速查表：看到术语时先想到什么</span></a>
+<a class="toc-link depth-3" href="#section-47" data-toc-link="section-47"><span class="toc-branch">↳</span><span>最后只记住这六句话</span></a></nav>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <main class="content" id="main-content"><p>这不是一份要求你手算复杂公式的数学课，而是一张“看懂大模型如何计算与学习”的地图。先建立直觉，再看公式，最后用代码验证。</p>
+<blockquote>
+<p>阅读目标：看到向量、梯度、概率、损失函数和 Adam 时，知道它们分别解决什么问题，以及它们如何连成一次完整训练。</p>
+</blockquote>
+<h2 id="section-1" data-section-heading>一、先看全局：四类数学各自负责什么<a class="heading-anchor" href="#section-1" aria-label="跳转到本节">#</a></h2><div class="concept-map">
+  <article class="concept-card algebra">
+    <span class="concept-index">01</span>
+    <strong>线性代数</strong>
+    <p>把文字变成数字，并批量完成信息变换。</p>
+    <small>关键词：向量、矩阵、点积</small>
+  </article>
+  <article class="concept-card calculus">
+    <span class="concept-index">02</span>
+    <strong>微积分</strong>
+    <p>测量错误变化方向，告诉参数应该怎么改。</p>
+    <small>关键词：导数、梯度、链式法则</small>
+  </article>
+  <article class="concept-card probability">
+    <span class="concept-index">03</span>
+    <strong>概率统计</strong>
+    <p>表达模型对下一个词有多确定。</p>
+    <small>关键词：分布、期望、方差</small>
+  </article>
+  <article class="concept-card optimizer">
+    <span class="concept-index">04</span>
+    <strong>优化器</strong>
+    <p>根据梯度反复更新参数，让错误越来越小。</p>
+    <small>关键词：SGD、学习率、Adam</small>
+  </article>
+</div>
+
+<p>可以把训练大模型想象成教一个学生做题：</p>
+<table>
+<thead>
+<tr>
+<th>数学工具</th>
+<th>类比</th>
+<th>在大模型中的工作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>线性代数</td>
+<td>把题目整理成表格</td>
+<td>表示词语、批量变换特征</td>
+</tr>
+<tr>
+<td>微积分</td>
+<td>判断错题应该往哪个方向改</td>
+<td>计算每个参数对错误的影响</td>
+</tr>
+<tr>
+<td>概率统计</td>
+<td>给多个答案分配可信度</td>
+<td>输出下一个 Token 的概率</td>
+</tr>
+<tr>
+<td>优化器</td>
+<td>按照改错建议调整学习方法</td>
+<td>更新模型参数，降低损失</td>
+</tr>
+</tbody></table>
+<div class="one-line-summary"><strong>一句话：</strong>向量装信息，矩阵做变换；概率给答案，损失判好坏；梯度指方向，优化器迈步子。</div>
+
+<hr>
+<h2 id="section-2" data-section-heading>二、线性代数：把语言变成可以计算的数字<a class="heading-anchor" href="#section-2" aria-label="跳转到本节">#</a></h2><h3 id="section-3" data-section-heading>2.1 为什么大模型离不开线性代数<a class="heading-anchor" href="#section-3" aria-label="跳转到本节">#</a></h3><p>计算机不能直接理解“猫很可爱”，它只能计算数字。大模型首先要把词或 Token 转换成一串数字，然后通过大量矩阵运算处理这些数字。</p>
+<p>线性代数主要解决两个问题：</p>
+<ol>
+<li><strong>怎样表示信息</strong>：使用向量表示一个词、一个 Token 或一句话的特征。</li>
+<li><strong>怎样变换信息</strong>：使用矩阵把输入特征转换成模型需要的新特征。</li>
+</ol>
+<p>在大模型中经常遇到：</p>
+<ul>
+<li>词向量和 Embedding</li>
+<li>神经网络的线性层</li>
+<li>注意力中的 <code>Q</code>、<code>K</code>、<code>V</code></li>
+<li>模型参数矩阵</li>
+<li>降维和模型分析中的 SVD、特征值分解</li>
+</ul>
+<h3 id="section-4" data-section-heading>2.2 向量：一张“特征清单”<a class="heading-anchor" href="#section-4" aria-label="跳转到本节">#</a></h3><p>向量可以先理解成一个有顺序的数字列表：</p>
+<div class="formula-card">
+  <span class="formula-label">一个三维向量</span>
+  <div class="formula">x = [1, 2, 3]</div>
+</div>
+
+<p>假设我们用三个维度描述一个词：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">[动物属性, 可爱程度, 科技属性]</code></pre>
+  </div><p>那么可以想象：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">“猫”   → [0.95, 0.90, 0.05]
+“小狗” → [0.93, 0.86, 0.04]
+“芯片” → [0.02, 0.01, 0.98]</code></pre>
+  </div><p>“猫”和“小狗”的向量比较接近，“猫”和“芯片”差距较大。真实大模型的向量通常有几百到几千维，每一维也不一定能被人直接命名，但“相似含义靠得更近”的直觉依然成立。</p>
+<div class="analogy"><span>生活类比</span><p>向量就像一个人的体检报告：身高、体重、心率是不同维度。仅凭一个数字无法描述完整的人，一组数字合起来才形成特征。</p></div>
+
+<h3 id="section-5" data-section-heading>2.3 向量加法：把对应位置的信息相加<a class="heading-anchor" href="#section-5" aria-label="跳转到本节">#</a></h3><p>Notebook 中定义：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">import</span> numpy <span class="tok-keyword">as</span> np
+
+a = np.array([<span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>])
+b = np.array([<span class="tok-number">4</span>, <span class="tok-number">5</span>, <span class="tok-number">6</span>])
+
+add_result = a + b
+print(add_result)  <span class="tok-comment"># [5 7 9]</span></code></pre>
+  </div><p>计算时按位置相加：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">[1, 2, 3] + [4, 5, 6]
+= [1+4, 2+5, 3+6]
+= [5, 7, 9]</code></pre>
+  </div><p>两个向量必须形状兼容。不能随意把三维向量和四维向量逐项相加。</p>
+<h3 id="section-6" data-section-heading>2.4 点积：衡量两个方向有多“对得上”<a class="heading-anchor" href="#section-6" aria-label="跳转到本节">#</a></h3><p>两个向量点积时，对应位置先相乘，再把结果相加：</p>
+<div class="formula-card split-formula">
+  <span class="formula-label">点积</span>
+  <div class="formula">a · b = 1×4 + 2×5 + 3×6 = 32</div>
+</div>
+
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-python">dot_result = np.dot(a, b)
+print(dot_result)  <span class="tok-comment"># 32</span></code></pre>
+  </div><p>点积结果是一个数字。它常用于表示两个向量方向的匹配程度：</p>
+<ul>
+<li>点积较大：两个方向比较一致。</li>
+<li>点积接近 0：两个方向接近垂直，关联较弱。</li>
+<li>点积为负：两个方向相反。</li>
+</ul>
+<p>不过，点积还会受到向量长度影响。只想比较方向时，通常会先归一化，或者使用余弦相似度。</p>
+<h3 id="section-7" data-section-heading>2.5 矩阵：一次处理多组信息<a class="heading-anchor" href="#section-7" aria-label="跳转到本节">#</a></h3><p>矩阵可以理解成由多行向量组成的表格：</p>
+<div class="matrix-stage" aria-label="二乘三矩阵">
+  <span class="matrix-name">W =</span>
+  <div class="matrix-bracket left"></div>
+  <div class="matrix-grid rows-2 cols-3">
+    <span>1</span><span>2</span><span>3</span>
+    <span>4</span><span>5</span><span>6</span>
+  </div>
+  <div class="matrix-bracket right"></div>
+  <span class="matrix-shape">2 行 × 3 列</span>
+</div>
+
+<p>矩阵 <code>W</code> 有两行三列，形状写作 <code>(2, 3)</code>。它可以接收一个三维输入，并产生一个二维输出。</p>
+<h3 id="section-8" data-section-heading>2.6 矩阵乘向量：每一行都和输入做一次点积<a class="heading-anchor" href="#section-8" aria-label="跳转到本节">#</a></h3><p>Notebook 的代码使用：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-python">W = np.array([[<span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>],
+              [<span class="tok-number">4</span>, <span class="tok-number">5</span>, <span class="tok-number">6</span>]])
+x = np.array([<span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>])
+
+y = W.dot(x)
+print(y)  <span class="tok-comment"># [14 32]</span></code></pre>
+  </div><p>拆开计算：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">第一行：1×1 + 2×2 + 3×3 = 14
+第二行：4×1 + 5×2 + 6×3 = 32
+
+结果：y = [14, 32]</code></pre>
+  </div><p>Notebook 的讲解图片用了另一个输入 <code>x = [1, 0, -1]</code>：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">第一行：1×1 + 2×0 + 3×(-1) = -2
+第二行：4×1 + 5×0 + 6×(-1) = -2
+
+结果：y = [-2, -2]</code></pre>
+  </div><p>这两组结果并不冲突：矩阵 <code>W</code> 相同，但输入向量 <code>x</code> 不同，所以输出也不同。</p>
+<div class="rule-card"><strong>形状检查规则</strong><span>(2 × 3) 矩阵</span><b>×</b><span>(3 × 1) 向量</span><b>→</b><span>(2 × 1) 向量</span><p>中间的两个 3 必须相同，结果保留外侧的 2 和 1。</p></div>
+
+<h3 id="section-9" data-section-heading>2.7 它怎样出现在 Transformer 中<a class="heading-anchor" href="#section-9" aria-label="跳转到本节">#</a></h3><p>注意力机制可以先用三步理解：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">1. 每个 Token 通过矩阵变换得到 Q、K、V
+2. Q 和 K 做点积，计算“我应该关注谁”
+3. 注意力权重乘以 V，汇总真正需要的信息</code></pre>
+  </div><p>简化表达：</p>
+<div class="formula-card">
+  <span class="formula-label">Scaled Dot-Product Attention</span>
+  <div class="formula small">Attention(Q, K, V) = softmax(QKᵀ / √d) · V</div>
+</div>
+
+<p>现在不需要推导这个公式，只要记住：<strong>矩阵变换负责生成信息，点积负责比较相关性，概率权重负责决定关注比例。</strong></p>
+<hr>
+<h2 id="section-10" data-section-heading>三、微积分：告诉模型参数应该往哪里改<a class="heading-anchor" href="#section-10" aria-label="跳转到本节">#</a></h2><h3 id="section-11" data-section-heading>3.1 为什么训练模型需要微积分<a class="heading-anchor" href="#section-11" aria-label="跳转到本节">#</a></h3><p>模型第一次预测时通常很不准确。训练就是不断修改参数，让预测错误越来越小。</p>
+<p>这需要回答：</p>
+<ol>
+<li>当前错了多少？——由损失函数计算。</li>
+<li>参数稍微变化，损失会怎样变化？——由导数和梯度回答。</li>
+<li>参数下一步往哪里走？——通常沿梯度的反方向。</li>
+</ol>
+<h3 id="section-12" data-section-heading>3.2 导数：某一点的“即时变化速度”<a class="heading-anchor" href="#section-12" aria-label="跳转到本节">#</a></h3><div class="analogy"><span>生活类比</span><p>汽车仪表盘显示的瞬时速度，就是“路程对时间的导数”。它不是整段路的平均速度，而是此刻变化得有多快。</p></div>
+
+<p>对函数 <code>f(w)</code> 来说，导数 <code>f′(w)</code> 表示参数 <code>w</code> 稍微变化时，函数值变化得有多快：</p>
+<ul>
+<li>导数大于 0：<code>w</code> 增大时，函数倾向于上升。</li>
+<li>导数小于 0：<code>w</code> 增大时，函数倾向于下降。</li>
+<li>导数等于 0：当前位置可能是最低点、最高点或平坦区域。</li>
+</ul>
+<h3 id="section-13" data-section-heading>3.3 梯度：多维世界里的方向箭头<a class="heading-anchor" href="#section-13" aria-label="跳转到本节">#</a></h3><p>一个模型有很多参数，损失函数不只依赖一个变量。这时，把每个参数的偏导数组合起来，就得到梯度：</p>
+<div class="formula-card">
+  <span class="formula-label">梯度</span>
+  <div class="formula small">∇L = [∂L/∂w₁, ∂L/∂w₂, …, ∂L/∂wₙ]</div>
+</div>
+
+<p>梯度可以想象成一个箭头，它指向函数值上升最快的方向。我们想让损失下降，所以要朝梯度的反方向走。</p>
+<h3 id="section-14" data-section-heading>3.4 梯度下降：顺着下坡方向一步步走<a class="heading-anchor" href="#section-14" aria-label="跳转到本节">#</a></h3><p>更新规则：</p>
+<div class="formula-card emphasized">
+  <span class="formula-label">参数更新</span>
+  <div class="formula">新参数 = 旧参数 − 学习率 × 梯度</div>
+  <div class="formula-symbol">w ← w − η · f′(w)</div>
+</div>
+
+<p>其中：</p>
+<ul>
+<li><code>w</code>：当前参数。</li>
+<li><code>f′(w)</code>：当前位置的梯度。</li>
+<li><code>η</code>：学习率，决定每一步走多远。</li>
+</ul>
+<h3 id="section-15" data-section-heading>3.5 Notebook 示例：寻找 <code>(w - 2)²</code> 的最低点<a class="heading-anchor" href="#section-15" aria-label="跳转到本节">#</a></h3><p>函数：</p>
+<div class="formula-card">
+  <div class="formula">f(w) = (w − 2)²</div>
+  <div class="formula-sub">最低点显然在 w = 2，此时 f(w) = 0</div>
+</div>
+
+<p>它的导数是：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">f′(w) = 2(w - 2)</code></pre>
+  </div><p>Notebook 从 <code>w = 10</code> 开始，学习率为 <code>0.1</code>：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">def</span> f(w):
+    <span class="tok-keyword">return</span> (w - <span class="tok-number">2</span>) ** <span class="tok-number">2</span>
+
+<span class="tok-keyword">def</span> grad_f(w):
+    <span class="tok-keyword">return</span> <span class="tok-number">2</span> * (w - <span class="tok-number">2</span>)
+
+learning_rate = <span class="tok-number">0.1</span>
+w = <span class="tok-number">10.0</span>
+
+<span class="tok-keyword">for</span> i <span class="tok-keyword">in</span> range(<span class="tok-number">10</span>):
+    w = w - learning_rate * grad_f(w)
+    print(i + <span class="tok-number">1</span>, w, f(w))</code></pre>
+  </div><table>
+<thead>
+<tr>
+<th align="right">迭代</th>
+<th align="right">参数 w</th>
+<th align="right">损失 f(w)</th>
+<th>发生了什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">开始</td>
+<td align="right">10.0000</td>
+<td align="right">64.0000</td>
+<td>离最低点很远</td>
+</tr>
+<tr>
+<td align="right">1</td>
+<td align="right">8.4000</td>
+<td align="right">40.9600</td>
+<td>向 2 靠近</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td align="right">7.1200</td>
+<td align="right">26.2144</td>
+<td>损失继续下降</td>
+</tr>
+<tr>
+<td align="right">5</td>
+<td align="right">4.6214</td>
+<td align="right">6.8719</td>
+<td>已明显接近</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td align="right">2.8590</td>
+<td align="right">0.7379</td>
+<td>还没到 2，但越来越近</td>
+</tr>
+</tbody></table>
+<div class="interactive-lab" id="gradientLab">
+  <div class="lab-head">
+    <div><span class="lab-kicker">可操作实验</span><h4>亲手走一次梯度下降</h4></div>
+    <button type="button" class="lab-button secondary" id="gradientReset">重置</button>
+  </div>
+  <div class="lab-grid">
+    <canvas id="gradientCanvas" width="620" height="330" aria-label="函数 f(w) 等于 w 减 2 的平方曲线"></canvas>
+    <div class="lab-controls">
+      <label for="learningRate">学习率 η <output id="learningRateValue">0.10</output></label>
+      <input id="learningRate" type="range" min="0.02" max="0.95" value="0.10" step="0.01">
+      <div class="metric-grid">
+        <div><span>当前 w</span><strong id="currentW">10.000</strong></div>
+        <div><span>当前损失</span><strong id="currentLoss">64.000</strong></div>
+        <div><span>当前梯度</span><strong id="currentGradient">16.000</strong></div>
+        <div><span>已走步数</span><strong id="currentStep">0</strong></div>
+      </div>
+      <button type="button" class="lab-button primary" id="gradientStep">向下走一步</button>
+      <p class="lab-tip" id="gradientTip">试着改变学习率，观察参数靠近最低点的速度。</p>
+    </div>
+  </div>
+</div>
+
+<h3 id="section-16" data-section-heading>3.6 学习率为什么重要<a class="heading-anchor" href="#section-16" aria-label="跳转到本节">#</a></h3><table>
+<thead>
+<tr>
+<th>学习率</th>
+<th>表现</th>
+<th>类比</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>太小</td>
+<td>能下降，但速度非常慢</td>
+<td>下山时每次只挪一厘米</td>
+</tr>
+<tr>
+<td>合适</td>
+<td>稳定而较快地接近最低点</td>
+<td>步幅适中，持续下坡</td>
+</tr>
+<tr>
+<td>太大</td>
+<td>可能越过最低点、来回震荡甚至发散</td>
+<td>一步跨过山谷，跳到对面山坡</td>
+</tr>
+</tbody></table>
+<p>在上面的实验中，把学习率调到接近 <code>0.95</code>，你会看到参数在最低点两侧大幅来回跳动。对于这个简单函数，学习率超过 <code>1</code> 时会直接发散，因此滑块上限设置为 <code>0.95</code>。</p>
+<h3 id="section-17" data-section-heading>3.7 它怎样出现在大模型训练中<a class="heading-anchor" href="#section-17" aria-label="跳转到本节">#</a></h3><p>真实模型有数十亿甚至更多参数。反向传播会利用链式法则，从最终损失一路向前计算每个参数的梯度：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">预测概率
+  → 计算损失
+  → 反向传播
+  → 得到每个参数的梯度
+  → 优化器更新参数</code></pre>
+  </div><p>我们不需要手算每个导数，PyTorch、TensorFlow 等框架会自动求导。但理解梯度的意义，才能理解“模型为什么会学到东西”。</p>
+<hr>
+<h2 id="section-18" data-section-heading>四、概率与统计：模型不是选答案，而是分配可能性<a class="heading-anchor" href="#section-18" aria-label="跳转到本节">#</a></h2><h3 id="section-19" data-section-heading>4.1 为什么大模型需要概率<a class="heading-anchor" href="#section-19" aria-label="跳转到本节">#</a></h3><p>同一句话可能有多个合理的下一个词：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">“今天天气很……”</code></pre>
+  </div><p>后面可能是“好”“冷”“热”“糟糕”。大模型不会先得到一个唯一答案，而是给候选 Token 分配概率。</p>
+<p>概率与统计帮助我们：</p>
+<ul>
+<li>描述数据的分布。</li>
+<li>衡量预测的不确定性。</li>
+<li>从概率分布中选择下一个 Token。</li>
+<li>使用最大似然估计训练参数。</li>
+<li>分析均值、波动和异常情况。</li>
+</ul>
+<h3 id="section-20" data-section-heading>4.2 随机变量：结果还没发生时的占位符<a class="heading-anchor" href="#section-20" aria-label="跳转到本节">#</a></h3><p>随机变量是“结果尚未确定，但可能取若干值”的变量。例如抛硬币：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">X = 1：正面
+X = 0：反面</code></pre>
+  </div><p>如果正面概率为 <code>p</code>：</p>
+<div class="formula-card">
+  <span class="formula-label">伯努利分布</span>
+  <div class="formula small">P(X=1)=p，P(X=0)=1−p</div>
+</div>
+
+<h3 id="section-21" data-section-heading>4.3 期望：重复很多次后的平均结果<a class="heading-anchor" href="#section-21" aria-label="跳转到本节">#</a></h3><p>期望不是“下一次一定出现的结果”，而是重复很多次后的平均值。</p>
+<p>对于上面的硬币：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">E[X] = 1×p + 0×(1-p) = p</code></pre>
+  </div><p>如果 <code>p = 0.7</code>，抛很多次以后，正面的比例会逐渐靠近 <code>70%</code>；但下一次仍然可能是反面。</p>
+<h3 id="section-22" data-section-heading>4.4 方差：结果围绕平均值波动多大<a class="heading-anchor" href="#section-22" aria-label="跳转到本节">#</a></h3><p>方差衡量数据离期望值的平均偏离程度。伯努利变量的方差是：</p>
+<div class="formula-card">
+  <div class="formula">Var(X) = p(1 − p)</div>
+</div>
+
+<ul>
+<li>当 <code>p = 0</code> 或 <code>p = 1</code>，结果完全确定，方差为 <code>0</code>。</li>
+<li>当 <code>p = 0.5</code>，正反最不确定，方差最大，为 <code>0.25</code>。</li>
+</ul>
+<div class="interactive-lab probability-lab" id="probabilityLab">
+  <div class="lab-head">
+    <div><span class="lab-kicker">可操作实验</span><h4>改变正面概率，观察期望与方差</h4></div>
+  </div>
+  <div class="probability-layout">
+    <div class="coin-scene">
+      <div class="coin" id="coinVisual"><span>正</span></div>
+      <div class="probability-bars">
+        <div><span>正面</span><i><b id="headsBar"></b></i><strong id="headsValue">70%</strong></div>
+        <div><span>反面</span><i><b id="tailsBar"></b></i><strong id="tailsValue">30%</strong></div>
+      </div>
+    </div>
+    <div class="lab-controls">
+      <label for="probabilityP">正面概率 p <output id="probabilityValue">0.70</output></label>
+      <input id="probabilityP" type="range" min="0" max="1" value="0.70" step="0.01">
+      <div class="metric-grid two">
+        <div><span>期望 E[X]</span><strong id="expectationValue">0.700</strong></div>
+        <div><span>方差 Var(X)</span><strong id="varianceValue">0.210</strong></div>
+      </div>
+      <p class="lab-tip" id="varianceTip">结果偏向正面，但仍保留一定不确定性。</p>
+    </div>
+  </div>
+</div>
+
+<h3 id="section-23" data-section-heading>4.5 概率分布：给所有候选结果分配概率<a class="heading-anchor" href="#section-23" aria-label="跳转到本节">#</a></h3><p>语言模型会给词表中的每个候选 Token 一个概率，并且所有概率相加等于 <code>1</code>。</p>
+<p>例如上下文是“我今天去”：</p>
+<table>
+<thead>
+<tr>
+<th>候选 Token</th>
+<th align="right">概率</th>
+<th>直觉</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>学校</td>
+<td align="right">0.45</td>
+<td>最可能</td>
+</tr>
+<tr>
+<td>公司</td>
+<td align="right">0.30</td>
+<td>也很合理</td>
+</tr>
+<tr>
+<td>公园</td>
+<td align="right">0.15</td>
+<td>有可能</td>
+</tr>
+<tr>
+<td>月球</td>
+<td align="right">0.01</td>
+<td>语法可接，但语义罕见</td>
+</tr>
+<tr>
+<td>其他所有 Token</td>
+<td align="right">0.09</td>
+<td>剩余可能性</td>
+</tr>
+</tbody></table>
+<p>所有概率相加：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">0.45 + 0.30 + 0.15 + 0.01 + 0.09 = 1.00</code></pre>
+  </div><h3 id="section-24" data-section-heading>4.6 Softmax：把任意分数变成概率<a class="heading-anchor" href="#section-24" aria-label="跳转到本节">#</a></h3><p>模型最后一层先输出一组原始分数，叫作 <code>logits</code>。这些分数可以为负，也不需要相加等于 1。</p>
+<p>假设三个候选词的分数是：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">logits = [2, 1, 0]</code></pre>
+  </div><p>Softmax 先做指数运算，再除以总和：</p>
+<div class="formula-card">
+  <span class="formula-label">Softmax</span>
+  <div class="formula small">Pᵢ = eᶻⁱ / Σⱼeᶻʲ</div>
+</div>
+
+<p>得到近似概率：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">[0.665, 0.245, 0.090]</code></pre>
+  </div><p>Softmax 保留“分数越高，概率越大”的顺序，同时保证每个结果在 <code>0～1</code> 之间且总和为 <code>1</code>。</p>
+<h3 id="section-25" data-section-heading>4.7 最大似然：让训练文本中的正确答案越来越可能<a class="heading-anchor" href="#section-25" aria-label="跳转到本节">#</a></h3><p>假设训练文本中的正确下一个词是“学校”。模型给“学校”的概率越高，就说明模型越能解释这条训练数据。</p>
+<p>最大似然估计（MLE）的目标是：找到一组参数，让已经观察到的数据出现概率最大。</p>
+<p>实际训练通常最小化负对数似然或交叉熵：</p>
+<div class="formula-card">
+  <span class="formula-label">单个正确 Token 的损失</span>
+  <div class="formula">Loss = −log(P(正确 Token))</div>
+</div>
+
+<table>
+<thead>
+<tr>
+<th align="right">正确 Token 的概率</th>
+<th align="right">损失约为</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">0.90</td>
+<td align="right">0.105</td>
+<td>模型很有把握，惩罚小</td>
+</tr>
+<tr>
+<td align="right">0.70</td>
+<td align="right">0.357</td>
+<td>方向正确，还有提升空间</td>
+</tr>
+<tr>
+<td align="right">0.10</td>
+<td align="right">2.303</td>
+<td>模型不看好正确答案，惩罚大</td>
+</tr>
+<tr>
+<td align="right">0.01</td>
+<td align="right">4.605</td>
+<td>严重预测错误，惩罚很大</td>
+</tr>
+</tbody></table>
+<p>最大后验估计（MAP）则是在似然之外，再加入对参数的先验认识。可以粗略理解为：<strong>既要解释现有数据，也不要偏离合理范围太远。</strong></p>
+<h3 id="section-26" data-section-heading>4.8 温度：控制概率分布的“尖锐程度”<a class="heading-anchor" href="#section-26" aria-label="跳转到本节">#</a></h3><p>生成文本时常见的 <code>temperature</code> 不会让模型学到新知识，它只是调整采样前的概率分布：</p>
+<ul>
+<li>温度低：高概率 Token 更突出，回答稳定、保守。</li>
+<li>温度高：概率分布更平，低概率 Token 更容易被选中，回答更多样。</li>
+</ul>
+<p>温度不是“准确度旋钮”。事实问答通常适合较低温度，创意写作可以适当提高。</p>
+<hr>
+<h2 id="section-27" data-section-heading>五、优化器：拿着梯度，真正更新参数<a class="heading-anchor" href="#section-27" aria-label="跳转到本节">#</a></h2><h3 id="section-28" data-section-heading>5.1 梯度和优化器有什么区别<a class="heading-anchor" href="#section-28" aria-label="跳转到本节">#</a></h3><p>这两个概念经常被混在一起：</p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>回答的问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>梯度</td>
+<td>每个参数对损失有什么影响？往哪个方向会升高？</td>
+</tr>
+<tr>
+<td>优化器</td>
+<td>已经知道梯度后，参数具体更新多少？是否参考过去的梯度？</td>
+</tr>
+</tbody></table>
+<p>梯度像导航给出的方向，优化器像真正开车的人：它还要决定速度、惯性和每条路的步幅。</p>
+<h3 id="section-29" data-section-heading>5.2 三种常见更新方式<a class="heading-anchor" href="#section-29" aria-label="跳转到本节">#</a></h3><h4 id="section-30" data-section-heading>批量梯度下降（Batch Gradient Descent）<a class="heading-anchor" href="#section-30" aria-label="跳转到本节">#</a></h4><p>每次使用全部训练数据计算一次梯度。</p>
+<ul>
+<li>优点：方向稳定。</li>
+<li>缺点：数据很大时，一步的计算成本太高。</li>
+</ul>
+<h4 id="section-31" data-section-heading>随机梯度下降（SGD）<a class="heading-anchor" href="#section-31" aria-label="跳转到本节">#</a></h4><p>每次只随机取一个样本计算梯度。</p>
+<ul>
+<li>优点：更新快、占用内存少。</li>
+<li>缺点：方向抖动明显。</li>
+</ul>
+<h4 id="section-32" data-section-heading>小批量梯度下降（Mini-batch）<a class="heading-anchor" href="#section-32" aria-label="跳转到本节">#</a></h4><p>每次取一小批样本，是实际深度学习中最常见的折中方案。</p>
+<ul>
+<li>比单样本稳定。</li>
+<li>比全量数据高效。</li>
+<li>可以发挥 GPU 并行计算能力。</li>
+</ul>
+<h3 id="section-33" data-section-heading>5.3 Adam：同时考虑惯性和参数自己的步幅<a class="heading-anchor" href="#section-33" aria-label="跳转到本节">#</a></h3><p>Adam 可以先用两个类比理解：</p>
+<ol>
+<li><strong>动量</strong>：下山时不仅看此刻的坡度，还参考前面几步的方向，减少左右摇摆。</li>
+<li><strong>自适应学习率</strong>：经常出现大梯度的参数走小一点，梯度较小的参数可以走大一点。</li>
+</ol>
+<p>因此 Adam 在复杂、高维问题中通常比最基础的 SGD 更容易快速得到可用结果。大模型训练还会配合学习率预热、衰减、梯度裁剪、权重衰减等策略。</p>
+<h3 id="section-34" data-section-heading>5.4 Notebook 示例：用直线拟合带噪声的数据<a class="heading-anchor" href="#section-34" aria-label="跳转到本节">#</a></h3><p>Notebook 构造的数据大致遵循：</p>
+<div class="formula-card">
+  <span class="formula-label">真实规律</span>
+  <div class="formula">y = 3.5x + 1.2 + 随机噪声</div>
+</div>
+
+<p>模型不知道 <code>3.5</code> 和 <code>1.2</code>，只使用：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>直觉推演</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-text">预测值 ŷ = wx + b</code></pre>
+  </div><p>训练目标是学出合适的 <code>w</code> 和 <code>b</code>。</p>
+<h3 id="section-35" data-section-heading>5.5 损失函数：用均方误差衡量直线画得好不好<a class="heading-anchor" href="#section-35" aria-label="跳转到本节">#</a></h3><p>均方误差（MSE）把每个预测误差平方后取平均：</p>
+<div class="formula-card">
+  <span class="formula-label">Mean Squared Error</span>
+  <div class="formula small">L(w,b) = (1/N) Σᵢ(wxᵢ + b − yᵢ)²</div>
+</div>
+
+<p>为什么要平方：</p>
+<ul>
+<li>正误差和负误差不会互相抵消。</li>
+<li>大误差会受到更强惩罚。</li>
+<li>函数平滑，便于求导。</li>
+</ul>
+<h3 id="section-36" data-section-heading>5.6 一次训练循环发生了什么<a class="heading-anchor" href="#section-36" aria-label="跳转到本节">#</a></h3><div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制内容">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-comment"># 1. 前向计算：用当前参数预测</span>
+y_pred = w * X + b
+
+<span class="tok-comment"># 2. 计算损失</span>
+loss = np.mean((y_pred - y) ** <span class="tok-number">2</span>)
+
+<span class="tok-comment"># 3. 计算 w 和 b 的梯度</span>
+dw = np.mean(<span class="tok-number">2</span> * (y_pred - y) * X)
+db = np.mean(<span class="tok-number">2</span> * (y_pred - y))
+
+<span class="tok-comment"># 4. 参数更新</span>
+w -= learning_rate * dw
+b -= learning_rate * db</code></pre>
+  </div><p>四步可以记成：</p>
+<div class="training-loop">
+  <span><b>1</b>预测<br><small>Forward</small></span>
+  <i>→</i>
+  <span><b>2</b>算错多少<br><small>Loss</small></span>
+  <i>→</i>
+  <span><b>3</b>计算梯度<br><small>Backward</small></span>
+  <i>→</i>
+  <span><b>4</b>更新参数<br><small>Update</small></span>
+</div>
+
+<h3 id="section-37" data-section-heading>5.7 Notebook 的实际训练结果<a class="heading-anchor" href="#section-37" aria-label="跳转到本节">#</a></h3><p>参数从 <code>w = 0</code>、<code>b = 0</code> 开始，学习率 <code>0.1</code>，训练 <code>20</code> 轮：</p>
+<table>
+<thead>
+<tr>
+<th align="right">Epoch</th>
+<th align="right">w</th>
+<th align="right">b</th>
+<th align="right">Loss</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">5</td>
+<td align="right">2.5864</td>
+<td align="right">2.0451</td>
+<td align="right">1.5463</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td align="right">2.8631</td>
+<td align="right">2.0785</td>
+<td align="right">1.1312</td>
+</tr>
+<tr>
+<td align="right">15</td>
+<td align="right">2.9645</td>
+<td align="right">1.9883</td>
+<td align="right">1.0912</td>
+</tr>
+<tr>
+<td align="right">20</td>
+<td align="right">3.0412</td>
+<td align="right">1.9035</td>
+<td align="right">1.0636</td>
+</tr>
+</tbody></table>
+<p>损失持续下降，拟合直线逐渐贴近数据点：</p>
+<figure class="notebook-figure">
+  <img src="data:image/png;base64,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6BAmTJiAm266CXv27NHrshqRe507duzAyJEj8e6772L//v0YNmwYxo4di+Li4qD9UlNTUV5eHvSTlJSkxyU1IvcaRUePHg1qf7du3QLbzPZayr3G5557Lujajh8/jlatWuHXv/510H5meh3PnDmD3r17Y8mSJVHtb8XPpNxrtOLnEZB/nSIrfSblXqMVP5Pbt2/Hvffei927d2Pz5s2ora3FqFGjcObMGcljdP9cChZzySWXCFOmTAl6rEePHsKDDz4Ycv8HHnhA6NGjR9Bjv/vd74RBgwYFfr/pppuEvLy8oH2uvvpq4ZZbblGp1fLJvc5QsrOzhfnz5wd+X7FiheB2u9VqomJyr3Hr1q0CAOH777+XfE6zvZZKX8cNGzYILpdLKCsrCzxmttexPgDChg0bwu5j1c+kKJprDMXsn8eGorlOK34m64vltbTaZ1IQBKGyslIAIGzfvl1yH70/l5bq+aipqcH+/fsxatSooMdHjRqFXbt2hTymqKio0f5XX3019u3bh/Pnz4fdR+o5tRbLdTbk8/lw6tQptGrVKujx06dPo0uXLujUqRPGjBnT6JuYXpRcY9++fZGeno6rrroKW7duDdpmptdSjdfx1VdfxYgRI9ClS5egx83yOsbCip9Jpcz+eVTKKp9JNVjxM+nxeACg0fuvPr0/l5YKPk6ePIm6ujq0b98+6PH27dujoqIi5DEVFRUh96+trcXJkyfD7iP1nFqL5TobeuaZZ3DmzBncdNNNgcd69OiBlStX4u2338aaNWuQlJSEIUOG4N///req7Y9GLNeYnp6OZcuWYd26dVi/fj26d++Oq666Cjt27AjsY6bXUunrWF5ejvfeew9333130ONmeh1jYcXPpFJm/zzGymqfSaWs+JkUBAGzZ8/G0KFDkZOTI7mf3p9L061qGw2XyxX0uyAIjR6LtH/Dx+U+px5ibdOaNWswb948bNy4Ee3atQs8PmjQIAwaNCjw+5AhQ9CvXz+88MILeP7559VruAxyrrF79+7o3r174Pfc3FwcP34cTz/9NC6//PKYnlMPsbZn5cqVaNmyJa6//vqgx834Ospl1c9kLKz0eZTLqp/JWFnxMzlt2jR88skn2LlzZ8R99fxcWqrno02bNoiPj28UZVVWVjaKxkRpaWkh92/SpAlat24ddh+p59RaLNcpWrt2Le666y787W9/w4gRI8LuGxcXh4EDBxoSnSu5xvoGDRoU1H4zvZZKrlEQBLz22muYMGECEhISwu5r5OsYCyt+JmNllc+jmsz8mVTCip/J++67D2+//Ta2bt2KTp06hd1X78+lpYKPhIQE9O/fH5s3bw56fPPmzRg8eHDIY3Jzcxvt//7772PAgAFo2rRp2H2knlNrsVwn4P+GNXHiRKxevRrXXnttxPMIgoCDBw8iPT1dcZvlivUaGyouLg5qv5leSyXXuH37dnz55Ze46667Ip7HyNcxFlb8TMbCSp9HNZn5M6mElT6TgiBg2rRpWL9+PbZs2YKsrKyIx+j+uZQ9RdVgb7zxhtC0aVPh1VdfFY4cOSLMnDlTaN68eWDm8YMPPihMmDAhsP9XX30lJCcnC7NmzRKOHDkivPrqq0LTpk2F//u//wvs89FHHwnx8fHCk08+KXz22WfCk08+KTRp0kTYvXu37tcnknudq1evFpo0aSK8+OKLQnl5eeDnhx9+COwzb948obCwUCgpKRGKi4uFSZMmCU2aNBH27Nmj+/UJgvxrfPbZZ4UNGzYIX3zxhXD48GHhwQcfFAAI69atC+xjttdS7jWKxo8fL1x66aUhn9Nsr+OpU6eE4uJiobi4WAAgLFq0SCguLha+/vprQRDs8ZmUe41W/DwKgvzrtOJnUu41iqz0mZw6dargdruFbdu2Bb3/zp49G9jH6M+l5YIPQRCEF198UejSpYuQkJAg9OvXLyh96I477hCuuOKKoP23bdsm9O3bV0hISBAyMzOFpUuXNnrON998U+jevbvQtGlToUePHkEfHqPIuc4rrrhCANDo54477gjsM3PmTKFz585CQkKC0LZtW2HUqFHCrl27dLyixuRcY0FBgdC1a1chKSlJ+MUvfiEMHTpU+Pvf/97oOc32Wsp9v/7www9Cs2bNhGXLloV8PrO9jmK6pdR7zw6fSbnXaNXPo9zrtOJnMpb3q9U+k6GuD4CwYsWKwD5Gfy5dPzWUiIiISBeWmvNBRERE1sfgg4iIiHTF4IOIiIh0xeCDiIiIdMXgg4iIiHTF4IOIiIh0xeCDiIiIdMXgg4iIiHTF4IOIiIh0xeCDiIiIdMXgg4iIiHTF4IOIiIh09f8BMeTZVfZ9xnAAAAAASUVORK5CYII=" alt="Notebook 线性回归训练结果：蓝色散点及红色拟合直线">
+  <figcaption>蓝点是带噪声的数据，红线是训练 20 轮后学到的拟合直线。</figcaption>
+</figure>
+
+<p>为什么最终参数没有正好等于真实的 <code>w = 3.5</code>、<code>b = 1.2</code>？</p>
+<ul>
+<li>数据中加入了随机噪声。</li>
+<li>只训练了 20 轮，还没有完全收敛。</li>
+<li>有限样本的最佳拟合值不一定恰好等于生成数据时的参数。</li>
+</ul>
+<p>重点不是背住最终数字，而是看到：<strong>随着参数更新，损失整体下降，预测线越来越贴近数据。</strong></p>
+<hr>
+<h2 id="section-38" data-section-heading>六、把四部分串起来：大模型一次训练发生了什么<a class="heading-anchor" href="#section-38" aria-label="跳转到本节">#</a></h2><div class="pipeline" aria-label="大模型训练流程">
+  <div class="pipeline-step"><span>文本</span><small>“我喜欢猫”</small></div>
+  <b>→</b>
+  <div class="pipeline-step"><span>Token ID</span><small>[42, 318, 907]</small></div>
+  <b>→</b>
+  <div class="pipeline-step algebra"><span>向量与矩阵</span><small>Embedding + Transformer</small></div>
+  <b>→</b>
+  <div class="pipeline-step probability"><span>概率分布</span><small>Softmax</small></div>
+  <b>→</b>
+  <div class="pipeline-step"><span>损失</span><small>与正确答案比较</small></div>
+  <b>→</b>
+  <div class="pipeline-step calculus"><span>梯度</span><small>反向传播</small></div>
+  <b>→</b>
+  <div class="pipeline-step optimizer"><span>更新参数</span><small>Adam / SGD</small></div>
+</div>
+
+<p>逐步解释：</p>
+<ol>
+<li><strong>分词</strong>：把文本拆成 Token，并映射为整数 ID。</li>
+<li><strong>Embedding</strong>：根据 ID 查表，得到每个 Token 的向量。</li>
+<li><strong>矩阵运算</strong>：Transformer 不断变换和融合上下文信息。</li>
+<li><strong>输出概率</strong>：模型产生 logits，Softmax 将它们变成概率。</li>
+<li><strong>计算损失</strong>：检查正确 Token 的概率是否足够高。</li>
+<li><strong>反向传播</strong>：利用微积分计算每个参数的梯度。</li>
+<li><strong>优化器更新</strong>：根据梯度和学习率调整参数。</li>
+<li><strong>重复训练</strong>：在大量文本上反复执行，模型逐渐掌握统计规律。</li>
+</ol>
+<div class="one-line-summary"><strong>训练的本质：</strong>模型先用当前参数做预测，再根据错误计算梯度，最后用优化器更新参数。所谓“学习”，就是让大量参数朝着更少犯错的方向移动。</div>
+
+<hr>
+<h2 id="section-39" data-section-heading>七、常见误区<a class="heading-anchor" href="#section-39" aria-label="跳转到本节">#</a></h2><h3 id="section-40" data-section-heading>误区 1：向量的每一维都有明确的人类含义<a class="heading-anchor" href="#section-40" aria-label="跳转到本节">#</a></h3><p>教学时可以给每一维起名字帮助理解，但真实 Embedding 的单个维度通常没有稳定、独立的人类语义。意义更多分布在整个向量及其组合中。</p>
+<h3 id="section-41" data-section-heading>误区 2：点积大就一定语义相似<a class="heading-anchor" href="#section-41" aria-label="跳转到本节">#</a></h3><p>点积同时受到方向和向量长度影响。检索场景常使用归一化向量和余弦相似度，还要结合模型训练方式判断。</p>
+<h3 id="section-42" data-section-heading>误区 3：梯度等于参数更新量<a class="heading-anchor" href="#section-42" aria-label="跳转到本节">#</a></h3><p>梯度只提供局部变化信息。真正更新多少还取决于学习率、优化器状态、权重衰减、梯度裁剪等因素。</p>
+<h3 id="section-43" data-section-heading>误区 4：损失下降就代表模型回答一定正确<a class="heading-anchor" href="#section-43" aria-label="跳转到本节">#</a></h3><p>训练损失下降只说明模型更适应训练目标。还需要验证集、测试集和真实任务评估，检查泛化能力、事实性、安全性等。</p>
+<h3 id="section-44" data-section-heading>误区 5：概率最高的词一定会被选中<a class="heading-anchor" href="#section-44" aria-label="跳转到本节">#</a></h3><p>贪心解码会选概率最高的 Token，但温度采样、Top-k、Top-p 等策略可能选择其他候选词，以换取多样性。</p>
+<h3 id="section-45" data-section-heading>误区 6：优化器能保证找到全局最优解<a class="heading-anchor" href="#section-45" aria-label="跳转到本节">#</a></h3><p>深度学习的损失空间非常复杂。优化器通常只能找到一个足够好的区域，不能保证找到唯一的全局最低点。</p>
+<hr>
+<h2 id="section-46" data-section-heading>八、速查表：看到术语时先想到什么<a class="heading-anchor" href="#section-46" aria-label="跳转到本节">#</a></h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>最短理解</th>
+<th>在大模型中的典型位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>向量 Vector</td>
+<td>一组有顺序的特征数字</td>
+<td>Token Embedding、隐藏状态</td>
+</tr>
+<tr>
+<td>矩阵 Matrix</td>
+<td>批量变换向量的参数表</td>
+<td>线性层、Q/K/V 投影</td>
+</tr>
+<tr>
+<td>点积 Dot Product</td>
+<td>对应相乘后求和</td>
+<td>注意力相关性、相似度</td>
+</tr>
+<tr>
+<td>导数 Derivative</td>
+<td>单变量的局部变化率</td>
+<td>理解参数变化对损失的影响</td>
+</tr>
+<tr>
+<td>梯度 Gradient</td>
+<td>所有偏导数组成的方向向量</td>
+<td>反向传播结果</td>
+</tr>
+<tr>
+<td>学习率 Learning Rate</td>
+<td>每一步更新多远</td>
+<td>控制训练速度和稳定性</td>
+</tr>
+<tr>
+<td>概率分布</td>
+<td>给所有候选结果分配可能性</td>
+<td>下一个 Token 的预测</td>
+</tr>
+<tr>
+<td>期望 Expectation</td>
+<td>重复实验后的平均值</td>
+<td>数据与模型输出的统计分析</td>
+</tr>
+<tr>
+<td>方差 Variance</td>
+<td>围绕平均值的波动程度</td>
+<td>不确定性和数据离散程度</td>
+</tr>
+<tr>
+<td>Softmax</td>
+<td>把 logits 转为概率</td>
+<td>输出层、注意力权重</td>
+</tr>
+<tr>
+<td>损失函数 Loss</td>
+<td>用一个数字评价错得多不多</td>
+<td>训练目标</td>
+</tr>
+<tr>
+<td>MLE</td>
+<td>让观察到的数据概率最大</td>
+<td>语言模型训练思想</td>
+</tr>
+<tr>
+<td>SGD</td>
+<td>用样本梯度更新参数</td>
+<td>基础优化算法</td>
+</tr>
+<tr>
+<td>Adam</td>
+<td>带动量和自适应步幅的优化器</td>
+<td>深度学习常用优化器</td>
+</tr>
+</tbody></table>
+<h3 id="section-47" data-section-heading>最后只记住这六句话<a class="heading-anchor" href="#section-47" aria-label="跳转到本节">#</a></h3><ol>
+<li>文本进入模型前，要先变成向量。</li>
+<li>模型内部的大部分计算，本质上是矩阵运算。</li>
+<li>模型输出的是一组概率，不是凭空“想到”一个词。</li>
+<li>损失函数负责衡量当前预测错得有多严重。</li>
+<li>梯度告诉我们每个参数应该往哪个方向调整。</li>
+<li>优化器根据梯度反复更新参数，这个过程就是训练。</li>
+</ol>
+<div class="completion-card">
+  <span>学习完成</span>
+  <strong>你不需要立刻会推导所有公式</strong>
+  <p>先能把“向量 → 概率 → 损失 → 梯度 → 更新”讲清楚，再逐步补充矩阵计算、求导和概率推导，就已经建立了正确的大模型数学框架。</p>
+</div>
+</main>
+  </div>
+  <footer class="footer">
+    <div class="footer-rule"></div>
+    <p>基于《大模型数学基础.ipynb》扩展整理 · 公式重在直觉，示例重在理解</p>
+  </footer>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var themeButton = document.getElementById('themeButton');
+      var storedTheme = null;
+      try { storedTheme = localStorage.getItem('python-js-theme'); } catch (error) {}
+      if (storedTheme) root.dataset.theme = storedTheme;
+
+      themeButton.addEventListener('click', function () {
+        var next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        root.dataset.theme = next;
+        try { localStorage.setItem('python-js-theme', next); } catch (error) {}
+      });
+
+      var progressBar = document.getElementById('progressBar');
+      var backToTop = document.getElementById('backToTop');
+      function updateScrollState() {
+        var max = document.documentElement.scrollHeight - window.innerHeight;
+        var ratio = max > 0 ? window.scrollY / max : 0;
+        progressBar.style.width = Math.min(100, Math.max(0, ratio * 100)) + '%';
+        backToTop.classList.toggle('visible', window.scrollY > 700);
+      }
+      updateScrollState();
+      window.addEventListener('scroll', updateScrollState, { passive: true });
+      backToTop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+      document.querySelectorAll('[data-code-card]').forEach(function (card) {
+        var button = card.querySelector('.copy-code');
+        var code = card.querySelector('code');
+        button.addEventListener('click', async function () {
+          try {
+            await navigator.clipboard.writeText(code.textContent);
+            button.textContent = '已复制';
+            button.classList.add('copied');
+            setTimeout(function () {
+              button.textContent = '复制';
+              button.classList.remove('copied');
+            }, 1400);
+          } catch (error) {
+            var selection = window.getSelection();
+            var range = document.createRange();
+            range.selectNodeContents(code);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            button.textContent = '请按 ⌘C';
+          }
+        });
+      });
+
+      document.querySelectorAll('table').forEach(function (table) {
+        var wrapper = document.createElement('div');
+        wrapper.className = 'table-wrap';
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+      });
+
+      var tocLinks = Array.from(document.querySelectorAll('[data-toc-link]'));
+      var headingElements = Array.from(document.querySelectorAll('[data-section-heading]'));
+      if ('IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            tocLinks.forEach(function (link) {
+              link.classList.toggle('active', link.dataset.tocLink === entry.target.id);
+            });
+            var active = document.querySelector('.toc-link.active');
+            if (active) active.scrollIntoView({ block: 'nearest' });
+          });
+        }, { rootMargin: '-18% 0px -72% 0px', threshold: 0 });
+        headingElements.forEach(function (heading) { observer.observe(heading); });
+      }
+
+      var search = document.getElementById('tocSearch');
+      search.addEventListener('input', function () {
+        var query = search.value.trim().toLowerCase();
+        tocLinks.forEach(function (link) {
+          link.classList.toggle('is-hidden', query && !link.textContent.toLowerCase().includes(query));
+        });
+      });
+      document.addEventListener('keydown', function (event) {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+          event.preventDefault();
+          openSidebar();
+          search.focus();
+        }
+        if (event.key === 'Escape') closeSidebar();
+      });
+
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebarOverlay');
+      var menuButton = document.getElementById('menuButton');
+      function openSidebar() {
+        if (window.matchMedia('(max-width: 820px)').matches) {
+          sidebar.classList.add('open');
+          overlay.classList.add('visible');
+          menuButton.setAttribute('aria-expanded', 'true');
+        }
+      }
+      function closeSidebar() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('visible');
+        menuButton.setAttribute('aria-expanded', 'false');
+      }
+      menuButton.addEventListener('click', function () {
+        if (sidebar.classList.contains('open')) closeSidebar(); else openSidebar();
+      });
+      overlay.addEventListener('click', closeSidebar);
+      tocLinks.forEach(function (link) { link.addEventListener('click', closeSidebar); });
+    })();
+  
+
+  (function () {
+    var canvas = document.getElementById('gradientCanvas');
+    var lrInput = document.getElementById('learningRate');
+    if (!canvas || !lrInput) return;
+    var state = { w: 10, step: 0 };
+    var display = {
+      lr: document.getElementById('learningRateValue'),
+      w: document.getElementById('currentW'),
+      loss: document.getElementById('currentLoss'),
+      gradient: document.getElementById('currentGradient'),
+      step: document.getElementById('currentStep'),
+      tip: document.getElementById('gradientTip')
+    };
+    function loss(w) { return Math.pow(w - 2, 2); }
+    function gradient(w) { return 2 * (w - 2); }
+    function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+    function draw() {
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var width = canvas.clientWidth || 620;
+      var height = 300;
+      if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+      }
+      var ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      var pad = { left: 46, right: 20, top: 20, bottom: 34 };
+      var innerW = width - pad.left - pad.right;
+      var innerH = height - pad.top - pad.bottom;
+      var minX = -2, maxX = 12, maxY = 100;
+      var xMap = function (x) { return pad.left + (x - minX) / (maxX - minX) * innerW; };
+      var yMap = function (y) { return pad.top + innerH - Math.min(y, maxY) / maxY * innerH; };
+      ctx.strokeStyle = css('--line');
+      ctx.lineWidth = 1;
+      ctx.font = '11px ui-monospace, monospace';
+      ctx.fillStyle = css('--muted');
+      [0, 20, 40, 60, 80, 100].forEach(function (value) {
+        var y = yMap(value);
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(width - pad.right, y); ctx.stroke();
+        ctx.fillText(String(value), 10, y + 4);
+      });
+      [-2, 0, 2, 4, 6, 8, 10, 12].forEach(function (value) {
+        var x = xMap(value);
+        ctx.fillText(String(value), x - 5, height - 10);
+      });
+      ctx.beginPath();
+      for (var i = 0; i <= 180; i++) {
+        var w = minX + (maxX - minX) * i / 180;
+        var px = xMap(w), py = yMap(loss(w));
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = css('--python');
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(xMap(2), yMap(0), 7, 0, Math.PI * 2);
+      ctx.fillStyle = '#2d8a73'; ctx.fill();
+      ctx.beginPath();
+      ctx.arc(xMap(state.w), yMap(loss(state.w)), 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#e56b4e'; ctx.fill();
+      ctx.strokeStyle = css('--paper'); ctx.lineWidth = 3; ctx.stroke();
+    }
+    function update() {
+      var lr = Number(lrInput.value);
+      var currentLoss = loss(state.w);
+      display.lr.value = lr.toFixed(2);
+      display.w.textContent = state.w.toFixed(3);
+      display.loss.textContent = currentLoss.toFixed(3);
+      display.gradient.textContent = gradient(state.w).toFixed(3);
+      display.step.textContent = String(state.step);
+      if (currentLoss < 0.001) display.tip.textContent = '已经非常接近最低点 w = 2。';
+      else if (lr > 0.8) display.tip.textContent = '步子很大：参数会在最低点两侧明显震荡。';
+      else if (lr < 0.06) display.tip.textContent = '步子很小：方向正确，但收敛会比较慢。';
+      else display.tip.textContent = '当前步幅较稳定，继续点击观察损失下降。';
+      draw();
+    }
+    document.getElementById('gradientStep').addEventListener('click', function () {
+      var lr = Number(lrInput.value);
+      state.w -= lr * gradient(state.w);
+      state.step += 1;
+      update();
+    });
+    document.getElementById('gradientReset').addEventListener('click', function () {
+      state = { w: 10, step: 0 };
+      update();
+    });
+    lrInput.addEventListener('input', update);
+    window.addEventListener('resize', draw, { passive: true });
+    document.getElementById('themeButton').addEventListener('click', function () { setTimeout(draw, 20); });
+    update();
+
+    var pInput = document.getElementById('probabilityP');
+    var pOutput = document.getElementById('probabilityValue');
+    var headsBar = document.getElementById('headsBar');
+    var tailsBar = document.getElementById('tailsBar');
+    var headsValue = document.getElementById('headsValue');
+    var tailsValue = document.getElementById('tailsValue');
+    var expectationValue = document.getElementById('expectationValue');
+    var varianceValue = document.getElementById('varianceValue');
+    var varianceTip = document.getElementById('varianceTip');
+    var coin = document.getElementById('coinVisual');
+    function updateProbability() {
+      var p = Number(pInput.value);
+      var variance = p * (1 - p);
+      pOutput.value = p.toFixed(2);
+      headsBar.style.width = (p * 100) + '%';
+      tailsBar.style.width = ((1 - p) * 100) + '%';
+      headsValue.textContent = Math.round(p * 100) + '%';
+      tailsValue.textContent = Math.round((1 - p) * 100) + '%';
+      expectationValue.textContent = p.toFixed(3);
+      varianceValue.textContent = variance.toFixed(3);
+      coin.style.transform = 'rotateY(' + ((1 - p) * 180) + 'deg)';
+      if (p === 0 || p === 1) varianceTip.textContent = '结果完全确定，所以方差为 0。';
+      else if (Math.abs(p - 0.5) < 0.03) varianceTip.textContent = '正反最难预测，方差接近最大值 0.25。';
+      else varianceTip.textContent = p > 0.5 ? '结果偏向正面，但仍保留一定不确定性。' : '结果偏向反面，但仍保留一定不确定性。';
+    }
+    pInput.addEventListener('input', updateProbability);
+    updateProbability();
+  })();
+</script>
+</body>
+</html>

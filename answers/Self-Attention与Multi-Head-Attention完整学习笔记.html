@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Self-Attention 与 Multi-Head Attention：计算流程、设计动机与面试重点">
+  <title>Self-Attention 与 Multi-Head Attention：计算流程、设计动机与面试重点</title>
+  <link rel="stylesheet" href="../assets/answer-pages.css?v=2">
+  <script>window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] } };</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">MD</span><span class="brand-title">Self-Attention 与 Multi-Head Attention：计算流程、设计动机与面试重点</span></div>
+    <div class="top-actions"><a class="source-link" href="0-md/Self-Attention%E4%B8%8EMulti-Head-Attention%E5%AE%8C%E6%95%B4%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.md">查看 Markdown</a><button class="menu-button" id="menuToggle" type="button" aria-label="打开目录" aria-expanded="false">☰</button><button class="icon-button" id="themeToggle" type="button" aria-label="切换深浅主题">◐</button></div>
+  </header>
+  <section class="hero"><div class="eyebrow">Markdown Reading Page</div><h1>Self-Attention 与 Multi-Head Attention：计算流程、设计动机与面试重点</h1></section>
+  <main class="layout" id="main">
+    <aside class="toc-shell" id="tocShell"><nav class="toc" aria-label="页面目录"><p class="toc-title">READING MAP</p><a href="#1-self-attention-要解决什么问题" data-toc="1-self-attention-要解决什么问题" data-level="2">1. Self-Attention 要解决什么问题？</a>
+<a href="#2-self-attention-的完整计算流程" data-toc="2-self-attention-的完整计算流程" data-level="2">2. Self-Attention 的完整计算流程</a>
+<a href="#2-1-计算-scores" data-toc="2-1-计算-scores" data-level="3">2.1 计算 Scores</a>
+<a href="#3-为什么维度越高-qk-点积的数值波动越大" data-toc="3-为什么维度越高-qk-点积的数值波动越大" data-level="2">3. 为什么维度越高，QK 点积的数值波动越大？</a>
+<a href="#4-dk-和-sqrt-dk-分别是什么" data-toc="4-dk-和-sqrt-dk-分别是什么" data-level="2">4. \(d_k\) 和 \(\sqrt{d_k}\) 分别是什么？</a>
+<a href="#5-为什么除以-sqrt-dk-而不是除以-dk" data-toc="5-为什么除以-sqrt-dk-而不是除以-dk" data-level="2">5. 为什么除以 \(\sqrt{d_k}\)，而不是除以 \(d_k\)？</a>
+<a href="#6-scaled-dot-product-attention-完整公式" data-toc="6-scaled-dot-product-attention-完整公式" data-level="2">6. Scaled Dot-Product Attention 完整公式</a>
+<a href="#7-为什么需要-q-k-v" data-toc="7-为什么需要-q-k-v" data-level="2">7. 为什么需要 Q / K / V？</a>
+<a href="#8-self-attention-相比-rnn-的优势" data-toc="8-self-attention-相比-rnn-的优势" data-level="2">8. Self-Attention 相比 RNN 的优势</a>
+<a href="#8-1-长距离依赖更加直接" data-toc="8-1-长距离依赖更加直接" data-level="3">8.1 长距离依赖更加直接</a>
+<a href="#8-2-可以高度并行" data-toc="8-2-可以高度并行" data-level="3">8.2 可以高度并行</a>
+<a href="#8-3-缺点-标准-attention-是-o-n-2" data-toc="8-3-缺点-标准-attention-是-o-n-2" data-level="3">8.3 缺点：标准 Attention 是 \(O(n^2)\)</a>
+<a href="#9-multi-head-attention-与-self-attention-的区别" data-toc="9-multi-head-attention-与-self-attention-的区别" data-level="1">9. Multi-Head Attention 与 Self-Attention 的区别</a>
+<a href="#10-为什么需要-multi-head-attention" data-toc="10-为什么需要-multi-head-attention" data-level="2">10. 为什么需要 Multi-Head Attention？</a>
+<a href="#11-multi-head-attention-的维度变化" data-toc="11-multi-head-attention-的维度变化" data-level="2">11. Multi-Head Attention 的维度变化</a>
+<a href="#12-把-dmodel-拆成多个-head-更严格的理解" data-toc="12-把-dmodel-拆成多个-head-更严格的理解" data-level="2">12. &quot;把 d_model 拆成多个 Head&quot;更严格的理解</a>
+<a href="#13-self-attention-vs-multi-head-attention" data-toc="13-self-attention-vs-multi-head-attention" data-level="1">13. Self-Attention vs Multi-Head Attention</a>
+<a href="#14-面试回答模板" data-toc="14-面试回答模板" data-level="1">14. 面试回答模板</a>
+<a href="#self-attention" data-toc="self-attention" data-level="2">Self-Attention</a>
+<a href="#multi-head-attention" data-toc="multi-head-attention" data-level="2">Multi-Head Attention</a>
+<a href="#15-最终记忆版" data-toc="15-最终记忆版" data-level="1">15. 最终记忆版</a>
+<a href="#self-attention-2" data-toc="self-attention-2" data-level="3">Self-Attention</a>
+<a href="#为什么是-dk" data-toc="为什么是-dk" data-level="3">为什么是 √d_k？</a>
+<a href="#multi-head-attention-2" data-toc="multi-head-attention-2" data-level="3">Multi-Head Attention</a></nav></aside>
+    <article class="article"><h2 id="1-self-attention-要解决什么问题" data-section="SECTION 01">1. Self-Attention 要解决什么问题？</h2>
+<p>Self-Attention 的核心目标是：</p>
+<blockquote><p>让序列中的每个 Token，根据当前上下文，动态决定应该关注其他哪些 Token。</p></blockquote>
+<p>例如：</p>
+<p><code>小明把苹果给了小红，因为她很饿。</code></p>
+<p>理解&quot;她&quot;时，模型需要结合上下文判断它与&quot;小红&quot;的关系更强。</p>
+<p>因此 Self-Attention 本质上是在做两件事：</p>
+<ol><li>计算当前 Token 与其他 Token 的相关程度。</li><li>根据相关程度，对其他 Token 携带的信息进行加权聚合。</li></ol>
+<hr>
+<h2 id="2-self-attention-的完整计算流程" data-section="SECTION 02">2. Self-Attention 的完整计算流程</h2>
+<p>假设输入为：</p>
+<div class="math-block">\[X \in R^{n \times d_{model}}\]</div>
+<p>首先通过三个可学习的线性投影得到 Q、K、V：</p>
+<div class="math-block">\[Q=XW_Q\]</div>
+<div class="math-block">\[K=XW_K\]</div>
+<div class="math-block">\[V=XW_V\]</div>
+<p>可以这样理解：</p>
+<ul><li><strong>Q（Query）</strong>：当前 Token 想寻找什么信息。</li><li><strong>K（Key）</strong>：当前 Token 可以如何被其他 Token 匹配。</li><li><strong>V（Value）</strong>：如果其他 Token 关注我，我真正提供什么信息。</li></ul>
+<h3 id="2-1-计算-scores">2.1 计算 Scores</h3>
+<div class="math-block">\[Scores = QK^T\]</div>
+<p>这是一个矩阵乘法。</p>
+<p>如果一句话有 4 个 Token，并且每个 Q/K 向量都是 3 维：</p>
+<div class="math-block">\[Q \in R^{4\times3}\]</div>
+<div class="math-block">\[K \in R^{4\times3}\]</div>
+<p>那么：</p>
+<div class="math-block">\[K^T \in R^{3\times4}\]</div>
+<p>因此：</p>
+<div class="math-block">\[QK^T:(4\times3)(3\times4)\rightarrow4\times4\]</div>
+<p>最终 Scores 是一个 Token × Token 的矩阵。</p>
+<p>其中：</p>
+<blockquote><p><code>Scores[i][j]</code> 表示第 i 个 Token 的 Query 与第 j 个 Token 的 Key 的点积匹配分数。</p></blockquote>
+<p>也就是一次矩阵运算同时计算所有 Token 两两之间的注意力匹配程度。</p>
+<hr>
+<h2 id="3-为什么维度越高-qk-点积的数值波动越大" data-section="SECTION 03">3. 为什么维度越高，QK 点积的数值波动越大？</h2>
+<p>对于一个 Query 和 Key：</p>
+<div class="math-block">\[q\cdot k=q_1k_1+q_2k_2+\cdots+q_{d_k}k_{d_k}\]</div>
+<p>维度越高，参与累加的项越多。</p>
+<p>如果假设每个 \(q_i\)、\(k_i\) 都近似均值为 0、方差为 1，那么：</p>
+<div class="math-block">\[Var(q\cdot k)\approx d_k\]</div>
+<p>因此标准差约为：</p>
+<div class="math-block">\[Std(q\cdot k)\approx\sqrt{d_k}\]</div>
+<p>所以更准确的说法不是&quot;维度越高，Scores 按 \(d_k\) 放大&quot;，而是：</p>
+<blockquote><p>QK 点积的<strong>方差随 \(d_k\) 增长，典型波动尺度（标准差）随 \(\sqrt{d_k}\) 增长</strong>。</p></blockquote>
+<hr>
+<h2 id="4-dk-和-sqrt-dk-分别是什么" data-section="SECTION 04">4. \(d_k\) 和 \(\sqrt{d_k}\) 分别是什么？</h2>
+<p>\(d_k\) 指的是每个 Query / Key 向量的维度。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Q = [q1, q2, q3, ..., q64]
+K = [k1, k2, k3, ..., k64]</code></pre></div>
+<p>那么：</p>
+<div class="math-block">\[d_k=64\]</div>
+<p>缩放因子：</p>
+<div class="math-block">\[\sqrt{d_k}=\sqrt{64}=8\]</div>
+<p>所以 Attention 中会计算：</p>
+<div class="math-block">\[QK^T / 8\]</div>
+<p>需要区分：</p>
+<blockquote><p><strong>\(d_k\) 是维度；\(\sqrt{d_k}\) 不是维度，而是根据这个维度计算出来的缩放因子。</strong></p></blockquote>
+<hr>
+<h2 id="5-为什么除以-sqrt-dk-而不是除以-dk" data-section="SECTION 05">5. 为什么除以 \(\sqrt{d_k}\)，而不是除以 \(d_k\)？</h2>
+<p>因为 QK 点积的典型波动大小按照 \(\sqrt{d_k}\) 增长。</p>
+<p>前面已经得到：</p>
+<div class="math-block">\[Var(QK^T)\approx d_k\]</div>
+<p>所以：</p>
+<div class="math-block">\[Std(QK^T)\approx\sqrt{d_k}\]</div>
+<p>除以 \(\sqrt{d_k}\) 后：</p>
+<div class="math-block">\[Var\left(\frac{QK^T}{\sqrt{d_k}}\right)
+\approx
+\frac{d_k}{d_k}
+=1\]</div>
+<p>这样可以把 Scores 的数值尺度稳定在合理范围。</p>
+<p>例如：</p>
+<div class="math-block">\[d_k=64\]</div>
+<p>那么：</p>
+<div class="math-block">\[\sqrt{d_k}=8\]</div>
+<p>QK 点积的典型波动尺度大约为 8：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>QK ≈ 8
+
+8 / √64
+= 8 / 8
+≈ 1</code></pre></div>
+<p>如果直接除以 \(d_k\)：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>8 / 64
+= 0.125</code></pre></div>
+<p>就会缩得过度，使 Scores 更接近 0，Softmax 容易变得过于平均，从而削弱 Attention 区分&quot;应该重点关注谁&quot;的能力。</p>
+<p>因此：</p>
+<blockquote><p><strong>除以 \(\sqrt{d_k}\) 的本质，是按照 QK 点积实际增长的标准差尺度进行归一化。</strong></p></blockquote>
+<hr>
+<h2 id="6-scaled-dot-product-attention-完整公式" data-section="SECTION 06">6. Scaled Dot-Product Attention 完整公式</h2>
+<p>最终公式：</p>
+<div class="math-block">\[Attention(Q,K,V)
+=
+Softmax\left(\frac{QK^T}{\sqrt{d_k}}\right)V\]</div>
+<p>流程可以记成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>输入 X
+  ↓
+线性投影
+  ↓
+Q / K / V
+  ↓
+Q × Kᵀ
+  ↓
+Scores：Token 两两匹配分数
+  ↓
+÷ √d_k
+  ↓
+Softmax
+  ↓
+Attention 权重
+  ↓
+× V
+  ↓
+输出</code></pre></div>
+<hr>
+<h2 id="7-为什么需要-q-k-v" data-section="SECTION 07">7. 为什么需要 Q / K / V？</h2>
+<p>如果直接使用：</p>
+<div class="math-block">\[XX^T\]</div>
+<p>也可以计算 Token 之间的相似程度。</p>
+<p>但这样意味着：</p>
+<blockquote><p>判断&quot;应该关注谁&quot;的表示，与最终&quot;提供什么信息&quot;的表示完全相同。</p></blockquote>
+<p>Q/K/V 将这几个职责拆开：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Q：我需要什么
+      ↓
+Q × Kᵀ：我应该关注谁
+      ↓
+Softmax：关注多少
+      ↓
+权重 × V：从这些 Token 获取什么信息</code></pre></div>
+<p>通过不同的可学习线性投影，模型可以学习更丰富的关系。</p>
+<hr>
+<h2 id="8-self-attention-相比-rnn-的优势" data-section="SECTION 08">8. Self-Attention 相比 RNN 的优势</h2>
+<h3 id="8-1-长距离依赖更加直接">8.1 长距离依赖更加直接</h3>
+<p>RNN：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Token1 → Token2 → Token3 → ... → Token100</code></pre></div>
+<p>前面的信息需要经过很多时间步才能影响后面的 Token。</p>
+<p>Self-Attention：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Token1 ─────────────────→ Token100</code></pre></div>
+<p>任意两个 Token 都可以直接建立注意力关系。</p>
+<h3 id="8-2-可以高度并行">8.2 可以高度并行</h3>
+<p>RNN 的时间步之间存在顺序依赖。</p>
+<p>Self-Attention 可以通过：</p>
+<div class="math-block">\[QK^T\]</div>
+<p>一次矩阵运算并行计算 Token 之间的关系，因此非常适合 GPU。</p>
+<h3 id="8-3-缺点-标准-attention-是-o-n-2">8.3 缺点：标准 Attention 是 \(O(n^2)\)</h3>
+<p>如果序列长度是 n，Attention Scores 矩阵大小就是：</p>
+<div class="math-block">\[n\times n\]</div>
+<p>因此标准 Self-Attention 的时间和显存开销会随着序列长度快速增长。</p>
+<hr>
+<h1 id="9-multi-head-attention-与-self-attention-的区别" data-section="SECTION 09">9. Multi-Head Attention 与 Self-Attention 的区别</h1>
+<p>一句话：</p>
+<blockquote><p><strong>Self-Attention 描述一次注意力如何计算；Multi-Head Attention 则并行执行多组 Attention，让模型可以在多个不同的表示子空间中学习 Token 关系。</strong></p></blockquote>
+<p>单个 Head 仍然使用同样的公式：</p>
+<div class="math-block">\[head_i =
+Attention(Q_i,K_i,V_i)\]</div>
+<p>而 Multi-Head Attention：</p>
+<div class="math-block">\[MultiHead =
+Concat(head_1,\ldots,head_h)W_O\]</div>
+<hr>
+<h2 id="10-为什么需要-multi-head-attention" data-section="SECTION 10">10. 为什么需要 Multi-Head Attention？</h2>
+<p>一句话中可能同时存在多种关系，例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>人物之间的关系
+语法关系
+动作与对象的关系
+指代关系
+位置关系</code></pre></div>
+<p>如果只有一套 Q/K/V，模型主要是在一个表示空间里计算 Attention。</p>
+<p>Multi-Head Attention 使用多套独立的投影参数：</p>
+<div class="math-block">\[W_Q^i,\quad W_K^i,\quad W_V^i\]</div>
+<p>让不同 Head 可以把同一个输入映射到不同的表示子空间，再分别计算 Attention。</p>
+<p>为了帮助理解，可以想象：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Head 1：可能更关注语法关系
+Head 2：可能更关注人物关系
+Head 3：可能更关注指代关系
+Head 4：可能更关注位置关系</code></pre></div>
+<p>但需要注意：</p>
+<blockquote><p>这些只是帮助理解的例子。训练过程中并没有人为规定每个 Head 必须学习什么，不同 Head 学到的模式是模型训练得到的，也可能存在一定冗余。</p></blockquote>
+<hr>
+<h2 id="11-multi-head-attention-的维度变化" data-section="SECTION 11">11. Multi-Head Attention 的维度变化</h2>
+<p>假设：</p>
+<div class="math-block">\[d_{model}=512\]</div>
+<p>有 8 个 Head：</p>
+<div class="math-block">\[h=8\]</div>
+<p>通常每个 Head 的维度为：</p>
+<div class="math-block">\[d_k=\frac{d_{model}}{h}
+=\frac{512}{8}
+=64\]</div>
+<p>因此每个 Head 内部计算：</p>
+<div class="math-block">\[Softmax\left(\frac{Q_iK_i^T}{\sqrt{64}}\right)V_i\]</div>
+<p>每个 Head 输出 64 维：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Head 1 → 64
+Head 2 → 64
+...
+Head 8 → 64</code></pre></div>
+<p>然后拼接：</p>
+<div class="math-block">\[Concat(head_1,\ldots,head_8)\]</div>
+<p>维度重新变成：</p>
+<div class="math-block">\[8\times64=512\]</div>
+<p>最后经过输出投影：</p>
+<div class="math-block">\[W_O\]</div>
+<p>得到最终的 512 维输出。</p>
+<hr>
+<h2 id="12-把-dmodel-拆成多个-head-更严格的理解" data-section="SECTION 12">12. &quot;把 d_model 拆成多个 Head&quot;更严格的理解</h2>
+<p>可以简单记成：</p>
+<blockquote><p>将 \(d_{model}\) 拆成多个 Head，每个 Head 在较小的维度中做 Attention。</p></blockquote>
+<p>但更严格地说：</p>
+<blockquote><p><strong>并不是先把输入 X 的 512 个维度机械切成 8 份，然后每份各算各的。</strong></p></blockquote>
+<p>而是每个 Head 都从同一个输入 X 出发，通过自己独立的：</p>
+<div class="math-block">\[W_Q^i,\quad W_K^i,\quad W_V^i\]</div>
+<p>把输入<strong>投影到不同的 64 维表示子空间</strong>。</p>
+<p>可以理解为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                    输入 X：512维
+                         │
+        ┌────────────────┼────────────────┐
+        ↓                ↓                ↓
+     Head 1           Head 2          ... Head 8
+        ↓                ↓                ↓
+   独立 WQ/WK/WV     独立 WQ/WK/WV     独立 WQ/WK/WV
+        ↓                ↓                ↓
+     64维子空间        64维子空间         64维子空间
+        ↓                ↓                ↓
+ Self-Attention     Self-Attention     Self-Attention
+        └────────────────┼────────────────┘
+                         ↓
+                       Concat
+                         ↓
+                        512维
+                         ↓
+                        W_O
+                         ↓
+                       Output</code></pre></div>
+<p>所以最准确的总结是：</p>
+<blockquote><p><strong>Multi-Head Attention 将 \(d_{model}\) 映射到多个 Head，每个 Head 通过独立的 Q/K/V 投影，在不同的表示子空间中学习 Token 之间的关系，最后将各 Head 的结果拼接并进行输出投影。</strong></p></blockquote>
+<hr>
+<h1 id="13-self-attention-vs-multi-head-attention" data-section="SECTION 13">13. Self-Attention vs Multi-Head Attention</h1>
+<div class="table-wrap"><table><thead><tr><th>对比</th><th>Self-Attention</th><th>Multi-Head Attention</th></tr></thead><tbody><tr><td>Q/K/V</td><td>一组</td><td>多组独立投影</td></tr><tr><td>Attention</td><td>一次</td><td>多个 Head 并行计算</td></tr><tr><td>表示空间</td><td>一个</td><td>多个表示子空间</td></tr><tr><td>结果处理</td><td>得到 Attention 输出</td><td>Concat + 输出投影</td></tr><tr><td>表达能力</td><td>相对有限</td><td>可以从多个子空间建模关系</td></tr></tbody></table></div>
+<p>Multi-Head 并没有改变 Self-Attention 的核心计算。</p>
+<p>每个 Head 内仍然是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>QKᵀ
+ ↓
+÷ √d_k
+ ↓
+Softmax
+ ↓
+× V</code></pre></div>
+<p>Multi-Head 只是在外层增加：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>多组独立 Q/K/V
+        ↓
+多个 Attention 并行计算
+        ↓
+Concat
+        ↓
+输出投影 W_O</code></pre></div>
+<hr>
+<h1 id="14-面试回答模板" data-section="SECTION 14">14. 面试回答模板</h1>
+<h2 id="self-attention" data-section="SECTION 15">Self-Attention</h2>
+<blockquote><p>Self-Attention 的核心目的是让序列中的每个 Token 动态关注其他 Token，从而建立上下文关系。  计算时首先将输入 X 分别线性映射成 Q、K、V，然后通过 \(QK^T\) 计算 Token 之间的匹配分数，再除以 \(\sqrt{d_k}\) 防止点积随着维度增加导致数值波动过大，之后经过 Softmax 得到注意力权重，最后使用这些权重对 V 做加权求和。  核心公式是：  \(Attention(Q,K,V)=Softmax(QK^T/\sqrt{d_k})V\)。  相比 RNN，它可以直接建立长距离 Token 之间的依赖，并且能够通过矩阵运算高度并行；缺点是标准 Attention 对序列长度具有 \(O(n^2)\) 的复杂度。</p></blockquote>
+<h2 id="multi-head-attention" data-section="SECTION 16">Multi-Head Attention</h2>
+<blockquote><p>Multi-Head Attention 本质上是并行执行多组 Attention。每个 Head 都有独立的 Q/K/V 投影参数，将同一个输入映射到不同的表示子空间，因此不同 Head 可以学习不同类型的 Token 关系。最后将多个 Head 的输出进行 Concat，再经过一个线性输出投影得到最终结果。  严格来说，不是简单把输入维度机械切成几份，而是通过不同的可学习投影矩阵，把同一个输入映射到多个低维子空间。</p></blockquote>
+<hr>
+<h1 id="15-最终记忆版" data-section="SECTION 17">15. 最终记忆版</h1>
+<h3 id="self-attention-2">Self-Attention</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Q：我想找什么
+K：我能如何被匹配
+V：我真正提供什么
+
+QKᵀ
+→ Token 两两匹配分数
+→ ÷ √d_k 稳定数值尺度
+→ Softmax 得到注意力权重
+→ × V 聚合信息</code></pre></div>
+<h3 id="为什么是-dk">为什么是 √d_k？</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>QK 点积包含 d_k 项累加
+        ↓
+方差 ≈ d_k
+        ↓
+标准差 ≈ √d_k
+        ↓
+所以除以 √d_k</code></pre></div>
+<h3 id="multi-head-attention-2">Multi-Head Attention</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>同一个输入 X
+     ↓
+多组独立 Q/K/V 投影
+     ↓
+多个不同表示子空间
+     ↓
+各自做 Self-Attention
+     ↓
+Concat
+     ↓
+W_O 输出投影</code></pre></div>
+<p>一句话记忆：</p>
+<blockquote><p><strong>Self-Attention 解决&quot;一个 Token 应该关注谁以及获取什么信息&quot;；Multi-Head Attention 则让模型同时从多个不同表示子空间去做这件事。</strong></p></blockquote></article>
+  </main>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+  <footer>Self-Attention 与 Multi-Head Attention：计算流程、设计动机与面试重点</footer>
+  <script src="../assets/answer-pages.js"></script>
+</body>
+</html>

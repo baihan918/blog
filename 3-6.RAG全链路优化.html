@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="RAG 全链路优化学习地图：覆盖离线文档入库与在线用户查询，包含文档预处理、检索、重排、生成与 TTFT 优化。" />
+  <meta name="theme-color" content="#f5f2e9" />
+  <link rel="icon" href="data:," />
+  <title>RAG 全链路优化</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f2e9;
+      --paper: #fffdf8;
+      --paper-strong: #ffffff;
+      --ink: #1d2733;
+      --muted: #65717e;
+      --line: #ddd7ca;
+      --blue: #3776ab;
+      --blue-deep: #24557d;
+      --blue-soft: #eaf3fb;
+      --yellow: #ffd343;
+      --purple: #8260b3;
+      --yellow-soft: #fff6cf;
+      --green: #287a5a;
+      --green-soft: #e9f6ef;
+      --orange: #b85d18;
+      --orange-soft: #fff0e3;
+      --red: #a63a3a;
+      --red-soft: #faeaea;
+      --code: #17212b;
+      --code-ink: #e8edf2;
+      --shadow: 0 14px 38px rgba(43, 51, 59, 0.08);
+      --radius: 18px;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page: #121720;
+      --paper: #19222c;
+      --paper-strong: #202b37;
+      --ink: #edf2f7;
+      --muted: #a9b5c1;
+      --line: #34404c;
+      --blue: #72b4e4;
+      --blue-deep: #78b9ec;
+      --blue-soft: #20384b;
+      --yellow: #f2c94c;
+      --yellow-soft: #443b1e;
+      --green: #71c9a7;
+      --green-soft: #1d3c32;
+      --orange: #f0a466;
+      --orange-soft: #46301f;
+      --red: #ec8f8f;
+      --red-soft: #482727;
+      --code: #0d1319;
+      --code-ink: #e8edf2;
+      --shadow: 0 14px 38px rgba(0, 0, 0, 0.24);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 8% 2%, color-mix(in srgb, var(--blue) 14%, transparent), transparent 27rem),
+        radial-gradient(circle at 94% 14%, color-mix(in srgb, var(--yellow) 18%, transparent), transparent 25rem),
+        var(--page);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+
+    button { font: inherit; }
+    a { color: inherit; }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    .progress { position: fixed; inset: 0 auto auto 0; z-index: 50; width: 0; height: 4px; background: linear-gradient(90deg, var(--yellow), var(--blue)); }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 62px;
+      padding: 10px max(20px, calc((100vw - 1240px) / 2));
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 74%, transparent);
+      background: color-mix(in srgb, var(--page) 86%, transparent);
+      backdrop-filter: blur(5px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .01em; }
+    .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px; background: linear-gradient(135deg, var(--blue), var(--purple)); color: #fff; font-weight: 800; box-shadow: 0 8px 20px rgba(55, 118, 171, .2); }
+    .theme-toggle { border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; color: var(--ink); background: var(--paper); cursor: pointer; }
+    .theme-toggle:hover { border-color: var(--blue); }
+
+    .page { width: min(1240px, calc(100% - 40px)); margin: 34px auto 80px; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(28px, 5vw, 62px);
+      border-radius: 28px;
+    }
+    .hero::after { content: "RAG"; position: absolute; right: -18px; bottom: -74px; color: color-mix(in srgb, var(--blue) 8%, transparent); font-size: clamp(120px, 22vw, 260px); font-weight: 800; line-height: 1; pointer-events: none; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; margin: 0 0 12px; color: var(--blue-deep); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 28px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--yellow)); }
+    h1, h2, h3 { margin-top: 0; line-height: 1.25; }
+    h1 { position: relative; z-index: 1; max-width: 800px; margin-bottom: 16px; font-size: clamp(34px, 6vw, 68px); letter-spacing: -.04em; }
+    h1 span { color: var(--blue); }
+    h2 { margin-bottom: 16px; font-size: clamp(25px, 3vw, 36px); letter-spacing: -.025em; }
+    h3 { margin-bottom: 9px; font-size: 19px; }
+    .hero p { position: relative; z-index: 1; max-width: 760px; margin: 0; color: var(--muted); font-size: 18px; }
+    .hero-meta { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper-strong); color: var(--muted); font-size: 13px; }
+
+    .layout { display: grid; grid-template-columns: 228px minmax(0, 1fr); gap: 30px; margin-top: 32px; align-items: start; }
+    .toc { position: sticky; top: 88px; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+    .toc-title { margin-bottom: 10px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .toc a { display: block; margin: 3px 0; padding: 7px 9px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 14px; line-height: 1.35; }
+    .toc a:hover, .toc a.active { background: var(--blue-soft); color: var(--blue); }
+    .toc .sub { padding-left: 22px; font-size: 13px; }
+    main { min-width: 0; }
+    section { scroll-margin-top: 86px; margin-bottom: 32px; }
+    .panel { padding: clamp(22px, 4vw, 38px); border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: 0 8px 26px rgba(43, 51, 59, .045); }
+    .section-lead { max-width: 780px; margin: -6px 0 24px; color: var(--muted); }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+    .legend span { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--blue); }
+    .dot.query { background: var(--green); }
+    .dot.focus { background: var(--yellow); }
+
+    .lane { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-strong); }
+    .lane + .lane { margin-top: 14px; }
+    .lane-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 13px; }
+    .lane-name { font-weight: 750; }
+    .lane-note { color: var(--muted); font-size: 12px; }
+    .flow { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; padding: 2px 2px 10px; scrollbar-width: thin; }
+    .stage {
+      position: relative;
+      flex: 0 0 132px;
+      min-height: 88px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper);
+      text-align: left;
+    }
+    button.stage { color: inherit; cursor: pointer; }
+    button.stage:hover, button.stage[aria-pressed="true"] { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+    .query-lane button.stage:hover, .query-lane button.stage[aria-pressed="true"] { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
+    .stage.focus { border: 2px solid var(--yellow); background: var(--yellow-soft); }
+    .stage-index { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; font-weight: 700; }
+    .stage strong { display: block; line-height: 1.35; }
+    .stage small { display: block; margin-top: 5px; color: var(--muted); line-height: 1.35; }
+    .arrow { flex: 0 0 18px; display: grid; place-items: center; color: var(--muted); }
+    .stage-detail { min-height: 52px; margin-top: 12px; padding: 12px 14px; border-left: 4px solid var(--blue); border-radius: 8px; background: var(--blue-soft); color: var(--muted); font-size: 14px; }
+    .query-lane .stage-detail { border-left-color: var(--green); background: var(--green-soft); }
+
+    .boundary { display: grid; grid-template-columns: 1fr 64px 1fr; gap: 16px; align-items: stretch; }
+    .boundary-card { padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-strong); }
+    .boundary-arrow { display: grid; place-items: center; color: var(--blue); font-size: 28px; }
+    .boundary-card ul { margin-bottom: 0; padding-left: 20px; color: var(--muted); }
+    .good { border-top: 4px solid var(--green); }
+    .not { border-top: 4px solid var(--orange); }
+
+    .steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; counter-reset: prep; }
+    .step { position: relative; padding: 22px 20px 20px 62px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-strong); }
+    .step::before { counter-increment: prep; content: counter(prep, decimal-leading-zero); position: absolute; left: 18px; top: 21px; color: var(--blue); font-family: "SFMono-Regular", monospace; font-weight: 800; }
+    .step p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .branch-diagram { display: grid; grid-template-columns: 1fr 58px 1fr 1fr; gap: 12px; align-items: stretch; }
+    .branch-source, .branch-card { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-strong); }
+    .branch-source { display: grid; place-items: center; text-align: center; background: var(--yellow-soft); }
+    .branch-fork { display: grid; place-items: center; color: var(--blue); font-size: 25px; }
+    .branch-card.vector { border-top: 4px solid var(--blue); }
+    .branch-card.keyword { border-top: 4px solid var(--green); }
+    .branch-card ul { padding-left: 18px; margin-bottom: 0; color: var(--muted); font-size: 14px; }
+
+    .callout { margin-top: 18px; padding: 15px 17px; border: 1px solid color-mix(in srgb, var(--yellow) 62%, var(--line)); border-radius: 12px; background: var(--yellow-soft); }
+    .callout strong { color: color-mix(in srgb, var(--ink) 84%, var(--orange)); }
+    .warning { border-color: color-mix(in srgb, var(--red) 45%, var(--line)); background: var(--red-soft); }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 13px; }
+    table { width: 100%; border-collapse: collapse; min-width: 680px; background: var(--paper-strong); }
+    th, td { padding: 13px 15px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: var(--blue-soft); color: var(--blue); font-size: 13px; }
+    td { font-size: 14px; }
+    tr:last-child td { border-bottom: 0; }
+    td code { padding: 2px 5px; border-radius: 5px; background: var(--blue-soft); color: var(--blue); }
+
+    .compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .compare-card { padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-strong); }
+    .compare-card.yes { border-top: 4px solid var(--green); }
+    .compare-card.no { border-top: 4px solid var(--red); }
+    .compare-card ul { margin-bottom: 0; padding-left: 20px; color: var(--muted); }
+
+    .demo { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; }
+    .sample { padding: 17px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper-strong); }
+    .sample-label { margin-bottom: 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .sample-text { white-space: pre-wrap; }
+    .demo-arrow { display: grid; place-items: center; color: var(--blue); font-size: 24px; }
+    .token { display: inline-block; margin: 3px 3px 3px 0; padding: 3px 7px; border-radius: 7px; background: var(--blue-soft); color: var(--blue); font-size: 13px; }
+
+    .project-path { display: grid; gap: 10px; }
+    .path-row { display: grid; grid-template-columns: 34px minmax(150px, .8fr) minmax(0, 1.7fr); gap: 12px; align-items: start; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper-strong); }
+    .path-num { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--blue-soft); color: var(--blue); font-size: 12px; font-weight: 800; }
+    .path-file code { word-break: break-all; color: var(--blue); font-size: 12px; }
+    .path-desc { color: var(--muted); font-size: 14px; }
+
+    pre { overflow-x: auto; margin: 16px 0 0; padding: 18px; border-radius: 13px; background: var(--code); color: var(--code-ink); font-size: 13px; line-height: 1.6; }
+    .code-comment { color: #92a4b5; }
+    .code-key { color: #ffd866; }
+    .code-string { color: #a8e6a3; }
+
+    details { border: 1px solid var(--line); border-radius: 12px; background: var(--paper-strong); }
+    details + details { margin-top: 10px; }
+    summary { cursor: pointer; padding: 14px 16px; font-weight: 700; }
+    details p { margin: 0; padding: 0 16px 16px; color: var(--muted); }
+
+    .roadmap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .roadmap-card { min-height: 130px; padding: 18px; border: 1px dashed var(--line); border-radius: 14px; background: color-mix(in srgb, var(--paper) 72%, transparent); }
+    .roadmap-card.done { border-style: solid; border-color: var(--green); background: var(--green-soft); }
+    .status { display: inline-block; margin-bottom: 9px; padding: 3px 7px; border-radius: 999px; background: var(--paper); color: var(--muted); font-size: 11px; font-weight: 700; }
+    .done .status { color: var(--green); }
+    .roadmap-card p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .equation {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 18px 0;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--paper-strong);
+    }
+    .equation-label { margin-right: 4px; color: var(--blue); font-weight: 800; }
+    .equation-part { padding: 6px 9px; border-radius: 8px; background: var(--blue-soft); color: var(--blue); font-size: 13px; font-weight: 700; }
+    .equation-plus { color: var(--muted); }
+
+    .latency-chain { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 18px 0; }
+    .latency-node { min-height: 114px; padding: 14px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper-strong); }
+    .latency-node.hot { border-color: color-mix(in srgb, var(--red) 50%, var(--line)); background: var(--red-soft); }
+    .latency-node.fast { border-color: color-mix(in srgb, var(--green) 50%, var(--line)); background: var(--green-soft); }
+    .latency-node small { display: block; margin-bottom: 5px; color: var(--muted); font-size: 11px; }
+    .latency-node strong { display: block; line-height: 1.35; }
+    .latency-node span { display: block; margin-top: 7px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    .priority-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .priority-card { position: relative; padding: 20px 20px 18px 58px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-strong); }
+    .priority-rank { position: absolute; left: 17px; top: 19px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--yellow-soft); color: var(--orange); font-family: "SFMono-Regular", monospace; font-weight: 800; }
+    .priority-card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .architecture { display: grid; gap: 10px; margin-top: 18px; }
+    .architecture-row { display: grid; grid-template-columns: 135px 42px minmax(0, 1fr); gap: 10px; align-items: center; }
+    .architecture-label { padding: 10px 12px; border-radius: 10px; background: var(--yellow-soft); font-weight: 750; text-align: center; }
+    .architecture-arrow { color: var(--blue); font-size: 22px; text-align: center; }
+    .architecture-content { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper-strong); color: var(--muted); font-size: 14px; }
+
+    .metric-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .metric-pill { padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper-strong); color: var(--muted); font-size: 12px; }
+    .metric-pill strong { color: var(--green); }
+
+    .footer-note { margin-top: 28px; color: var(--muted); text-align: center; font-size: 13px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+    @media (max-width: 920px) {
+      .layout { grid-template-columns: 1fr; }
+      .toc { position: static; display: flex; gap: 4px; overflow-x: auto; padding: 10px; }
+      .toc-title { display: none; }
+      .toc a { flex: 0 0 auto; }
+      .toc .sub { padding-left: 9px; }
+      .boundary, .branch-diagram { grid-template-columns: 1fr; }
+      .boundary-arrow, .branch-fork { transform: rotate(90deg); min-height: 36px; }
+      .roadmap { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .latency-chain { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .page { width: min(100% - 24px, 1240px); margin-top: 18px; }
+      .topbar { padding-inline: 12px; }
+      .brand span:last-child { display: none; }
+      .hero { border-radius: 20px; }
+      .hero p { font-size: 16px; }
+      .panel { padding: 20px 16px; }
+      .steps, .compare, .roadmap, .demo, .priority-grid, .latency-chain { grid-template-columns: 1fr; }
+      .demo-arrow { transform: rotate(90deg); min-height: 32px; }
+      .branch-diagram { grid-template-columns: 1fr; }
+      .path-row { grid-template-columns: 34px 1fr; }
+      .path-desc { grid-column: 2; }
+      .architecture-row { grid-template-columns: 1fr; }
+      .architecture-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">R</span><span>RAG 链路学习地图</span></div>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深浅主题">◐ 切换主题</button>
+  </header>
+
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">RAG 全链路 · 持续补齐</div>
+      <h1><span>RAG 全链路优化</span></h1>
+      <p>以离线文档入库和在线用户查询两条主链路为骨架，逐步优化预处理、切块、索引、召回、重排、上下文与生成。文档预处理是全链路中的入库模块，TTFT 是在线查询链路的性能指标。</p>
+      <div class="hero-meta">
+        <span class="chip">离线：文档入库链路</span>
+        <span class="chip">在线：用户查询链路</span>
+        <span class="chip">离线入库：文档预处理已展开</span>
+        <span class="chip">在线查询：TTFT 优化已展开</span>
+        <span class="chip">项目映射：SalesPilot</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav class="toc" aria-label="页面目录">
+        <div class="toc-title">Contents</div>
+        <a href="#overview">01 全链路总览</a>
+        <a href="#boundary">02 入库优化：预处理边界</a>
+        <a href="#steps">03 入库优化：预处理步骤</a>
+        <a class="sub" href="#cleaning">清洗决策</a>
+        <a class="sub" href="#lexical">关键词分支</a>
+        <a href="#tokenizer">04 入库优化：分词器</a>
+        <a href="#project">05 全链路代码映射</a>
+        <a href="#checklist">06 入库质量验收</a>
+        <a href="#ttft">07 查询优化：TTFT</a>
+        <a class="sub" href="#ttft-measure">TTFT 怎么测</a>
+        <a class="sub" href="#ttft-actions">优化优先级</a>
+        <a class="sub" href="#ttft-target">低延迟架构</a>
+        <a href="#roadmap">08 后续模块</a>
+      </nav>
+
+      <main>
+        <section id="overview" class="panel">
+          <h2>01 · RAG 两条主链路</h2>
+          <p class="section-lead">入库链路负责把资料变成可检索资产；查询链路负责把问题变成候选上下文，再交给大模型回答。点击任一环节查看它的职责。</p>
+          <div class="legend">
+            <span><i class="dot"></i>文档入库</span>
+            <span><i class="dot query"></i>用户查询</span>
+            <span><i class="dot focus"></i>本页重点</span>
+          </div>
+
+          <div class="lane ingest-lane">
+            <div class="lane-head"><span class="lane-name">A. 文档入库链路（离线 / 异步）</span><span class="lane-note">资料更新时运行</span></div>
+            <div class="flow" data-lane="ingest">
+              <button class="stage" type="button" data-detail="接收 PDF、Word、网页、Markdown、数据库记录等资料，并记录来源、版本和权限。"><span class="stage-index">01</span><strong>文档接入</strong><small>来源与版本</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="通过 Parser、OCR、版面分析和表格识别，把二进制文件转换成结构化文本。"><span class="stage-index">02</span><strong>解析提取</strong><small>文字 / 表格 / 布局</small></button><span class="arrow">→</span>
+              <button class="stage focus" type="button" data-detail="统一编码、清理解析噪声、保留结构和语义，为后续切块与两类检索准备稳定输入。"><span class="stage-index">03 · 当前</span><strong>文档预处理</strong><small>清洗但不改义</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="依据标题、段落、表格和 token 长度切分 Chunk，并通过 overlap 或层级信息保留上下文。"><span class="stage-index">04</span><strong>切块</strong><small>Chunk / overlap</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="为每个 Chunk 添加 source、page、section、doc_id、权限、版本等可过滤和可回源字段。"><span class="stage-index">05</span><strong>元数据增强</strong><small>可过滤 / 可追踪</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="原文进入 Embedding 生成稠密向量；文本分析器为 BM25 生成词项或稀疏表示。"><span class="stage-index">06</span><strong>表示生成</strong><small>Dense + Sparse</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="把原文 Chunk、向量、词项和元数据写入向量库或搜索引擎，并建立索引。"><span class="stage-index">07</span><strong>索引入库</strong><small>可搜索资产</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="用抽样查询检查解析文本、Chunk、召回结果和来源，失败数据进入重试或隔离队列。"><span class="stage-index">08</span><strong>质量校验</strong><small>抽检与可观测</small></button>
+            </div>
+            <div class="stage-detail" aria-live="polite">选择上方环节查看说明；本页已完整展开“文档预处理”。</div>
+          </div>
+
+          <div class="lane query-lane">
+            <div class="lane-head"><span class="lane-name">B. 用户查询链路（在线 / 实时）</span><span class="lane-note">每次提问时运行</span></div>
+            <div class="flow" data-lane="query">
+              <button class="stage" type="button" data-detail="接收用户问题、会话历史、用户权限以及可能的筛选条件。"><span class="stage-index">01</span><strong>问题接入</strong><small>query + context</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="做大小写和全半角统一、意图识别、必要的改写与领域词扩展，但保留原始问题。"><span class="stage-index">02</span><strong>查询理解</strong><small>标准化 / 改写</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="同时运行 Dense 语义检索与 BM25 关键词检索，也可按业务路由到 SQL、图谱或 Web。"><span class="stage-index">03</span><strong>多路召回</strong><small>Dense + BM25</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="用加权、RRF 等方式合并不同召回列表，处理分数尺度差异和重复结果。"><span class="stage-index">04</span><strong>融合</strong><small>Fusion</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="用规则、混合相似度或 Cross-Encoder 对候选 Chunk 重新排序，控制进入上下文的质量。"><span class="stage-index">05</span><strong>重排</strong><small>Rerank</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="去重、压缩并按 token 预算组织证据，附带来源、标题、页码等引用信息。"><span class="stage-index">06</span><strong>上下文组装</strong><small>Context budget</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="把问题、指令和检索证据交给 LLM，要求基于上下文回答，并在证据不足时明确说明。"><span class="stage-index">07</span><strong>生成回答</strong><small>Grounded answer</small></button><span class="arrow">→</span>
+              <button class="stage" type="button" data-detail="返回答案和引用，记录召回、延迟、反馈与失败样本，用于后续评测和优化。"><span class="stage-index">08</span><strong>引用与反馈</strong><small>评测闭环</small></button>
+            </div>
+            <div class="stage-detail" aria-live="polite">查询阶段通常只对用户问题生成向量，不会在每次提问时重新向量化全部文档。</div>
+          </div>
+        </section>
+
+        <section id="boundary" class="panel">
+          <h2>02 · 入库优化：文档预处理的边界</h2>
+          <p class="section-lead">目标不是把文本改得“越短越好”，而是把解析结果变得稳定、干净、结构清楚，同时保留可影响答案的语义。</p>
+          <div class="boundary">
+            <article class="boundary-card good">
+              <h3>输入：解析后的结构化文档</h3>
+              <ul>
+                <li>正文、标题、段落、表格与列表</li>
+                <li>页码、坐标、文件名、章节层级</li>
+                <li>可能包含 OCR 错误、页眉页脚和乱码</li>
+              </ul>
+            </article>
+            <div class="boundary-arrow" aria-hidden="true">→</div>
+            <article class="boundary-card good">
+              <h3>输出：干净但语义完整的 Document</h3>
+              <ul>
+                <li>统一编码与稳定的文本格式</li>
+                <li>保留标题、表格、列表等结构线索</li>
+                <li>携带来源和质量标记，准备进入切块</li>
+              </ul>
+            </article>
+          </div>
+          <div class="callout"><strong>边界提醒：</strong>文件解析解决“读出来”，预处理解决“清理好”，切块解决“怎样分段”，Embedding / Analyzer 解决“怎样建立检索表示”。实际框架可能把这些步骤封装在一起，但排查时仍应分层。</div>
+        </section>
+
+        <section id="steps" class="panel">
+          <h2>03 · 入库优化：文档预处理步骤</h2>
+          <p class="section-lead">以下顺序适合作为工程流水线。每一步都应尽量可配置、可回放，并保留原始资料作为事实源。</p>
+          <div class="steps">
+            <article class="step"><h3>格式与编码统一</h3><p>识别 UTF-8、GBK 等编码，统一换行、全半角和 Unicode 表示；原始文件不要覆盖。</p></article>
+            <article class="step"><h3>解析质量检查</h3><p>检查空文本、乱码比例、OCR 置信度、页数和表格数量。PDF 出现 <code>%PDF</code> 内容通常代表解析器用错。</p></article>
+            <article class="step"><h3>版面噪声清理</h3><p>处理重复页眉页脚、页码、连续空白、断行和不可见字符；避免用宽泛正则误删正文。</p></article>
+            <article class="step"><h3>结构恢复与保留</h3><p>保留标题层级、段落边界、列表序号、表格行列以及图片说明，为结构化切块提供信号。</p></article>
+            <article class="step"><h3>内容标准化</h3><p>根据检索需求做大小写、全半角、繁简转换等标准化；产品型号、金额、日期和否定词不能被破坏。</p></article>
+            <article class="step"><h3>重复与模板识别</h3><p>识别完全重复、近重复内容以及批量文档模板，减少同一证据挤占 Top-K，但保留版本关系。</p></article>
+            <article class="step"><h3>安全与权限标记</h3><p>识别敏感信息、注入性文本和访问权限。是否脱敏取决于业务规则，权限信息必须进入元数据。</p></article>
+            <article class="step"><h3>生成可追踪中间结果</h3><p>输出 clean_text、结构块、source、page、version、status 和质量告警，便于重建索引与回源。</p></article>
+          </div>
+
+          <h3 id="cleaning" style="margin-top: 30px;">哪些“清洗”不要默认做？</h3>
+          <div class="compare">
+            <article class="compare-card yes">
+              <h3>通常可以做</h3>
+              <ul>
+                <li>清除乱码、控制字符和重复空白</li>
+                <li>识别并去除重复页眉页脚</li>
+                <li>统一编码、全半角和换行</li>
+                <li>保留原文的同时建立规范化字段</li>
+                <li>记录解析失败和低质量页面</li>
+              </ul>
+            </article>
+            <article class="compare-card no">
+              <h3>不要默认做</h3>
+              <ul>
+                <li>向量化前删除停用词</li>
+                <li>直接用同义词覆盖原文</li>
+                <li>删除“不、未、之前、之后”等词</li>
+                <li>把分词结果交给 Embedding 代替原句</li>
+                <li>只保存向量、不保留原始文档与来源</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="demo" style="margin-top: 16px;">
+            <div class="sample"><div class="sample-label">原文</div><div class="sample-text">本产品不支持七天无理由退款，质量问题除外。</div></div>
+            <div class="demo-arrow" aria-hidden="true">→</div>
+            <div class="sample"><div class="sample-label">错误的激进过滤</div><div class="sample-text"><span class="token">产品</span><span class="token">支持</span><span class="token">七天</span><span class="token">退款</span><span class="token">质量问题</span><span class="token">除外</span><br><small style="color: var(--red);">“不”被删除后，核心结论反转。</small></div></div>
+          </div>
+
+          <h3 id="lexical" style="margin-top: 30px;">一份干净原文，两条检索分支</h3>
+          <div class="branch-diagram">
+            <div class="branch-source"><div><strong>clean_text</strong><br><small>语义完整的原文</small></div></div>
+            <div class="branch-fork" aria-hidden="true">⇢</div>
+            <article class="branch-card vector">
+              <h3>Dense / Embedding 分支</h3>
+              <ul>
+                <li>输入自然、完整的文本</li>
+                <li>通常不删除停用词</li>
+                <li>通常不做同义词替换</li>
+                <li>不需要预先中文分词</li>
+              </ul>
+            </article>
+            <article class="branch-card keyword">
+              <h3>Sparse / BM25 分支</h3>
+              <ul>
+                <li>Analyzer 做分词与规范化</li>
+                <li>领域词加入自定义词典</li>
+                <li>同义词优先做低权重扩展</li>
+                <li>停用词仅在评测证明有益时过滤</li>
+              </ul>
+            </article>
+          </div>
+          <div class="callout"><strong>为什么 BM25 不怕普通高频词？</strong> BM25 已通过 IDF 降低全库高频词权重，通过词频饱和避免重复词无限加分，并用文档长度归一化修正长文档优势。因此停用词过滤不是默认必选项。</div>
+        </section>
+
+        <section id="tokenizer" class="panel">
+          <h2>04 · 入库优化：中文分词器与词典</h2>
+          <p class="section-lead">分词主要服务关键词检索，不服务 Embedding。真实项目通常跟随检索基础设施选择，优先保证文档侧与查询侧规则一致。</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>技术栈</th><th>常见选择</th><th>适合场景</th><th>建议</th></tr></thead>
+              <tbody>
+                <tr><td>Elasticsearch / OpenSearch</td><td><code>IK Analyzer</code></td><td>中文全文检索、企业知识库</td><td>文档侧可从 <code>ik_max_word</code> 起步，查询侧按评测选择 <code>ik_smart</code> 或同模式。</td></tr>
+                <tr><td>Milvus 内置 BM25</td><td><code>chinese</code> / <code>jieba</code></td><td>Dense + Sparse 混合 RAG</td><td>直接使用 Milvus Analyzer，避免应用层重复分词；创建 Collection 前确认配置。</td></tr>
+                <tr><td>Python 本地 Demo</td><td><code>Jieba</code></td><td>教学、PoC、小型 BM25</td><td>使用搜索模式提高召回，并加载小而准的领域词典。</td></tr>
+                <tr><td>复杂中文 NLP</td><td><code>HanLP</code> 等</td><td>还需要词性、实体、句法信息</td><td>能力更强但成本更高，不要只为普通 BM25 过度引入。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <details open style="margin-top: 16px;">
+            <summary>ik_max_word 到底是什么？</summary>
+            <p>它是 IK Analyzer 的细粒度分词模式，不是独立产品。它会尽可能输出长词及可识别的短词，偏向提高召回；<code>ik_smart</code> 粒度更粗，偏向减少噪声。两者都需要用真实查询验证，不能只凭名称决定。</p>
+          </details>
+          <details>
+            <summary>自定义分词词典应该放什么？</summary>
+            <p>优先加入业务专有名词、产品型号、公司名、中英文混合词和容易被切错的固定短语。不要一开始堆一个巨型词库，应从查询日志和召回失败样本逐步补词。</p>
+          </details>
+          <details>
+            <summary>同义词应该替换还是扩展？</summary>
+            <p>优先保留原查询并扩展，例如“退钱 OR 退款 OR 退费”，而不是覆盖原文。原词权重最高，扩展词降低权重；Embedding 分支仍使用原始自然语言。</p>
+          </details>
+        </section>
+
+        <section id="project" class="panel">
+          <h2>05 · RAG 全链路的当前代码映射</h2>
+          <p class="section-lead">本项目当前不是 Milvus，而是“自定义解析/分词 + Embedding + Elasticsearch 混合检索”。下面是从入库到查询的真实代码入口。</p>
+          <div class="project-path">
+            <div class="path-row"><span class="path-num">1</span><div class="path-file"><code>core/file_parse.py</code></div><div class="path-desc">调用 <code>manual.chunk()</code> 解析文件，生成 Chunk；为每个 Chunk 生成 ID、文档元数据、分词字段和向量，然后写入 Elasticsearch。</div></div>
+            <div class="path-row"><span class="path-num">2</span><div class="path-file"><code>rag/app/manual.py</code></div><div class="path-desc">PDF 走 OCR、版面分析、表格识别与文本合并；DOCX 保留问题层级和表格；随后按标题层级与 token 数合并为 Chunk。</div></div>
+            <div class="path-row"><span class="path-num">3</span><div class="path-file"><code>rag/nlp/rag_tokenizer.py</code></div><div class="path-desc">项目自带 Huqie 风格词典分词：全半角、繁简和小写标准化，前后向切分、细粒度切分，并支持加载用户词典；它不是 IK。</div></div>
+            <div class="path-row"><span class="path-num">4</span><div class="path-file"><code>rag/nlp/model.py</code></div><div class="path-desc">通过 <code>generate_embedding()</code> 为 Chunk 和用户问题生成向量，向量字段名包含实际维度。</div></div>
+            <div class="path-row"><span class="path-num">5</span><div class="path-file"><code>rag/nlp/query.py</code></div><div class="path-desc">对查询做标准化、分词、词权重、细粒度展开和低权重同义词扩展，构建全文检索表达式。</div></div>
+            <div class="path-row"><span class="path-num">6</span><div class="path-file"><code>rag/nlp/search_v2.py</code></div><div class="path-desc">同时生成全文 Match 与 Dense Match，在 Elasticsearch 侧融合候选，再按关键词/向量相似度或重排模型得到最终 Chunk。</div></div>
+          </div>
+
+          <pre><span class="code-comment"># 当前入库结果的核心形状（概念化）</span>
+{
+  <span class="code-string">"content_with_weight"</span>: <span class="code-string">"保留给生成模型阅读的 Chunk 原文"</span>,
+  <span class="code-string">"content_ltks"</span>: <span class="code-string">"关键词检索使用的分词字段"</span>,
+  <span class="code-string">"content_sm_ltks"</span>: <span class="code-string">"更细粒度的分词字段"</span>,
+  <span class="code-string">"title_tks"</span>: <span class="code-string">"标题词项"</span>,
+  <span class="code-string">"q_1024_vec"</span>: [<span class="code-key">0.013</span>, <span class="code-key">-0.021</span>, ...],
+  <span class="code-string">"doc_id"</span>: <span class="code-string">"..."</span>,
+  <span class="code-string">"docnm"</span>: <span class="code-string">"原始文件名"</span>
+}</pre>
+
+          <div class="callout warning"><strong>当前实现的注意点：</strong>页面展示的是代码现状，不代表所有设计都已经生产化。后续应继续补充失败重试、版本更新/删除同步、权限过滤、可观测性和离线评测；另外在实际运行前应核对重排模型为空时的分支行为。</div>
+        </section>
+
+        <section id="checklist" class="panel">
+          <h2>06 · 入库链路的预处理验收清单</h2>
+          <p class="section-lead">不要只检查“程序有没有报错”，而要抽样验证从解析文本到检索字段的真实形状。</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>检查对象</th><th>应该看到什么</th><th>常见失败信号</th></tr></thead>
+              <tbody>
+                <tr><td>解析文本</td><td>正文可读，标题、表格和段落基本保留</td><td><code>%PDF</code>、乱码、整页为空、顺序错乱</td></tr>
+                <tr><td>语义完整性</td><td>否定、数字、单位、时间、产品型号仍然存在</td><td>“不支持”变成“支持”，金额或单位丢失</td></tr>
+                <tr><td>重复内容</td><td>页眉页脚不反复占据 Chunk</td><td>Top-K 被相同模板或重复页面占满</td></tr>
+                <tr><td>结构信号</td><td>标题层级、页码、表格和来源可追踪</td><td>只能看到一段文本，无法定位原文</td></tr>
+                <tr><td>关键词字段</td><td>领域词切分正确，文档与查询规则一致</td><td>产品名被拆碎，查询词和索引词完全错位</td></tr>
+                <tr><td>向量字段</td><td>维度一致，输入是完整 Chunk 原文</td><td>维度不匹配，或把空格分词串送入 Embedding</td></tr>
+                <tr><td>回归评测</td><td>真实问题的 Recall@K、MRR 和答案准确率可比较</td><td>仅凭肉眼觉得“清洗后更干净”</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="ttft" class="panel">
+          <h2>07 · 查询链路优化：如何提升首字速度</h2>
+          <p class="section-lead">TTFT（Time To First Token）不只是大模型的速度，而是从用户发出问题，到界面收到第一个有效 token 之间的全链路时间。优化前必须先知道时间花在了哪里。</p>
+
+          <div class="equation" aria-label="TTFT 耗时公式">
+            <span class="equation-label">TTFT ≈</span>
+            <span class="equation-part">网关 / 鉴权</span><span class="equation-plus">+</span>
+            <span class="equation-part">查询改写</span><span class="equation-plus">+</span>
+            <span class="equation-part">Embedding</span><span class="equation-plus">+</span>
+            <span class="equation-part">检索 / Rerank</span><span class="equation-plus">+</span>
+            <span class="equation-part">上下文组装</span><span class="equation-plus">+</span>
+            <span class="equation-part">模型排队 / Prefill</span>
+          </div>
+
+          <div class="latency-chain">
+            <article class="latency-node hot"><small>常见大头 01</small><strong>查询改写</strong><span>额外串行调一次 LLM，可能直接多出数百毫秒。</span></article>
+            <article class="latency-node fast"><small>通常较快</small><strong>Embedding</strong><span>小模型、同地域、连接复用和缓存能进一步降低延迟。</span></article>
+            <article class="latency-node fast"><small>通常较快</small><strong>ANN 检索</strong><span>先查过滤索引、跨区访问、冷启动和连接池。</span></article>
+            <article class="latency-node"><small>可能昂贵</small><strong>Rerank</strong><span>延迟随候选数增长，不应无条件重排大量 Chunk。</span></article>
+            <article class="latency-node"><small>容易被忽略</small><strong>Prompt 长度</strong><span>上下文越长，生成前的 Prefill 通常越慢。</span></article>
+            <article class="latency-node hot"><small>常见大头 02</small><strong>LLM 首 token</strong><span>受模型规模、服务排队、网络和推理引擎影响。</span></article>
+          </div>
+
+          <h3 id="ttft-measure" style="margin-top: 30px;">1. 先分段测量，不要凭感觉换组件</h3>
+          <p class="section-lead">分别记录查询改写、Embedding、检索、Rerank、Prompt 组装和 LLM 首 token 的耗时。一定要看 P50 和 P95，同时记录最终输入模型的 token 数。</p>
+
+          <pre><span class="code-key">from</span> time <span class="code-key">import</span> perf_counter
+
+t0 = perf_counter()
+
+<span class="code-comment"># retrieve() 只负责拿候选节点，适合作为检索 / 生成的分界点</span>
+nodes = retriever.retrieve(query)
+t_retrieved = perf_counter()
+
+stream = llm.stream_chat(build_messages(query, nodes))
+t_llm_requested = perf_counter()
+first_token_at = <span class="code-key">None</span>
+
+<span class="code-key">for</span> chunk <span class="code-key">in</span> stream:
+    text = chunk.delta <span class="code-key">or</span> <span class="code-string">""</span>
+    <span class="code-key">if</span> text <span class="code-key">and</span> first_token_at <span class="code-key">is None</span>:
+        first_token_at = perf_counter()
+        <span class="code-key">print</span>({
+            <span class="code-string">"retrieval_ms"</span>: (t_retrieved - t0) * <span class="code-key">1000</span>,
+            <span class="code-string">"llm_ttft_ms"</span>: (first_token_at - t_llm_requested) * <span class="code-key">1000</span>,
+            <span class="code-string">"end_to_end_ttft_ms"</span>: (first_token_at - t0) * <span class="code-key">1000</span>,
+        })
+    render(text)</pre>
+
+          <div class="metric-strip" aria-label="TTFT 可观测指标">
+            <span class="metric-pill"><strong>阶段耗时</strong> rewrite / embedding / retrieval / rerank</span>
+            <span class="metric-pill"><strong>模型耗时</strong> queue / network / prefill</span>
+            <span class="metric-pill"><strong>输入规模</strong> prompt_tokens / chunk_count</span>
+            <span class="metric-pill"><strong>分位数</strong> P50 / P95 / timeout rate</span>
+          </div>
+
+          <div class="callout warning"><strong>不要只记录整个请求耗时：</strong>如果 LLM 首 token 用了 1100ms，向量检索只用了 35ms，优先更换向量库几乎不会改善用户等待。</div>
+
+          <h3 id="ttft-actions" style="margin-top: 30px;">2. 按收益排序的优化动作</h3>
+          <div class="priority-grid">
+            <article class="priority-card"><span class="priority-rank">1</span><h3>移除串行 LLM 调用</h3><p>简单问题直接检索；查询改写用规则或小模型；只在召回置信度低时做二次改写。HyDE、意图识别和路由也不应默认串行。</p></article>
+            <article class="priority-card"><span class="priority-rank">2</span><h3>减少 Prompt token</h3><p>降低最终 Top-K，去掉重复与相邻 Chunk，只传命中的局部段落，历史对话使用摘要，移除重复指令和冗长 metadata。</p></article>
+            <article class="priority-card"><span class="priority-rank">3</span><h3>控制检索与 Rerank</h3><p>Embedding 使用小模型和缓存；检索使用 ANN 索引；先召回 10～20 条，有条件地 Rerank，最终只选 3～5 条进入 Prompt。</p></article>
+            <article class="priority-card"><span class="priority-rank">4</span><h3>并行独立任务</h3><p>Dense 与 BM25、多个知识源、可并行的权限与元数据查询同时执行。并行后总耗时接近最慢分支，而不是所有分支之和。</p></article>
+            <article class="priority-card"><span class="priority-rank">5</span><h3>优化模型与网络</h3><p>选首字快的模型，让应用、Embedding、向量库和 LLM 尽量同地域；保持 HTTP 长连接与连接池，预热 Serverless 实例，对固定前缀使用 Prompt Cache。</p></article>
+            <article class="priority-card"><span class="priority-rank">6</span><h3>立即流式输出</h3><p>收到第一个有效 chunk 后立即渲染，不等完整答案。但流式主要改善用户感知，不会消除流式开始前的检索、Rerank 和 Prefill。</p></article>
+          </div>
+
+          <h3 id="ttft-target" style="margin-top: 30px;">3. 推荐的低延迟架构</h3>
+          <div class="architecture">
+            <div class="architecture-row"><div class="architecture-label">快速判断</div><div class="architecture-arrow">→</div><div class="architecture-content">用本地规则判断是否需要 RAG；不固定调用一个 LLM 进行路由。</div></div>
+            <div class="architecture-row"><div class="architecture-label">并行召回</div><div class="architecture-arrow">→</div><div class="architecture-content">查询 Embedding 使用缓存；Dense 与 BM25 并行；多知识源并行，然后统一去重与融合。</div></div>
+            <div class="architecture-row"><div class="architecture-label">质量门禁</div><div class="architecture-arrow">→</div><div class="architecture-content">候选结果模糊或冲突时再启用轻量 Rerank，最终保留 3～5 个证据 Chunk。</div></div>
+            <div class="architecture-row"><div class="architecture-label">紧凑上下文</div><div class="architecture-arrow">→</div><div class="architecture-content">在 token budget 内优先保留高相关、不重复、可引用的局部原文，避免把整篇文档塞进 Prompt。</div></div>
+            <div class="architecture-row"><div class="architecture-label">流式生成</div><div class="architecture-arrow">→</div><div class="architecture-content">调用同地域的低延迟模型，复用连接并立即流式渲染；引用整理不应无条件阻塞首字。</div></div>
+          </div>
+
+          <div class="callout"><strong>如果只先做三件事：</strong>① 给每个阶段加耗时埋点；② 去掉生成前不必要的串行 LLM 调用；③ 减少最终进入模型的上下文 token。这三项通常比“先换向量库”更能改善首字速度。</div>
+        </section>
+
+        <section id="roadmap" class="panel">
+          <h2>08 · 后续逐步补齐</h2>
+          <p class="section-lead">全链路已建立两条主线：离线入库链路已展开文档预处理，在线查询链路已展开 TTFT 优化。其余环节将继续在这张全链路地图中补齐。</p>
+          <div class="roadmap">
+            <article class="roadmap-card done"><span class="status">已完成</span><h3>文档预处理</h3><p>清洗边界、停用词、同义词、分词器、自定义词典与项目映射。</p></article>
+            <article class="roadmap-card done"><span class="status">已完成</span><h3>TTFT 首字优化</h3><p>耗时分解、分段埋点、串行调用、token 预算、并行检索与流式输出。</p></article>
+            <article class="roadmap-card"><span class="status">待补充</span><h3>解析与 OCR</h3><p>PDF、Word、表格、布局识别与解析质量诊断。</p></article>
+            <article class="roadmap-card"><span class="status">待补充</span><h3>Chunk 策略</h3><p>固定长度、语义切块、层级切块、overlap 与父子块。</p></article>
+            <article class="roadmap-card"><span class="status">待补充</span><h3>Embedding 与索引</h3><p>模型选择、维度、批处理、版本迁移与增量更新。</p></article>
+            <article class="roadmap-card"><span class="status">待补充</span><h3>混合检索</h3><p>Dense、BM25、过滤、查询扩展与 Fusion。</p></article>
+            <article class="roadmap-card"><span class="status">待补充</span><h3>Rerank</h3><p>候选质量门禁、模型重排、阈值与延迟权衡。</p></article>
+            <article class="roadmap-card"><span class="status">待补充</span><h3>上下文组装</h3><p>去重、压缩、token 预算、来源与提示词结构。</p></article>
+            <article class="roadmap-card"><span class="status">待补充</span><h3>生成与引用</h3><p>忠实回答、拒答边界、引用定位与流式输出。</p></article>
+            <article class="roadmap-card"><span class="status">待补充</span><h3>评测与观测</h3><p>Recall@K、MRR、Faithfulness、延迟、成本与反馈闭环。</p></article>
+          </div>
+        </section>
+
+        <p class="footer-note">RAG 学习地图 · 先用分段数据定位瓶颈，再优化质量、延迟与成本</p>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const root = document.documentElement;
+    const themeToggle = document.getElementById('themeToggle');
+    const savedTheme = localStorage.getItem('rag-learning-theme');
+    if (savedTheme) root.dataset.theme = savedTheme;
+
+    themeToggle.addEventListener('click', () => {
+      const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      localStorage.setItem('rag-learning-theme', next);
+    });
+
+    document.querySelectorAll('[data-lane]').forEach((lane) => {
+      const detail = lane.parentElement.querySelector('.stage-detail');
+      lane.querySelectorAll('button.stage').forEach((button) => {
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => {
+          lane.querySelectorAll('button.stage').forEach((item) => item.setAttribute('aria-pressed', 'false'));
+          button.setAttribute('aria-pressed', 'true');
+          detail.textContent = button.dataset.detail;
+        });
+      });
+    });
+
+    const progress = document.getElementById('progress');
+    const tocLinks = [...document.querySelectorAll('.toc a')];
+    const sections = tocLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+
+    function updateReadingState() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = `${max > 0 ? (window.scrollY / max) * 100 : 0}%`;
+
+      let current = sections[0];
+      sections.forEach((section) => {
+        if (section.getBoundingClientRect().top <= 130) current = section;
+      });
+      tocLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${current.id}`));
+    }
+
+    window.addEventListener('scroll', updateReadingState, { passive: true });
+    window.addEventListener('resize', updateReadingState);
+    updateReadingState();
+  </script>
+</body>
+</html>

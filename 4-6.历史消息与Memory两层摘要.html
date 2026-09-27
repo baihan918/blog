@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DeepSeek Harness 历史消息实现：SessionEvent 强日志、累计 checkpoint、Codex Memory 按需读取、FTS5 检索，以及 PostgreSQL、pgvector 与 Milvus 方案边界。">
+  <link rel="icon" href="data:,">
+  <title>历史消息 · Checkpoint 与 Memory 边界</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page:#f5f2e9;--paper:#fffdf8;--paper2:#fff;--ink:#17202f;--muted:#687182;
+      --line:#dedbd1;--soft:#ebe8df;--blue:#3776ab;--blue2:#24557d;--blue-soft:#e7f2fb;
+      --yellow:#efbd16;--yellow2:#745c00;--yellow-soft:#fff5c7;--mint:#2d8a73;--mint-soft:#e7f5ef;
+      --purple:#8260b3;--purple-soft:#f1ebf8;--coral:#e56b4e;--coral-soft:#fff0eb;
+      --code:#18202c;--code-ink:#e8eef7;--shadow:0 22px 60px rgba(51,46,34,.10);
+      --sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+      --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    }
+    [data-theme="dark"]{color-scheme:dark;--page:#121720;--paper:#19212c;--paper2:#1f2936;--ink:#edf2f7;--muted:#a8b2c1;--line:#344151;--soft:#2b3645;--blue-soft:#172d42;--blue2:#78b9ec;--yellow-soft:#3c3517;--yellow2:#f6d654;--mint-soft:#17352f;--purple-soft:#2e2540;--coral-soft:#3d2521;--code:#0d1118;--shadow:0 24px 70px rgba(0,0,0,.28)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);font-family:var(--sans);line-height:1.72;background:radial-gradient(circle at 7% 2%,color-mix(in srgb,var(--blue) 14%,transparent),transparent 29rem),radial-gradient(circle at 94% 13%,color-mix(in srgb,var(--yellow) 18%,transparent),transparent 27rem),var(--page)}
+    button{font:inherit}code{font-family:var(--mono)}::selection{background:color-mix(in srgb,var(--blue) 23%,transparent)}
+    .progress{position:fixed;inset:0 0 auto;z-index:110;height:4px}.progress span{display:block;width:0;height:100%;background:linear-gradient(90deg,var(--blue),var(--purple),var(--yellow))}
+    .topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;min-height:68px;padding:10px clamp(16px,4vw,42px);border-bottom:1px solid color-mix(in srgb,var(--line) 78%,transparent);background:color-mix(in srgb,var(--page) 84%,transparent);backdrop-filter:blur(5px)}
+    .brand,.actions{display:flex;align-items:center;gap:11px}.brand{min-width:0;font-weight:850}.brand span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mark{display:grid;place-items:center;width:40px;height:40px;flex:0 0 auto;border-radius:13px;color:#fff;background:linear-gradient(135deg,var(--blue),var(--purple));font:800 9px/1.05 var(--mono)}
+    .button{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 13px;border:1px solid var(--line);border-radius:11px;color:var(--ink);background:var(--paper);text-decoration:none;cursor:pointer}.button:hover{border-color:var(--blue);transform:translateY(-1px)}
+    .hero{position:relative;max-width:1280px;margin:0 auto;padding:clamp(60px,8vw,105px) clamp(20px,5vw,70px) 54px;overflow:hidden}.hero:after{content:"MEMORY";position:absolute;right:-3%;top:6%;color:color-mix(in srgb,var(--blue) 7%,transparent);font:900 clamp(72px,14vw,190px)/1 Georgia,serif;transform:rotate(-6deg);pointer-events:none}.eyebrow{position:relative;z-index:1;color:var(--blue2);font:800 12px/1 var(--mono);letter-spacing:.12em}.eyebrow:before{content:"";display:inline-block;width:28px;height:3px;margin-right:9px;vertical-align:middle;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--yellow))}
+    h1{position:relative;z-index:1;max-width:960px;margin:20px 0 0;font-size:clamp(38px,7vw,76px);line-height:1.04;letter-spacing:-.045em}h1 span{color:var(--blue)}.hero p{position:relative;z-index:1;max-width:850px;margin:25px 0 0;color:var(--muted);font-size:clamp(16px,2vw,20px)}.hero strong{color:var(--ink)}
+    .facts{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,180px));gap:12px;margin-top:32px}.fact{padding:15px 17px;border:1px solid var(--line);border-radius:15px;background:color-mix(in srgb,var(--paper) 92%,transparent)}.fact b{display:block;color:var(--blue);font:900 18px/1 var(--mono)}.fact:nth-child(2) b{color:var(--purple)}.fact:nth-child(3) b{color:var(--mint)}.fact:nth-child(4) b{color:var(--coral)}.fact small{display:block;margin-top:7px;color:var(--muted)}
+    .truths{max-width:1240px;margin:0 auto;padding:0 22px 28px}.truth-grid{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden;border:1px solid var(--line);border-radius:20px;background:var(--paper);box-shadow:var(--shadow)}.truth{padding:20px 22px;border-right:1px solid var(--soft)}.truth:last-child{border:0}.truth b,.truth span{display:block}.truth b{color:var(--blue2)}.truth span{margin-top:5px;color:var(--muted);font-size:13px}
+    .layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:clamp(28px,5vw,70px);max-width:1240px;margin:0 auto;padding:62px 22px 100px}.toc{position:sticky;top:88px;max-height:calc(100vh - 110px);padding:17px;overflow:auto;border:1px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--paper) 93%,transparent)}.toc b{display:block;margin-bottom:10px;color:var(--muted);font:800 11px/1 var(--mono);letter-spacing:.1em}.toc a{display:block;padding:7px 9px;border-radius:9px;color:var(--muted);text-decoration:none;font-size:12px}.toc a:hover,.toc a.active{color:var(--blue2);background:var(--blue-soft)}
+    .section{margin-top:88px;scroll-margin-top:94px}.section:first-child{margin-top:0}.kicker{color:var(--blue2);font:800 11px/1 var(--mono);letter-spacing:.1em}h2{margin:12px 0 9px;font-size:clamp(27px,4vw,43px);line-height:1.15;letter-spacing:-.028em}h3{margin:0;font-size:18px}.lead{max-width:850px;margin:0 0 26px;color:var(--muted)}
+    .card,.concept,.lab,.code-card,.table-wrap,.checklist{border:1px solid var(--line);border-radius:19px;background:var(--paper);box-shadow:0 12px 30px rgba(45,40,28,.055)}.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.concept{padding:21px}.concept .icon{display:grid;place-items:center;width:40px;height:40px;margin-bottom:13px;border-radius:12px;background:var(--blue-soft);font-size:20px}.concept p{margin:9px 0 0;color:var(--muted);font-size:13px}.concept ul{padding-left:19px;color:var(--muted);font-size:13px}
+    .plain,.insight,.warning{margin-top:16px;padding:18px 20px;border-radius:16px;font-size:13px}.plain{border:1px solid color-mix(in srgb,var(--yellow) 44%,var(--line));background:linear-gradient(105deg,var(--yellow-soft),var(--paper))}.plain strong{color:var(--yellow2)}.insight{border:1px solid color-mix(in srgb,var(--mint) 34%,var(--line));background:var(--mint-soft)}.insight strong{color:var(--mint)}.warning{border:1px solid color-mix(in srgb,var(--coral) 34%,var(--line));background:var(--coral-soft)}.warning strong{color:var(--coral)}
+    .stack{display:grid;gap:12px}.layer{display:grid;grid-template-columns:150px 1fr 185px;gap:16px;align-items:center;padding:18px;border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:15px;background:var(--paper)}.layer:nth-child(2){border-left-color:var(--purple)}.layer:nth-child(3){border-left-color:var(--mint)}.layer:nth-child(4){border-left-color:var(--coral)}.layer b{color:var(--blue2)}.layer p{margin:0;color:var(--muted);font-size:12px}.layer code{color:var(--purple);font-size:10px}
+    .timeline{display:grid;gap:34px;padding:24px}.round{position:relative;display:grid;grid-template-columns:120px 1fr;gap:20px}.round:not(:last-child):after{content:"↓ 继续对话，达到下一次阈值";position:absolute;left:138px;bottom:-29px;color:var(--muted);font:700 10px var(--mono)}.round-tag{padding:13px;border-radius:13px;color:var(--blue2);background:var(--blue-soft);font:850 11px/1.5 var(--mono);text-align:center}.round-flow{display:flex;flex-wrap:wrap;align-items:center;gap:9px}.pill{padding:10px 13px;border:1px solid var(--line);border-radius:12px;background:var(--paper2);font-size:12px}.arrow{color:var(--muted);font-weight:900}.pill.sum{color:var(--purple);border-color:color-mix(in srgb,var(--purple) 45%,var(--line));background:var(--purple-soft)}.pill.keep{color:var(--mint);background:var(--mint-soft)}
+    .source-map{margin-top:18px;padding:26px}.source-root{max-width:470px;margin:0 auto;padding:18px 20px;border:1px solid color-mix(in srgb,var(--blue) 42%,var(--line));border-radius:15px;background:var(--blue-soft);text-align:center}.source-root small,.source-branch small{display:block;color:var(--muted);font:800 10px/1 var(--mono);letter-spacing:.08em}.source-root b{display:block;margin-top:7px;color:var(--blue2);font-size:18px}.source-stem{width:1px;height:32px;margin:0 auto;background:var(--line)}.source-branches{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding-top:32px}.source-branches:before{content:"";position:absolute;top:0;left:16.66%;right:16.66%;border-top:1px solid var(--line)}.source-branch{position:relative;min-height:145px;padding:19px;border:1px solid var(--line);border-radius:15px;background:var(--paper2)}.source-branch:before{content:"↓";position:absolute;left:50%;top:-36px;transform:translateX(-50%);color:var(--muted);font:800 18px var(--mono)}.source-branch b{display:block;margin-top:9px;font-size:15px}.source-branch p{margin:7px 0 0;color:var(--muted);font-size:12px}.source-branch:nth-child(2){border-color:color-mix(in srgb,var(--purple) 38%,var(--line))}.source-branch:nth-child(3){border-color:color-mix(in srgb,var(--mint) 38%,var(--line))}
+    .lab{padding:22px}.lab-tabs{display:flex;flex-wrap:wrap;gap:8px}.lab-tab{padding:10px 13px;border:1px solid var(--line);border-radius:11px;color:var(--muted);background:var(--paper2);cursor:pointer;text-align:left}.lab-tab.active{color:var(--blue2);border-color:var(--blue);background:var(--blue-soft)}.lab-output{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin-top:18px}.lab-box{padding:18px;border:1px solid var(--line);border-radius:15px;background:var(--paper2)}.lab-box b{display:block;color:var(--blue2)}.lab-box p{margin:8px 0 0;color:var(--muted);font-size:12px}.lab-arrow{align-self:center;font-size:24px;color:var(--muted)}
+    .retrieval{display:grid;gap:11px}.retrieval-row{display:grid;grid-template-columns:42px 180px 1fr;gap:13px;align-items:center;padding:15px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}.num{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;color:#fff;background:var(--blue);font:850 11px var(--mono)}.retrieval-row:nth-child(2) .num{background:var(--purple)}.retrieval-row:nth-child(3) .num{background:var(--mint)}.retrieval-row:nth-child(4) .num{background:var(--coral)}.retrieval-row:nth-child(5) .num{background:var(--yellow2)}.retrieval-row b{font-size:13px}.retrieval-row p{margin:0;color:var(--muted);font-size:12px}
+    .topic-lab{padding:22px}.topic-queries{display:flex;flex-wrap:wrap;gap:8px}.topic-query{padding:9px 12px;border:1px solid var(--line);border-radius:10px;color:var(--muted);background:var(--paper2);cursor:pointer}.topic-query.active{color:var(--blue2);border-color:var(--blue);background:var(--blue-soft)}.topic-route{display:grid;grid-template-columns:1.1fr 46px 1fr;gap:12px;align-items:stretch;margin-top:18px}.topic-query-box,.topic-result{padding:17px;border:1px solid var(--line);border-radius:14px;background:var(--paper2)}.topic-query-box small,.topic-result small{display:block;color:var(--muted);font:800 10px/1 var(--mono);letter-spacing:.08em}.topic-query-box p{margin:8px 0 0;font-weight:750}.topic-router{align-self:center;color:var(--purple);font:900 22px/1 var(--mono);text-align:center}.topic-meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.topic-chip{padding:5px 8px;border-radius:8px;color:var(--blue2);background:var(--blue-soft);font:750 10px var(--mono)}.topic-chip.intent{color:var(--purple);background:var(--purple-soft)}.topic-memory{display:grid;gap:8px;margin-top:10px}.memory-hit{display:grid;grid-template-columns:1fr auto;gap:10px;padding:9px 10px;border:1px solid var(--soft);border-radius:10px;font-size:11px}.memory-hit span:last-child{color:var(--mint);font:800 10px var(--mono)}.context-pack{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:14px}.context-part{padding:11px;border:1px solid var(--line);border-radius:11px;background:var(--paper2)}.context-part b{display:block;color:var(--blue2);font-size:11px}.context-part span{display:block;margin-top:4px;color:var(--muted);font-size:10px}.context-part.hot{border-color:color-mix(in srgb,var(--mint) 48%,var(--line));background:var(--mint-soft)}
+    .table-wrap{overflow:auto}.compare{width:100%;min-width:720px;border-collapse:collapse;font-size:12px}.compare th,.compare td{padding:14px 15px;border-bottom:1px solid var(--soft);text-align:left;vertical-align:top}.compare th{color:var(--blue2);background:var(--blue-soft)}.compare tr:last-child td{border:0}.compare td:first-child{font-weight:850}
+    .code-card{overflow:hidden;border-color:#303a48;background:var(--code)}.code-head{display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #303a48;color:#bfc9d8;font:700 11px var(--mono)}.copy{padding:5px 9px;border:1px solid #48566a;border-radius:8px;color:#dce5f1;background:transparent;cursor:pointer;font:700 10px var(--mono)}pre{margin:0;padding:18px;overflow:auto;color:var(--code-ink);background:var(--code);font:12px/1.72 var(--mono)}.cm{color:#8996a8}.kw{color:#f08d81}.fn{color:#82c7f3}.st{color:#b7dc8a}
+    .checklist{padding:22px}.checks{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 18px}.check{display:grid;grid-template-columns:22px 1fr;gap:9px;padding:10px;border-radius:11px;cursor:pointer}.check:hover{background:var(--blue-soft)}.check input{width:17px;height:17px;margin-top:3px;accent-color:var(--mint)}.check b,.check span{display:block}.check b{font-size:12px}.check span{color:var(--muted);font-size:10px}.meter{height:9px;margin-top:17px;overflow:hidden;border-radius:9px;background:var(--soft)}.meter span{display:block;width:0;height:100%;background:linear-gradient(90deg,var(--blue),var(--mint))}.caption{margin-top:8px;color:var(--muted);font-size:11px;text-align:right}footer{padding:34px 20px 58px;color:var(--muted);text-align:center;font-size:12px}
+    @media(max-width:900px){.layout{grid-template-columns:1fr}.toc{display:none}.lab-output,.topic-route{grid-template-columns:1fr}.lab-arrow{transform:rotate(90deg);justify-self:center}.topic-router{transform:rotate(90deg)}.layer{grid-template-columns:1fr}.retrieval-row{grid-template-columns:42px 1fr}.retrieval-row p{grid-column:2}.three{grid-template-columns:1fr}.context-pack{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:760px){.source-branches{grid-template-columns:1fr;gap:32px;padding-top:22px}.source-branches:before{display:none}.source-branch{min-height:0}.source-branch:before{top:-29px}.source-stem{height:24px}}
+    @media(max-width:680px){.facts,.truth-grid,.two,.checks{grid-template-columns:1fr}.truth{border-right:0;border-bottom:1px solid var(--soft)}.round{grid-template-columns:1fr}.round:not(:last-child):after{left:10px}.actions .button:first-child{display:none}h1{font-size:38px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+  </style>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+  <header class="topbar">
+    <div class="brand"><span class="mark">DSH<br>CTX</span><span>历史消息 · Checkpoint 与 Memory 边界</span></div>
+    <div class="actions"><a class="button" href="#flow">查看完整流程</a><button class="button" id="themeToggle" aria-label="切换主题">◐ 主题</button></div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow">DEEPSEEK HARNESS · SESSION SURFACE · COMPACTION</div>
+      <h1>对话太长以后，Agent 看到的是<span>什么</span>，早期原话又去了<span>哪里</span>？</h1>
+      <p>当前项目的核心不是“滚动摘要 + 分段摘要”两套系统，而是<strong>一个当前有效 surface、一份累计 checkpoint、一条 append-only 原始事件日志，加上可选的历史搜索工具。</strong></p>
+      <div class="facts">
+        <div class="fact"><b>80%</b><small>默认压力触发阈值</small></div>
+        <div class="fact"><b>16%</b><small>默认近期原文保留预算</small></div>
+        <div class="fact"><b>1 份</b><small>模型可见的最新累计 checkpoint</small></div>
+        <div class="fact"><b>ALL</b><small>SessionEvent 原始日志</small></div>
+      </div>
+    </section>
+
+    <section class="truths">
+      <div class="truth-grid">
+        <div class="truth"><b>Surface ≠ 全部日志</b><span>模型只看当前有效节点；被 replace 的旧节点仍留在日志。</span></div>
+        <div class="truth"><b>Checkpoint ≠ 分段摘要库</b><span>后续压缩会合并旧 checkpoint，不在上下文中堆叠 S1/S2/S3。</span></div>
+        <div class="truth"><b>Compaction ≠ Memory</b><span>它是同一会话的容量管理，不是跨会话长期知识库。</span></div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <nav class="toc" aria-label="页面目录">
+        <b>CONTENTS</b>
+        <a href="#why">01 当前项目的答案</a><a href="#layers">02 四个数据层次</a><a href="#repeat">03 累计 Checkpoint</a><a href="#injection">04 每轮怎样注入 LLM</a><a href="#event-log">05 SessionEvent 日志</a><a href="#timing">06 什么时候压缩</a><a href="#flow">07 压缩完整流程</a><a href="#topic-routing">08 历史消息怎么检索</a><a href="#memory-decision">09 Memory 何时按需读取</a><a href="#retrieval-types">10 FTS5、向量与混合检索</a><a href="#postgres">11 PostgreSQL 落地方案</a><a href="#milvus">12 pgvector 与 Milvus</a><a href="#compare">13 机制边界对比</a><a href="#state">14 核心伪代码</a><a href="#failure">15 能力与缺口</a><a href="#check">16 理解检查表</a>
+      </nav>
+      <article>
+        <section class="section" id="why">
+          <div class="kicker">01 · CURRENT IMPLEMENTATION</div><h2>它不是“两层摘要”，而是“一个可见面 + 一条完整日志”</h2>
+          <p class="lead">每次请求由 <code>session.deriveMessages()</code> 投影当前 surface。压力不高时携带全部有效历史；压力达标后，旧段被一个结构化 checkpoint 替换。</p>
+          <div class="two">
+            <div class="concept"><div class="icon">🧠</div><h3>模型当前看到的</h3><p>一份最新累计 checkpoint，加上保留的近期原文。</p><ul><li>没压缩时是全部有效消息</li><li>压缩后不堆叠多个摘要</li><li>工具调用与结果不被拆开</li></ul></div>
+            <div class="concept"><div class="icon">📜</div><h3>底层真正保存的</h3><p>按 seq 追加的 <code>SessionEvent</code> 日志，包含原始消息、工具事件和历次压缩记录。</p><ul><li>压缩是 surface replace</li><li>旧节点被 shadow，不是物理删除</li><li>回放、恢复、审计都从日志派生</li></ul></div>
+          </div>
+          <div class="plain"><strong>一句话：</strong>surface 是“本轮发给模型的有效剧本”，SessionEvent log 是“不改写的拍摄母带”。</div>
+        </section>
+
+        <section class="section" id="layers">
+          <div class="kicker">02 · DATA LAYERS</div><h2>四个层次，各自解决不同问题</h2><p class="lead">前三层是当前项目的会话主链；历史查询是独立、可选的能力，不是每轮自动运行的 RAG。</p>
+          <div class="stack">
+            <div class="layer"><b>请求压力</b><p>system prompt、工具 schema、路由配置、当前 surface、工具结果等共同组成 token 压力。</p><code>TokenMeter.totalTokens</code></div>
+            <div class="layer"><b>当前 Surface</b><p>按位置排列的模型可见消息。<code>deriveMessages()</code> 只从这里投影请求历史。</p><code>SessionSurface.nodes</code></div>
+            <div class="layer"><b>累计 Checkpoint</b><p>压缩旧段后生成的结构化 user message，带 <code>&lt;compacted-summary&gt;</code> 标记。</p><code>surfaceOp: replace</code></div>
+            <div class="layer"><b>原始事件日志</b><p>完整保存原始消息、替换来源和历次摘要。可选 session-query 可搜索和精确读取。</p><code>SessionEvent[]</code></div>
+          </div>
+          <div class="insight"><strong>核心原则：</strong>模型可见 ⇔ 必须可以从日志重建。压缩只改变当前 surface，不改写过去的事件。</div>
+        </section>
+
+        <section class="section" id="repeat">
+          <div class="kicker">03 · CUMULATIVE CHECKPOINT</div><h2>第二次压缩：旧 checkpoint + 新旧消息 → 一个新 checkpoint</h2><p class="lead">自动选段永远从 surface 头部开始。因此旧 checkpoint 会进入下一次摘要输入，与新退出近期区的消息合并。</p>
+          <div class="card timeline">
+            <div class="round"><div class="round-tag">压缩前<br>Surface</div><div class="round-flow"><span class="pill">A + B + C + D + E</span><span class="arrow">→</span><span class="pill sum">A+B+C 生成 S1</span><span class="pill keep">D + E 原文</span></div></div>
+            <div class="round"><div class="round-tag">继续对话<br>再达阈值</div><div class="round-flow"><span class="pill sum">S1</span><span class="arrow">+</span><span class="pill">D + E + F</span><span class="arrow">→</span><span class="pill sum">合并生成 S2</span><span class="pill keep">G + H 原文</span></div></div>
+            <div class="round"><div class="round-tag">模型最终<br>可见面</div><div class="round-flow"><span class="pill sum">S2：仍有效的旧信息 + 新信息</span><span class="arrow">+</span><span class="pill keep">G + H</span></div></div>
+          </div>
+          <div class="warning"><strong>不是分段堆叠：</strong>模型不同时看到 S1 + S2。日志中会保留每次 <code>compaction/summary</code> 及来源 seq，但当前 surface 只保留最新累计 checkpoint。</div>
+        </section>
+
+        <section class="section" id="injection">
+          <div class="kicker">04 · CONTEXT INJECTION</div><h2>滚动摘要在对话中怎么用？</h2>
+          <p class="lead">在当前项目里，它表现为 surface 上的最新累计 checkpoint。每次请求执行 <code>deriveMessages()</code> 时，这份 checkpoint 会与保留的近期原文一起投影给 LLM。</p>
+          <div class="two">
+            <div class="concept"><div class="icon">📦</div><h3>“全量提供”指什么</h3><p>指最新那一份 checkpoint 整体进入本轮消息，而不是只从它里截几句。</p><ul><li>只注入当前有效版本 S2</li><li>不再同时注入已被替换的 S1</li><li>作为结构化 user message 进入 surface</li></ul></div>
+            <div class="concept"><div class="icon">🗃️</div><h3>它不等于全量历史</h3><p>原始 SessionEvent 日志不会每轮整库发给模型，否则压缩就失去意义。</p><ul><li>早期原文被 checkpoint 代表</li><li>近期消息保留现场细节</li><li>原日志只在有查询通道时按需回查</li></ul></div>
+          </div>
+          <div class="card timeline">
+            <div class="round"><div class="round-tag">每轮请求<br>Prompt</div><div class="round-flow"><span class="pill">System / 工具规则</span><span class="arrow">+</span><span class="pill sum">最新 Checkpoint</span><span class="arrow">+</span><span class="pill keep">近期原始消息</span><span class="arrow">+</span><span class="pill">当前用户输入</span></div></div>
+            <div class="round"><div class="round-tag">仅在需要时<br>History</div><div class="round-flow"><span class="pill">模型调用 session query</span><span class="arrow">→</span><span class="pill sum">早期原始事件摘录</span><span class="arrow">→</span><span class="pill keep">后续 step 使用</span></div></div>
+          </div>
+          <div class="plain"><strong>举例：</strong>如果 1～80 条旧消息已被压缩，81～100 条仍在 surface，模型看到的是“最新 checkpoint + 81～100 原文”，而不是重新发送 1～100 条。</div>
+          <div class="warning"><strong>多主题边界：</strong>当前 compaction 会把仍有效的多主题信息合并进一份累计 checkpoint，没有自动按当前话题挑选摘要块。要做“用户换题后自动切换历史”，需要在 compaction 之外增加主题识别和可检索 Memory。</div>
+        </section>
+
+        <section class="section" id="event-log">
+          <div class="kicker">05 · SESSION EVENT LOG</div><h2>日志是事实母带，Checkpoint 只是当前投影</h2>
+          <p class="lead"><code>SessionEvent[]</code> 采用 append-only 追加方式，保留原始对话、工具过程和历次压缩记录。它不是每轮全量发给 LLM 的消息列表，而是用于重建、审计与回查的事实源。</p>
+          <div class="stack">
+            <div class="layer"><b>原始交互事件</b><p>保存用户消息、助手消息、工具调用和工具结果，这是精确事实来源。</p><code>user / assistant / tool</code></div>
+            <div class="layer"><b>压缩摘要事件</b><p>每次压缩追加 <code>compaction/summary</code>，同时记录这份摘要来自哪些 seq。</p><code>summary + sourceSeqs</code></div>
+            <div class="layer"><b>Surface 替换事件</b><p>追加包含 Checkpoint 的 user message，并用 <code>surfaceOp: replace</code> 声明它在当前可见面上替代哪一段。</p><code>replace(startSeq, endSeq)</code></div>
+            <div class="layer"><b>历次 Checkpoint</b><p>日志中保留 S1、S2 等历次记录；当前 Surface 只投影最新有效的累计 Checkpoint。</p><code>append-only, never overwrite</code></div>
+          </div>
+          <div class="card timeline">
+            <div class="round"><div class="round-tag">压缩前<br>Event Log</div><div class="round-flow"><span class="pill">A 用户消息</span><span class="arrow">+</span><span class="pill">B 助手回答</span><span class="arrow">+</span><span class="pill">C 工具结果</span></div></div>
+            <div class="round"><div class="round-tag">追加压缩<br>Events</div><div class="round-flow"><span class="pill sum">compaction/summary: S1</span><span class="arrow">+</span><span class="pill sum">checkpoint + replace(A～C)</span></div></div>
+            <div class="round"><div class="round-tag">两种视图<br>Result</div><div class="round-flow"><span class="pill">日志：A + B + C + 摘要事件 + Checkpoint 事件</span><span class="arrow">≠</span><span class="pill keep">Surface：S1 + 近期原文</span></div></div>
+          </div>
+          <figure class="source-map card" aria-labelledby="sourceMapTitle">
+            <div class="source-root"><small id="sourceMapTitle">ONE AUTHORITATIVE DATASET</small><b>一套权威数据：SessionEvent 事件日志</b></div>
+            <div class="source-stem" aria-hidden="true"></div>
+            <div class="source-branches">
+              <div class="source-branch"><small>UI PROJECTION</small><b>对话框历史视图</b><p>宿主读取原始事件及计算后的 view，客户端据此渲染历史气泡；页面展示多少不等于模型收到多少。</p></div>
+              <div class="source-branch"><small>MODEL PROJECTION</small><b>模型上下文 Message[]</b><p>重放 <code>surfaceOp</code> 得到当前有效 surface，再由 <code>deriveMessages()</code> 投影为本轮请求历史。</p></div>
+              <div class="source-branch"><small>OPTIONAL READ MODEL</small><b>历史搜索投影</b><p>从同一日志提取语义文本，建立 FTS5、PostgreSQL FTS 或 pgvector 索引；可以删除后重建。</p></div>
+            </div>
+          </figure>
+          <div class="three">
+            <div class="concept"><div class="icon">🔄</div><h3>重建</h3><p>应用重启或会话恢复时，重放事件及 replace 关系，重新派生当前 Surface。</p></div>
+            <div class="concept"><div class="icon">🧾</div><h3>审计</h3><p>通过 <code>sourceSeqs</code> 知道 Checkpoint 摘要了哪些原始事件，可检查遗漏与失真。</p></div>
+            <div class="concept"><div class="icon">🔎</div><h3>回查</h3><p>摘要缺失端口、金额或代码时，在已挂载查询工具的前提下检索并精确读取原始事件。</p></div>
+          </div>
+          <div class="plain"><strong>三者的边界：</strong><code>SessionEvent 日志</code> = 完整事实档案；<code>Checkpoint</code> = 当前会话的压缩投影；<code>长期 Memory</code> = 筛选后、可跨会话复用的稳定知识。</div>
+          <div class="insight"><strong>一套权威数据，多种派生视图：</strong>后端不需要分别保存“聊天框历史”和“模型历史”。默认只持久化 SessionEvent 日志；聊天框可从原始事件渲染完整气泡，模型历史则由 <code>surfaceOp</code> 重放后通过 <code>deriveMessages()</code> 投影。可选搜索索引也是可删除重建的派生数据，不是第二套事实。</div>
+          <div class="warning"><strong>Shadow 不是 Delete：</strong>旧消息被 Checkpoint 从当前 Surface 遮蔽，但原始事件仍在日志中。这是能够重建、审计和找回细节的前提。</div>
+        </section>
+
+        <section class="section" id="timing">
+          <div class="kicker">06 · WHEN TO COMPACT</div><h2>压缩不看消息条数，主要看当前请求压力</h2><p class="lead"><code>totalTokens</code> 估算的是当前请求整体压力，包含请求头开销和当前 surface，不是数据库中所有历史事件。</p>
+          <div class="lab">
+            <div class="lab-tabs" id="triggerTabs">
+              <button class="lab-tab active" data-key="token">80% 压力</button><button class="lab-tab" data-key="prune">工具结果</button><button class="lab-tab" data-key="overflow">上下文溢出</button><button class="lab-tab" data-key="manual">手动 /compact</button>
+            </div>
+            <div class="lab-output"><div class="lab-box"><b id="triggerTitle">默认在 80% 触发</b><p id="triggerText"><code>totalTokens ≥ contextWindow × 0.8</code> 时，在下一个 step 前尝试压缩。</p></div><div class="lab-arrow">→</div><div class="lab-box"><b id="triggerResult">保留最近约 16%</b><p id="triggerResultText">从尾部按 token 累加保留原文，其余可压缩头部生成 checkpoint。</p></div></div>
+          </div>
+          <div class="plain"><strong>切分边界：</strong>当前实现按 token 预算从尾部保留，再回退到工具调用/结果平衡点；它没有主题分类器来寻找“语义分段”。</div>
+        </section>
+
+        <section class="section" id="flow">
+          <div class="kicker">07 · COMPACTION FLOW</div><h2>一次自动压缩到底发生了什么？</h2><p class="lead">这是当前代码的真实顺序：先计量，再做无模型剪枝，最后才调用摘要模型并原子替换 surface。</p>
+          <div class="retrieval">
+            <div class="retrieval-row"><span class="num">1</span><b>测量请求压力</b><p><code>TokenMeter.measure(session)</code> 得到 <code>totalTokens</code> 和每个 surface node 的估算。</p></div>
+            <div class="retrieval-row"><span class="num">2</span><b>先剪过大工具结果</b><p>可选 pruner 对超预算工具输出保留头尾；剪完重新计量，已安全就不调摘要模型。</p></div>
+            <div class="retrieval-row"><span class="num">3</span><b>选择头部可压缩范围</b><p>尾部保留默认 16% 窗口 token，截点不得拆开 assistant tool call 与 tool result。</p></div>
+            <div class="retrieval-row"><span class="num">4</span><b>生成结构化 Checkpoint</b><p>摘要器接收被选中的原文；如果包含旧 checkpoint，将仍有效信息与新消息合并。</p></div>
+            <div class="retrieval-row"><span class="num">5</span><b>记录来源并替换</b><p>追加 <code>compaction/summary</code>，再追加一个 <code>surfaceOp: replace</code> 的 checkpoint user message。</p></div>
+          </div>
+          <div class="insight"><strong>收敛保护：</strong>新 checkpoint 必须比被替换内容更小。默认允许一次额外压缩尝试；仍无法降到阈值下则报错，不会假装成功。</div>
+        </section>
+
+        <section class="section" id="topic-routing">
+          <div class="kicker">08 · HISTORY RETRIEVAL</div><h2>历史消息如果要检索，实际走哪条链路？</h2>
+          <p class="lead">先看累计 checkpoint 是否保留了答案。若摘要遗漏，只有宿主挂载可选 <code>tool-session-query</code> 时，模型才能主动搜索原始事件。</p>
+          <div class="card topic-lab">
+            <div class="topic-queries" id="topicQueries">
+              <button class="topic-query active" data-topic="summary">摘要里已有答案</button>
+              <button class="topic-query" data-topic="search">摘要遗漏，已启用历史工具</button>
+              <button class="topic-query" data-topic="missing">摘要遗漏，未启用工具</button>
+            </div>
+            <div class="topic-route">
+              <div class="topic-query-box"><small>CURRENT TURN</small><p id="topicText">“很早之前定的端口号是多少？”</p><div class="topic-meta" id="topicMeta"></div></div>
+              <div class="topic-router">→</div>
+              <div class="topic-result"><small>AVAILABLE EVIDENCE</small><div class="topic-memory" id="topicMemory"></div></div>
+            </div>
+            <div class="context-pack" id="contextPack"></div>
+          </div>
+          <div class="retrieval">
+            <div class="retrieval-row"><span class="num">1</span><b>先查当前证据</b><p>模型先检查当前累计 Checkpoint 与近期原文；已有确切答案时不需要额外搜索。</p></div>
+            <div class="retrieval-row"><span class="num">2</span><b>判断搜索范围</b><p><code>session_event_search</code> 搜一个 session 的早期事件；<code>session_search</code> 搜同工作区其他 session，并排除调用方当前 session。</p></div>
+            <div class="retrieval-row"><span class="num">3</span><b>检索候选摘录</b><p>当前 SQLite 提供方使用 FTS5 字面短语搜索；默认覆盖 <code>current</code>、<code>shadowed</code> 和 <code>log-only</code> 事件。</p></div>
+            <div class="retrieval-row"><span class="num">4</span><b>精确读取原事件</b><p>命中摘录只用于定位。金额、端口、代码等精确问题继续使用 <code>session_event_read</code> 按 session id 与 seq 读取原始事件。</p></div>
+            <div class="retrieval-row"><span class="num">5</span><b>带回后续 Step</b><p>读取结果作为工具结果写入本会话日志并进入当前 surface，模型依据原始证据作答；以后它也可能被 compaction。</p></div>
+          </div>
+          <div class="plain"><strong>谁决定要不要检索：</strong>模型根据当前问题和已有上下文主动调用工具；当前没有独立的主题分类器、向量路由器或固定相关度阈值替模型做决定。</div>
+          <div class="warning"><strong>默认限制：</strong>历史查询工具是 opt-in，已发布的默认宿主不挂载它。没有读取通道时，Agent 应说“当前上下文没有证据”，不应猜。</div>
+        </section>
+
+        <section class="section" id="memory-decision">
+          <div class="kicker">09 · MEMORY READ DECISION</div><h2>Codex Memory 如何判断“这次要不要读”？</h2>
+          <p class="lead">这里的“主模型”就是当前理解问题、规划步骤并调用工具的 LLM。它不是额外的记忆分类模型；当前读取路径是“摘要先导航、模型做相关性判断、工具按需检索”。</p>
+          <div class="card timeline">
+            <div class="round"><div class="round-tag">任务启动<br>Prompt</div><div class="round-flow"><span class="pill">Memory Extension 检查开关</span><span class="arrow">→</span><span class="pill sum">注入 memory_summary + 读取规则</span></div></div>
+            <div class="round"><div class="round-tag">当前轮<br>Main Model</div><div class="round-flow"><span class="pill">理解用户问题</span><span class="arrow">+</span><span class="pill">对照摘要索引</span><span class="arrow">→</span><span class="pill keep">判断详细记忆是否会改变答案</span></div></div>
+            <div class="round"><div class="round-tag">需要时<br>Tool Call</div><div class="round-flow"><span class="pill sum">memories.search</span><span class="arrow">或</span><span class="pill sum">exec_command + rg</span><span class="arrow">→</span><span class="pill">命中片段作为 tool output 返回</span></div></div>
+            <div class="round"><div class="round-tag">精读与作答<br>Next Inference</div><div class="round-flow"><span class="pill">必要时 memories.read</span><span class="arrow">→</span><span class="pill keep">记忆片段 + 当前证据</span><span class="arrow">→</span><span class="pill">生成答案</span></div></div>
+          </div>
+          <div class="two">
+            <div class="concept"><div class="icon">🧭</div><h3>什么时倾向读取</h3><p>问题提到历史项目、仓库、文件、用户偏好、过往决策或要求与之前保持一致；问题有歧义且可能依赖旧上下文时也应快速检索。</p></div>
+            <div class="concept"><div class="icon">⏭️</div><h3>什么时可以跳过</h3><p>当前问题完全自包含，如简单翻译、一句话改写、格式转换或一条与项目无关的命令；额外记忆不会改变结果时不做推测性检索。</p></div>
+          </div>
+          <div class="retrieval">
+            <div class="retrieval-row"><span class="num">1</span><b>摘要已经在场</b><p><code>memory_summary.md</code> 在启用且非空时会预先进入 developer instructions；不需要先调用搜索工具才能看到导航摘要。</p></div>
+            <div class="retrieval-row"><span class="num">2</span><b>语义判断在 LLM</b><p>没有固定的 <code>if (intent === "memory")</code> 分类服务。模型根据当前问题、摘要路由和开发者规则自主选择工具。</p></div>
+            <div class="retrieval-row"><span class="num">3</span><b>工具调用是触发点</b><p>模型输出 function call；Runtime 执行搜索，再把结果作为 function-call output 回填给模型。默认可用 <code>exec_command</code> 执行 <code>rg</code>，开启 dedicated tools 时可直接用 <code>memories.search/read</code>。</p></div>
+            <div class="retrieval-row"><span class="num">4</span><b>召回是字面检索</b><p>当前本地 Memory 读取是 Markdown 文件的关键词/子串匹配，支持同行或行窗口条件；未使用 embedding、余弦相似度或 reranker。</p></div>
+            <div class="retrieval-row"><span class="num">5</span><b>模型二次筛选</b><p>文本检索只负责找到候选行；LLM 判断命中是否真的相关、是否需要继续读取 rollout summary，并对可能过期的信息回到当前代码验证。</p></div>
+          </div>
+          <div class="code-card"><div class="code-head"><span>memory-read-loop.ts · 机制伪代码</span><button class="copy" data-copy="memoryReadCode">复制</button></div><pre id="memoryReadCode"><code><span class="cm">// memorySummary 已随 developer instructions 进入首次推理</span>
+<span class="kw">const</span> decision = mainModel.reason(userQuery, memorySummary, readRules)
+
+<span class="kw">if</span> (decision.needsDetailedMemory) {
+  <span class="cm">// 这一步是模型发出工具调用，不是独立意图分类器强制执行</span>
+  <span class="kw">const</span> hits = await tools.<span class="fn">memorySearch</span>({
+    queries: decision.keywords
+  })
+  <span class="kw">const</span> evidence = decision.needExactDetail
+    ? await tools.<span class="fn">memoryRead</span>(hits.best.path)
+    : hits
+  <span class="kw">return</span> mainModel.answer(userQuery, evidence)
+}
+
+<span class="kw">return</span> mainModel.answer(userQuery)</code></pre></div>
+          <div class="plain"><strong>一句话定位：</strong>这是“LLM 语义路由 + function tool + 文件关键词召回 + LLM 二次筛选”，不是“独立意图模型 + 向量数据库”。</div>
+          <div class="warning"><strong>不要与会话恢复混淆：</strong>当前 session 的历史消息由会话日志/surface 自动恢复，不经过这个“是否搜 Memory”判断；本节说的是跨任务长期记忆。</div>
+        </section>
+
+        <section class="section" id="retrieval-types">
+          <div class="kicker">10 · RETRIEVAL TYPES</div><h2>FTS5 是关键词检索的一种实现，不等于向量检索</h2>
+          <p class="lead">“关键词检索”是能力类别，SQLite FTS5 是具体全文引擎。它先分词并建立倒排索引，再按词或短语命中；向量检索则比较 embedding 的语义距离。</p>
+          <div class="table-wrap"><table class="compare"><thead><tr><th>方式</th><th>匹配依据</th><th>擅长</th><th>主要缺口</th></tr></thead><tbody>
+            <tr><td>LIKE / 包含扫描</td><td>字符串是否包含查询文本</td><td>少量数据、临时查找</td><td>大语料扫描成本高，缺少相关度能力</td></tr>
+            <tr><td>SQLite FTS5</td><td>分词后的字面 token / 短语</td><td>文件名、函数名、端口、错误码和原话</td><td>用户换一种说法时容易漏召回</td></tr>
+            <tr><td>向量检索</td><td>问题与文档 embedding 的距离</td><td>同义改写、模糊回忆和概念相近内容</td><td>精确值可能被相似内容干扰，可解释性较弱</td></tr>
+            <tr><td>混合检索</td><td>关键词候选 + 向量候选</td><td>同时覆盖精确值与语义表达</td><td>需要融合排名、评测和索引版本治理</td></tr>
+          </tbody></table></div>
+          <div class="two">
+            <div class="concept"><div class="icon">🔤</div><h3>字面命中</h3><p>原文是“API 服务监听 8787 端口”，搜索“端口”时 FTS5 很合适。当前实现把输入当作规范化字面短语，<code>OR</code>、<code>NEAR</code>、<code>*</code> 不作为查询语法执行。</p></div>
+            <div class="concept"><div class="icon">🧭</div><h3>语义命中</h3><p>用户改问“当时网络配置怎么定的”，原话没有“网络配置”时，关键词可能落空；向量可以把它与“服务监听端口”关联起来。</p></div>
+          </div>
+          <div class="insight"><strong>选择结论：</strong>查原话和精确值，FTS5 更稳；查相同意思，向量更强；面向长期真实使用，通常让两路各取 TopK，再用 RRF 或 rerank 合并。</div>
+        </section>
+
+        <section class="section" id="postgres">
+          <div class="kicker">11 · POSTGRESQL DESIGN</div><h2>迁移 PostgreSQL：强日志不变，搜索作为派生投影接在后面</h2>
+          <p class="lead">推荐让 PostgreSQL 同时承载权威 SessionEvent 日志与可重建搜索投影，但使用不同 schema 隔离职责。安装 <code>pgvector</code> 后，PostgreSQL 可以同时完成关系过滤、关键词检索与向量近邻搜索。</p>
+          <div class="card timeline">
+            <div class="round"><div class="round-tag">事务主链<br>dsh_log</div><div class="round-flow"><span class="pill">append SessionEvent</span><span class="arrow">+</span><span class="pill">校验连续 seq</span><span class="arrow">+</span><span class="pill keep">写 indexing outbox</span></div></div>
+            <div class="round"><div class="round-tag">异步投影<br>dsh_search</div><div class="round-flow"><span class="pill">提取事件文本</span><span class="arrow">→</span><span class="pill">长内容切块</span><span class="arrow">→</span><span class="pill sum">生成 embedding</span><span class="arrow">→</span><span class="pill keep">写关键词与向量索引</span></div></div>
+            <div class="round"><div class="round-tag">在线查询<br>Hybrid</div><div class="round-flow"><span class="pill">关键词 TopK</span><span class="arrow">+</span><span class="pill sum">向量 TopK</span><span class="arrow">→</span><span class="pill keep">RRF 合并</span><span class="arrow">→</span><span class="pill">按 seq 回读强日志</span></div></div>
+          </div>
+          <div class="three">
+            <div class="concept"><div class="icon">📜</div><h3>PostgreSQL 持久化插件</h3><p>新增 <code>session-persistence-postgres</code>，实现现有 <code>SessionPersistence</code> 的 create、append、load、inspect、readFrom、list 与 listSnapshots。</p></div>
+            <div class="concept"><div class="icon">🧱</div><h3>日志事务约束</h3><p>以 <code>(session_id, seq)</code> 为主键；append 时锁定 session 行，校验起始 seq 和批次连续性，然后更新 next_seq 与 revision。</p></div>
+            <div class="concept"><div class="icon">🔎</div><h3>混合查询插件</h3><p>新增 PostgreSQL Session Query 提供方；授权过滤必须在关键词和向量两条候选查询中同时生效，最终仍按 seq 读取原事件。</p></div>
+          </div>
+          <div class="code-card"><div class="code-head"><span>postgresql-schema.sql · 结构示意</span><button class="copy" data-copy="pgCode">复制</button></div><pre id="pgCode"><code><span class="kw">CREATE TABLE</span> dsh_log.session_events (
+  session_id text, seq bigint, type text, time timestamptz,
+  data jsonb, source_event_seqs bigint[], surface_op jsonb,
+  <span class="kw">PRIMARY KEY</span> (session_id, seq)
+);
+
+<span class="kw">CREATE TABLE</span> dsh_search.documents (
+  session_id text, seq bigint, chunk_no integer,
+  cwd text, surface text, content text,
+  text_search tsvector, embedding vector(1536),
+  content_hash text, embedding_model text,
+  <span class="kw">PRIMARY KEY</span> (session_id, seq, chunk_no)
+);
+
+<span class="kw">CREATE INDEX</span> docs_fts
+  <span class="kw">ON</span> dsh_search.documents <span class="kw">USING</span> gin(text_search);
+<span class="kw">CREATE INDEX</span> docs_vector
+  <span class="kw">ON</span> dsh_search.documents <span class="kw">USING</span> hnsw
+  (embedding vector_cosine_ops);</code></pre></div>
+          <div class="plain"><strong>为什么要 Outbox：</strong>事件日志与待索引任务在同一事务提交；embedding 在事务外异步生成。模型服务超时不会阻塞会话落盘，失败任务可以重试，关键词索引也可以先于向量结果可用。</div>
+          <div class="warning"><strong>中文关键词检索：</strong>PostgreSQL 内置 <code>tsvector</code> 不应被当作完整中文分词方案。可在应用层预分词，并用 <code>pg_trgm</code> 补充中文片段、路径和错误码；向量负责语义改写召回。</div>
+        </section>
+
+        <section class="section" id="milvus">
+          <div class="kicker">12 · PGVECTOR OR MILVUS</div><h2>当前阶段不必引入 Milvus，先让 pgvector 承担向量投影</h2>
+          <p class="lead">PostgreSQL 不是原生向量数据库，但安装 pgvector 后支持向量类型、距离计算、精确近邻和 HNSW / IVFFlat 近似索引。Milvus 则是以分布式向量检索为中心的独立系统。</p>
+          <div class="table-wrap"><table class="compare"><thead><tr><th>维度</th><th>PostgreSQL + pgvector</th><th>Milvus</th></tr></thead><tbody>
+            <tr><td>系统定位</td><td>关系数据库增加向量能力</td><td>专用分布式向量数据库</td></tr>
+            <tr><td>强日志</td><td>事务、唯一约束、连续 seq 和 JSONB 很适合</td><td>不建议取代 SessionEvent 的关系型事实存储</td></tr>
+            <tr><td>混合检索</td><td>FTS / pg_trgm + pgvector，再用 SQL、RRF 或 cross-encoder 融合</td><td>原生支持 dense、sparse/BM25、多向量搜索与融合</td></tr>
+            <tr><td>过滤与关联</td><td>cwd、session、时间、事件类型和 JOIN 表达能力强</td><td>适合检索标量过滤，不面向复杂关系事务</td></tr>
+            <tr><td>扩展方式</td><td>先垂直扩展，再结合副本、分区或分布式 PostgreSQL 方案</td><td>面向大规模向量集合的独立水平扩展</td></tr>
+            <tr><td>运维成本</td><td>已有 PostgreSQL 时较低，无跨库同步</td><td>增加集群、同步、索引一致性和监控成本</td></tr>
+          </tbody></table></div>
+          <div class="two">
+            <div class="concept"><div class="icon">✅</div><h3>优先 pgvector</h3><p>会话历史以强日志为中心、向量规模尚未证明 PostgreSQL 是瓶颈时，将日志、授权字段和两类索引放在同一数据库最简单可靠。</p></div>
+            <div class="concept"><div class="icon">↗️</div><h3>何时再上 Milvus</h3><p>只有压测证明 pgvector 的吞吐、延迟、索引内存或多模态能力不能满足目标，并且需要独立扩容检索资源时再引入。</p></div>
+          </div>
+          <div class="card timeline">
+            <div class="round"><div class="round-tag">引入 Milvus 后<br>Source of Truth</div><div class="round-flow"><span class="pill keep">PostgreSQL：SessionEvent 强日志</span><span class="arrow">→</span><span class="pill">Outbox / CDC</span><span class="arrow">→</span><span class="pill sum">Milvus：可重建向量索引</span></div></div>
+            <div class="round"><div class="round-tag">命中以后<br>Exact Read</div><div class="round-flow"><span class="pill sum">Milvus 返回 session_id + seq</span><span class="arrow">→</span><span class="pill keep">回 PostgreSQL 读取原始事件</span></div></div>
+          </div>
+          <div class="insight"><strong>演进顺序：</strong>先实现 PostgreSQL 强日志 → 建关键词投影 → 加 pgvector → 用真实问题评测召回率与延迟 → 只有基准数据证明需要时，才把向量提供方替换为 Milvus。</div>
+        </section>
+
+        <section class="section" id="compare">
+          <div class="kicker">13 · BOUNDARIES</div><h2>当前项目中，Checkpoint、原始日志、历史检索和 Memory 不是一件事</h2>
+          <div class="table-wrap"><table class="compare"><thead><tr><th>对象</th><th>主要目的</th><th>数量</th><th>是否每轮注入</th><th>典型内容</th></tr></thead><tbody>
+            <tr><td>当前 Surface</td><td>组装本轮模型历史</td><td>1 个有序面</td><td>是</td><td>最新 checkpoint + 近期原文</td></tr>
+            <tr><td>累计 Checkpoint</td><td>压缩同 session 旧上下文</td><td>当前通常 1 份</td><td>在 surface 上时是</td><td>目标、文件、错误、当前工作、下一步</td></tr>
+            <tr><td>SessionEvent 日志</td><td>回放、恢复、审计与来源追踪</td><td>全部追加事件</td><td>否，由 surface 投影</td><td>原话、工具事件、替换关系、历次摘要</td></tr>
+            <tr><td>Session Query</td><td>按需搜索早期/其他会话</td><td>可选工具</td><td>否，模型决定调用</td><td>FTS5 命中摘录，再 trace/read 精确事件</td></tr>
+            <tr><td>长期 Memory</td><td>跨会话保存稳定知识</td><td>DeepSeek 与 Codex 需分开看</td><td>Codex 摘要先导航，详情按需读</td><td>用户偏好、稳定项目规则、经验结论</td></tr>
+          </tbody></table></div>
+          <div class="plain"><strong>重要更正：</strong>当前 compaction 不会额外产生多份可检索的 Chunk Summary，也没有向量检索 + rerank 链路。若未来引入长期 Memory，它应是 compaction 之外的独立能力。</div>
+        </section>
+
+        <section class="section" id="state">
+          <div class="kicker">14 · CODE PATH</div><h2>用接近项目实现的伪代码串起全流程</h2><p class="lead">关键不是维护一个可变的 <code>rolling_summary</code> 字段，而是对 append-only 事件日志投影 surface，用 replace 节点表示当前 checkpoint。</p>
+          <div class="code-card"><div class="code-head"><span>compaction-flow.ts · 项目机制伪代码</span><button class="copy" data-copy="codeBlock">复制</button></div><pre id="codeBlock"><code><span class="kw">async function</span> <span class="fn">beforeStep</span>(agent) {
+  <span class="kw">let</span> measurement = tokenMeter.measure(agent.session)
+  <span class="kw">const</span> contextWindow = await resolveContextWindow(agent)
+  <span class="kw">const</span> threshold = Math.floor(contextWindow * <span class="st">0.8</span>)
+
+  <span class="kw">if</span> (measurement.totalTokens &lt; threshold) <span class="kw">return</span>
+
+  <span class="cm">// 先做无模型剪枝：过大工具结果保留头尾</span>
+  toolResultPruner?.pruneSession(agent.session)
+  measurement = tokenMeter.measure(agent.session)
+  <span class="kw">if</span> (measurement.totalTokens &lt; threshold) <span class="kw">return</span>
+
+  <span class="cm">// 尾部默认保留 16% token，而且不拆 tool call/result</span>
+  <span class="kw">const</span> retainTokens = Math.floor(contextWindow * <span class="st">0.16</span>)
+  <span class="kw">const</span> range = selectCompactableRange(
+    agent.session, measurement, retainTokens
+  )
+  <span class="kw">if</span> (!range) <span class="kw">return</span>
+
+  <span class="cm">// range 从 surface 头部开始，可能包含上次 checkpoint</span>
+  <span class="kw">const</span> summary = await summarize(
+    buildSummarizationInput(agent.session, range)
+  )
+  assertSmaller(summary, range)
+
+  session.append(<span class="st">"compaction/summary"</span>, { summary, sourceSeqs: range })
+  session.append(<span class="st">"user/message"</span>, frameSummary(summary), {
+    surfaceOp: { op: <span class="st">"replace"</span>, ...range }
+  })
+}
+
+<span class="cm">// 每次真正请求只投影当前 surface</span>
+request.messages = agent.session.deriveMessages()</code></pre></div>
+        </section>
+
+        <section class="section" id="failure">
+          <div class="kicker">15 · CAPABILITIES &amp; GAPS</div><h2>当前方案解决了什么，又没有解决什么？</h2>
+          <div class="two">
+            <div class="concept"><div class="icon">✅</div><h3>可重建</h3><p>模型可见内容都能从日志重建，压缩替换还记录被遮蔽的来源 seq。</p></div>
+            <div class="concept"><div class="icon">🧱</div><h3>结构安全</h3><p>压缩切点保护工具调用/结果成对关系，且拒绝不能缩小原文的摘要。</p></div>
+            <div class="concept"><div class="icon">⚠️</div><h3>摘要会衰减</h3><p>累计 checkpoint 多次重写可能丢失早期细节；原日志保住了事实，但不保证模型自动找回。</p></div>
+            <div class="concept"><div class="icon">🔎</div><h3>检索不是默认兜底</h3><p>历史工具必须显式挂载，且由模型决定是否搜、用什么字面查询。</p></div>
+          </div>
+        </section>
+
+        <section class="section" id="check">
+          <div class="kicker">16 · UNDERSTANDING CHECK</div><h2>用这二十二条确认你已经理清实现</h2>
+          <div class="checklist"><div class="checks" id="checks">
+            <label class="check"><input type="checkbox"><span><b>模型历史来自 surface</b><span>不是固定只取最近 N 条</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>80% 比较 totalTokens</b><span>包含请求头开销和当前可见面</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>默认保留最近 16%</b><span>按 token 而不是按消息条数</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>不拆工具成对关系</b><span>切点会回退到平衡边界</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>旧 Checkpoint 参与再压缩</b><span>与新旧消息合并成新版</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>不堆叠分段摘要</b><span>当前模型可见一份累计 checkpoint</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>压缩是 replace 不是 delete</b><span>旧节点仍留在 append-only 日志</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>历次摘要事件可审计</b><span>日志记录来源 seq 和原始输出</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>工具结果优先无模型剪枝</b><span>剪后安全就不再摘要</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>历史搜索是 opt-in</b><span>模型决定是否调用 FTS5 工具</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>Memory 与 Compaction 分开</b><span>同会话容量管理不等于长期知识</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>最新 Checkpoint 整体注入</b><span>与近期原文共同组成当前 surface</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>不全量注入原始日志</b><span>早期原文只在有查询通道时按需回查</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>FTS5 属于关键词检索</b><span>它是 SQLite 的全文倒排索引实现</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>PostgreSQL 可安装 pgvector</b><span>同库支持关系过滤、全文和向量近邻</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>搜索表只是派生投影</b><span>唯一事实仍是 SessionEvent 强日志</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>Embedding 走 Outbox 异步</b><span>外部模型失败不阻塞会话日志提交</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>Milvus 不是当前必需项</b><span>先评测 pgvector，证明瓶颈后再拆分</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>Memory Summary 先注入</b><span>它是导航摘要，不需要先调搜索工具</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>主模型做相关性判断</b><span>不是独立意图分类服务</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>Function call 触发检索</b><span>Runtime 执行后把 tool output 返回 LLM</span></span></label>
+            <label class="check"><input type="checkbox"><span><b>Codex 当前召回是字面匹配</b><span>Markdown 关键词/子串检索，非向量相似度</span></span></label>
+          </div><div class="meter"><span id="meter"></span></div><div class="caption" id="caption" aria-live="polite">0 / 22 已确认</div></div>
+        </section>
+      </article>
+    </div>
+  </main>
+  <footer>DeepSeek Harness · Session Surface · Cumulative Checkpoint · BIG-GROUP S2 学习页面</footer>
+  <script>
+    const root=document.documentElement,themeToggle=document.getElementById('themeToggle');
+    const saved=localStorage.getItem('memory-page-theme');if(saved)root.dataset.theme=saved;
+    themeToggle.addEventListener('click',()=>{const next=root.dataset.theme==='dark'?'light':'dark';root.dataset.theme=next;localStorage.setItem('memory-page-theme',next)});
+    const progressBar=document.getElementById('progressBar');addEventListener('scroll',()=>{const max=document.documentElement.scrollHeight-innerHeight;progressBar.style.width=(max?scrollY/max*100:0)+'%'});
+    const data={
+      token:['默认在 80% 触发','totalTokens ≥ contextWindow × 0.8 时，在下一个 step 前尝试压缩。','保留最近约 16%','从尾部按 token 累加保留原文，其余可压缩头部生成 checkpoint。'],
+      prune:['先处理过大工具结果','基础 bundle 中，超过 8192 字符的工具结果会先保留头部 4096 与尾部 1024。','剪枝后重新测量','如果已回到 80% 以下，本次不需要调用摘要模型。'],
+      overflow:['提供方确认上下文溢出','即使预检未触发，请求返回 CONTEXT_WINDOW_EXCEEDED 后仍可进入恢复链路。','最大化头部压缩并重试','溢出恢复不使用常规保留预算，但仍保留最新不可分割单元。'],
+      manual:['空闲会话可手动压缩','/compact 请求一次有用的头部缩减，不必等到自动阈值。','依然使用同一交易链路','选段、摘要、缩小验证、来源记录和 surface replace 与自动压缩一致。']
+    };
+    document.getElementById('triggerTabs').addEventListener('click',e=>{const btn=e.target.closest('[data-key]');if(!btn)return;document.querySelectorAll('.lab-tab').forEach(x=>x.classList.toggle('active',x===btn));const v=data[btn.dataset.key];['triggerTitle','triggerText','triggerResult','triggerResultText'].forEach((id,i)=>document.getElementById(id).textContent=v[i])});
+    const topicData={
+      summary:{text:'很早之前定的端口号是多少？',meta:[['source','checkpoint'],['tool','不需要'],['evidence','充足']],hits:[['Critical Context: API 端口为 8787','可直接回答']],hot:'当前累计 checkpoint'},
+      search:{text:'很早之前定的端口号是多少？',meta:[['source','raw log'],['tool','session_event_search'],['evidence','需回查']],hits:[['FTS5 命中 seq=142: “端口改为 8787”','再 event_read']],hot:'被 shadow 的原始事件'},
+      missing:{text:'很早之前定的端口号是多少？',meta:[['source','当前 surface'],['tool','未挂载'],['evidence','不足']],hits:[['checkpoint 未保留端口号','不可猜测'],['请用户提供关键词或启用查询工具','正确降级']],hot:'无可用的原始日志读取通道'}
+    };
+    const topicText=document.getElementById('topicText'),topicMeta=document.getElementById('topicMeta'),topicMemory=document.getElementById('topicMemory'),contextPack=document.getElementById('contextPack');
+    function renderTopic(key){const v=topicData[key];topicText.textContent=v.text;topicMeta.innerHTML=v.meta.map(([k,x])=>`<span class="topic-chip ${k==='tool'?'intent':''}">${k}: ${x}</span>`).join('');topicMemory.innerHTML=v.hits.map(([x,s])=>`<div class="memory-hit"><span>${x}</span><span>${s}</span></div>`).join('');contextPack.innerHTML=`<div class="context-part"><b>当前 Checkpoint</b><span>先寻找现有证据</span></div><div class="context-part hot"><b>可用来源</b><span>${v.hot}</span></div><div class="context-part"><b>精确读取</b><span>需要时查原始 event</span></div><div class="context-part"><b>回答规则</b><span>有证据才回答</span></div>`}
+    document.getElementById('topicQueries').addEventListener('click',e=>{const btn=e.target.closest('[data-topic]');if(!btn)return;document.querySelectorAll('.topic-query').forEach(x=>x.classList.toggle('active',x===btn));renderTopic(btn.dataset.topic)});renderTopic('summary');
+    document.querySelectorAll('[data-copy]').forEach(btn=>btn.addEventListener('click',async()=>{await navigator.clipboard.writeText(document.getElementById(btn.dataset.copy).innerText);btn.textContent='已复制';setTimeout(()=>btn.textContent='复制',1200)}));
+    const boxes=[...document.querySelectorAll('#checks input')],meter=document.getElementById('meter'),caption=document.getElementById('caption');function updateChecks(){const n=boxes.filter(x=>x.checked).length;meter.style.width=n/boxes.length*100+'%';caption.textContent=`${n} / ${boxes.length} 已确认`};boxes.forEach(x=>x.addEventListener('change',updateChecks));
+    const links=[...document.querySelectorAll('.toc a')],sections=links.map(a=>document.querySelector(a.getAttribute('href')));const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting)links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+entry.target.id))}),{rootMargin:'-20% 0px -70%'});sections.forEach(s=>s&&observer.observe(s));
+  </script>
+</body>
+</html>

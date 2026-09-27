@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent 执行失败后的完整恢复策略：错误分类、幂等确认、有限重试、降级、Replan、Handoff 与人工接管。">
+  <link rel="icon" href="data:,">
+  <title>如果检测到无进展循环，怎么把 Agent 拉出来？</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page:#f5f2e9; --paper:#fffdf8; --paper-2:#fff; --ink:#182231; --muted:#697282;
+      --line:#dedbd1; --soft:#ebe8df; --blue:#3776ab; --blue-deep:#24557d; --blue-soft:#e7f2fb;
+      --yellow:#efbd16; --yellow-deep:#745c00; --yellow-soft:#fff5c7; --mint:#2d8a73; --mint-soft:#e7f5ef;
+      --purple:#8260b3; --purple-soft:#f1ebf8; --coral:#df6048; --coral-soft:#fff0eb;
+      --code:#18202c; --code-ink:#e8eef7; --shadow:0 22px 60px rgba(51,46,34,.1);
+      --sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+      --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark; --page:#121720; --paper:#19212c; --paper-2:#202a37; --ink:#edf2f7; --muted:#a8b2c1;
+      --line:#344151; --soft:#2b3645; --blue-deep:#79bced; --blue-soft:#172d42; --yellow-deep:#f6d654;
+      --yellow-soft:#3c3517; --mint-soft:#17352f; --purple-soft:#2e2540; --coral-soft:#3d2521; --shadow:0 24px 70px rgba(0,0,0,.28);
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); font-family:var(--sans); line-height:1.72; background:radial-gradient(circle at 8% 3%,color-mix(in srgb,var(--blue) 14%,transparent),transparent 30rem),radial-gradient(circle at 93% 10%,color-mix(in srgb,var(--yellow) 18%,transparent),transparent 28rem),var(--page); }
+    button { font:inherit; } code { font-family:var(--mono); }
+    .progress-track { position:fixed; inset:0 0 auto; z-index:120; height:4px; }
+    .progress-bar { width:0; height:100%; background:linear-gradient(90deg,var(--blue),var(--purple),var(--yellow)); }
+    .topbar { position:sticky; top:0; z-index:100; display:flex; align-items:center; justify-content:space-between; min-height:68px; padding:10px clamp(16px,4vw,42px); border-bottom:1px solid color-mix(in srgb,var(--line) 78%,transparent); background:color-mix(in srgb,var(--page) 84%,transparent); backdrop-filter:blur(5px); }
+    .brand,.actions { display:flex; align-items:center; gap:11px; }
+    .brand { min-width:0; font-weight:850; }
+    .brand span:last-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .brand-mark { display:grid; place-items:center; width:40px; height:40px; flex:0 0 auto; border-radius:13px; color:#fff; background:linear-gradient(135deg,var(--coral),var(--purple)); box-shadow:0 8px 20px rgba(130,96,179,.22); font:800 10px/1 var(--mono); }
+    .button { display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:8px 13px; border:1px solid var(--line); border-radius:11px; color:var(--ink); background:var(--paper); text-decoration:none; cursor:pointer; transition:transform 140ms ease,border-color 140ms ease; }
+    .button:hover { border-color:var(--blue); transform:translateY(-1px); }
+    .button.primary { color:#fff; border-color:var(--blue); background:var(--blue); }
+    .theme-toggle { width:40px; padding:0; }
+    .hero { position:relative; max-width:1240px; margin:0 auto; padding:clamp(62px,8vw,108px) clamp(20px,5vw,70px) 52px; overflow:hidden; }
+    .hero::after { content:"RECOVER"; position:absolute; right:-2%; top:9%; color:color-mix(in srgb,var(--coral) 7%,transparent); font:900 clamp(74px,14vw,185px)/1 Georgia,serif; transform:rotate(-7deg); pointer-events:none; }
+    .eyebrow { position:relative; z-index:1; display:flex; align-items:center; gap:9px; color:var(--blue-deep); font:800 12px/1 var(--mono); letter-spacing:.12em; text-transform:uppercase; }
+    .eyebrow::before { content:""; width:28px; height:3px; border-radius:3px; background:linear-gradient(90deg,var(--blue),var(--yellow)); }
+    h1 { position:relative; z-index:1; max-width:980px; margin:20px 0 0; font-size:clamp(38px,7vw,76px); line-height:1.04; letter-spacing:-.045em; }
+    h1 span { color:var(--coral); }
+    .hero-copy { position:relative; z-index:1; max-width:870px; margin:25px 0 0; color:var(--muted); font-size:clamp(16px,2vw,20px); }
+    .hero-copy strong { color:var(--ink); }
+    .hero-actions { position:relative; z-index:1; display:flex; flex-wrap:wrap; gap:10px; margin-top:28px; }
+    .layout { display:grid; grid-template-columns:224px minmax(0,1fr); gap:clamp(28px,5vw,70px); max-width:1240px; margin:0 auto; padding:58px 22px 100px; }
+    .toc { position:sticky; top:88px; max-height:calc(100vh - 110px); padding:17px; overflow-y:auto; border:1px solid var(--line); border-radius:18px; background:color-mix(in srgb,var(--paper) 93%,transparent); box-shadow:0 12px 32px rgba(45,40,28,.06); }
+    .toc-title { margin:0 0 10px; color:var(--muted); font:800 11px/1 var(--mono); letter-spacing:.1em; }
+    .toc a { display:block; margin:2px 0; padding:7px 9px; border-radius:9px; color:var(--muted); text-decoration:none; font-size:12px; line-height:1.4; }
+    .toc a:hover,.toc a.active { color:var(--blue-deep); background:var(--blue-soft); }
+    .section { margin-top:86px; scroll-margin-top:94px; }
+    .section:first-child { margin-top:0; }
+    .section-kicker { color:var(--blue-deep); font:800 11px/1 var(--mono); letter-spacing:.1em; }
+    h2 { margin:12px 0 9px; font-size:clamp(27px,4vw,43px); line-height:1.15; letter-spacing:-.028em; }
+    h3 { margin:0; font-size:17px; line-height:1.35; }
+    .lead { max-width:860px; margin:0 0 25px; color:var(--muted); }
+    .card,.simulator,.table-wrap,.code-card,.checklist { border:1px solid var(--line); border-radius:19px; background:var(--paper); box-shadow:0 12px 30px rgba(45,40,28,.055); }
+    .two-col,.three-col { display:grid; gap:15px; }
+    .two-col { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .three-col { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .card { padding:21px; }
+    .card p,.card li { color:var(--muted); font-size:13px; }
+    .card p { margin:8px 0 0; }
+    .card ul { margin:12px 0 0; padding-left:18px; }
+    .icon { display:grid; place-items:center; width:39px; height:39px; margin-bottom:13px; border-radius:12px; background:var(--blue-soft); font-size:20px; }
+    .accent-coral .icon { background:var(--coral-soft); } .accent-mint .icon { background:var(--mint-soft); } .accent-purple .icon { background:var(--purple-soft); }
+    .callout { margin-top:16px; padding:18px 20px; border:1px solid color-mix(in srgb,var(--yellow) 44%,var(--line)); border-radius:16px; background:linear-gradient(105deg,var(--yellow-soft),var(--paper)); font-size:13px; }
+    .callout strong { color:var(--yellow-deep); }
+    .original-article { padding:clamp(22px,4vw,38px); border:1px solid var(--line); border-radius:21px; background:var(--paper); box-shadow:var(--shadow); }
+    .original-article p { margin:0; color:var(--ink); font-size:clamp(15px,1.8vw,18px); line-height:1.95; }
+    .original-article p + p { margin-top:24px; }
+    .original-highlight { padding:.12em .32em; border-radius:.35em; color:var(--mint); background:var(--mint-soft); font-weight:850; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
+    .warning { border-color:color-mix(in srgb,var(--coral) 38%,var(--line)); background:var(--coral-soft); }
+    .warning strong { color:var(--coral); }
+    .simulator { padding:22px; }
+    .sim-head { display:flex; align-items:end; justify-content:space-between; gap:18px; margin-bottom:18px; }
+    .sim-head p { margin:0; color:var(--muted); font-size:12px; }
+    .error-tabs { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; }
+    .error-tab { min-height:74px; padding:10px; border:1px solid var(--line); border-top:4px solid var(--blue); border-radius:13px; color:var(--muted); background:var(--paper-2); cursor:pointer; text-align:left; font-size:11px; }
+    .error-tab:nth-child(2) { border-top-color:var(--purple); } .error-tab:nth-child(3) { border-top-color:var(--yellow); } .error-tab:nth-child(4) { border-top-color:var(--coral); } .error-tab:nth-child(5) { border-top-color:var(--mint); } .error-tab:nth-child(6) { border-top-color:#b64747; }
+    .error-tab b { display:block; margin-bottom:5px; color:var(--ink); font-size:12px; }
+    .error-tab.active { border-color:var(--blue); color:var(--blue-deep); background:var(--blue-soft); }
+    .sim-result { display:grid; grid-template-columns:120px 1fr; gap:18px; align-items:center; min-height:130px; margin-top:15px; padding:18px; border-radius:15px; background:var(--blue-soft); }
+    .action-badge { display:grid; place-items:center; min-height:74px; padding:10px; border:2px solid var(--blue); border-radius:14px; color:var(--blue-deep); background:var(--paper); text-align:center; font:900 12px/1.45 var(--mono); }
+    .sim-result h3 { color:var(--blue-deep); }
+    .sim-result p { margin:6px 0 0; color:var(--muted); font-size:13px; }
+    .pipeline { display:grid; gap:10px; }
+    .pipe-row { display:grid; grid-template-columns:96px 1fr auto; gap:14px; align-items:center; padding:16px; border:1px solid var(--line); border-radius:14px; background:var(--paper); }
+    .pipe-row b { color:var(--blue-deep); font:850 11px/1.4 var(--mono); }
+    .pipe-row p { margin:0; color:var(--muted); font-size:12px; }
+    .tag { padding:5px 8px; border-radius:8px; color:var(--muted); background:var(--blue-soft); font:800 10px/1 var(--mono); white-space:nowrap; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; min-width:720px; border-collapse:collapse; font-size:12px; }
+    th,td { padding:14px 15px; border-bottom:1px solid var(--soft); vertical-align:top; text-align:left; }
+    th { color:var(--blue-deep); background:var(--blue-soft); font-size:11px; }
+    tr:last-child td { border-bottom:0; }
+    td:first-child { font-weight:850; }
+    .code-card { overflow:hidden; border-color:#303a48; background:var(--code); }
+    .code-head { display:flex; align-items:center; justify-content:space-between; padding:13px 16px; border-bottom:1px solid #303a48; color:#bfc9d8; font:700 11px/1 var(--mono); }
+    .copy-button { padding:5px 9px; border:1px solid #48566a; border-radius:8px; color:#dce5f1; background:transparent; cursor:pointer; font:700 10px/1 var(--mono); }
+    pre { margin:0; padding:18px; overflow-x:auto; color:var(--code-ink); background:var(--code); font:12px/1.72 var(--mono); tab-size:2; }
+    .flow-map { display:grid; grid-template-columns:repeat(7,minmax(88px,1fr)); gap:8px; align-items:stretch; }
+    .flow-step { position:relative; padding:15px 11px; border:1px solid var(--line); border-top:4px solid var(--blue); border-radius:14px; background:var(--paper); text-align:center; }
+    .flow-step::after { content:"→"; position:absolute; top:42%; right:-10px; z-index:2; color:var(--muted); font-weight:900; }
+    .flow-step:last-child::after { display:none; }
+    .flow-step:nth-child(2) { border-top-color:var(--yellow); } .flow-step:nth-child(3) { border-top-color:var(--purple); } .flow-step:nth-child(4) { border-top-color:var(--blue); } .flow-step:nth-child(5) { border-top-color:var(--mint); } .flow-step:nth-child(6),.flow-step:nth-child(7) { border-top-color:var(--coral); }
+    .flow-step b,.flow-step small { display:block; }
+    .flow-step b { font-size:12px; } .flow-step small { margin-top:5px; color:var(--muted); font-size:10px; }
+    .checklist { padding:22px; }
+    .check-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 16px; }
+    .check-item { display:grid; grid-template-columns:22px 1fr; gap:9px; padding:10px; border-radius:11px; cursor:pointer; }
+    .check-item:hover { background:var(--blue-soft); }
+    .check-item input { width:17px; height:17px; margin-top:3px; accent-color:var(--mint); }
+    .check-item b,.check-item span { display:block; } .check-item b { font-size:12px; } .check-item span { margin-top:2px; color:var(--muted); font-size:10px; }
+    .check-progress { height:9px; margin-top:16px; overflow:hidden; border-radius:9px; background:var(--soft); }
+    .check-progress span { display:block; width:0; height:100%; background:linear-gradient(90deg,var(--blue),var(--mint)); transition:width 180ms ease; }
+    .check-caption { margin-top:7px; color:var(--muted); font-size:11px; text-align:right; }
+    footer { padding:34px 20px 58px; color:var(--muted); text-align:center; font-size:12px; }
+    @media (max-width:1000px) { .layout { grid-template-columns:1fr; } .toc { display:none; } .error-tabs { grid-template-columns:repeat(3,1fr); } .flow-map { grid-template-columns:repeat(4,1fr); } .flow-step:nth-child(4)::after { display:none; } }
+    @media (max-width:700px) { .hero { padding-inline:18px; } h1 { font-size:clamp(34px,11vw,44px); } .two-col,.three-col,.check-grid,.sim-result { grid-template-columns:1fr; } .error-tabs { grid-template-columns:repeat(2,1fr); } .flow-map { grid-template-columns:1fr; } .flow-step::after { content:"↓"; top:auto; right:50%; bottom:-20px; } .flow-step:nth-child(4)::after { display:block; } .flow-step:last-child::after { display:none; } .pipe-row { grid-template-columns:1fr; gap:7px; } .tag { justify-self:start; } .actions .button:first-child { display:none; } }
+    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } * { transition:none!important; } }
+  </style>
+</head>
+<body>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">FAIL<br>SAFE</span><span>Agent 无进展循环恢复手册</span></div>
+    <div class="actions"><a class="button" href="#decision">快速判断</a><button class="button theme-toggle" id="themeToggle" type="button" aria-label="切换深浅主题">◐</button></div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">Agent Reliability · Retry · Replan · Handoff</div>
+    <h1>如果检测到无进展循环，<br>怎么把 <span>Agent 拉出来？</span></h1>
+    <div class="hero-actions"><a class="button primary" href="#original">阅读原文</a><a class="button" href="#decision">看进一步补充</a></div>
+  </section>
+
+  <main class="layout" id="main">
+    <nav class="toc" aria-label="章节目录">
+      <p class="toc-title">11 CHAPTERS</p>
+      <a href="#original">01 图片原文</a><a href="#why-loop">02 为什么原地打转</a><a href="#decision">03 故障决策器</a>
+      <a href="#classify">04 错误分类</a><a href="#side-effect">05 幂等与副作用</a><a href="#retry">06 有限重试</a>
+      <a href="#fallback">07 降级与换路</a><a href="#replan">08 Replan</a><a href="#handoff">09 Handoff</a>
+      <a href="#observability">10 检查点与观测</a><a href="#full-flow">11 完整落地</a>
+    </nav>
+
+    <article>
+      <section class="section" id="original">
+        <div class="section-kicker">01 · ORIGINAL TEXT</div><h2>图片原文</h2>
+        <div class="original-article">
+          <p>第一步不是立刻换模型，而是读懂上一步失败。<strong class="original-highlight">工具应该返回结构化错误，至少包含错误码、错误类型、是否可重试、建议等待时间和可行的下一步</strong>。网络抖动、限流这类临时错误，<strong class="original-highlight">可以在预算内按退避策略重试，并加入随机抖动避免同一时间集中重试</strong>。参数错误、权限不足和资源不存在需要换参数、请求用户授权或补充信息，继续原样重试没有意义。</p>
+          <p>第二步是换路。当前动作可以改变参数时，系统要说清楚上次为什么失败，并要求新动作和旧动作有实质差异。当前工具的能力边界不匹配时，换备选工具或降级到能完成部分目标的路径。一个工具在连续多个任务中都失败，调度层可以暂时打开熔断器，快速拒绝后续调用，避免每个 Agent 都在同一个故障上浪费预算。</p>
+          <p>第三步是 Replan。如果单个动作换了参数和工具仍无法推进，问题往往在原计划本身。系统从最近的检查点恢复，把原始目标、已完成结果、当前阻塞和已尝试路径交给 Planner，让它生成一份新的剩余计划。新计划应该有新版本，并把已证明无效的路径写入约束，否则 Replan 只是用更多 Token 再生成一遍旧计划。</p>
+          <p>多 Agent 的 Handoff 环节需要 Orchestrator 介入。它读取各 Agent 的职责、已访问路径和全局任务状态，决定是改派给有处置权的 Agent，还是暂停并请用户补充信息。Agent 的交接目标和接收条件也要写进路由规则，不能让两个角色随意把任务踢给对方。</p>
+        </div>
+      </section>
+
+      <section class="section" id="why-loop">
+        <div class="section-kicker">02 · WHY AGENTS GET STUCK</div><h2>Agent 为什么会原地打转？</h2>
+        <p class="lead">本质上，是 Agent <strong>没有获得足以改变下一次决策的新信息</strong>。相同目标、相同状态和相同策略，会让它再次选择相同动作。</p>
+        <div class="two-col">
+          <div class="card"><div class="icon">?</div><h3>错误信息不明确</h3><p>工具只返回“执行失败”，没有错误类型、是否可重试和失败原因，Agent 不知道应该改变什么。</p></div>
+          <div class="card accent-purple"><div class="icon">↻</div><h3>执行结果没有写回状态</h3><p>工具已经成功，系统却没有记录已完成步骤、新证据和外部副作用。下一轮模型仍认为任务没做，又重新执行一次。</p></div>
+          <div class="card accent-coral"><div class="icon">≡</div><h3>重试没有实质变化</h3><p>提示词看似重新生成，实际使用的参数、工具和执行路径完全相同。</p></div>
+          <div class="card accent-mint"><div class="icon">◎</div><h3>目标与验收条件模糊</h3><p>Agent 不知道什么算完成，只能不断搜索、分析、修改，再继续搜索。</p></div>
+          <div class="card"><div class="icon">×</div><h3>计划前提已经失效</h3><p>文件、权限、接口或数据已经不存在，Planner 却仍然按照旧计划向前推进。</p></div>
+          <div class="card accent-purple"><div class="icon">⇄</div><h3>多 Agent 路由成环</h3><p>客服 Agent 要求风控批准，风控 Agent 又要求客服补资料；双方只有局部视角，也没有最终决策权，任务便来回交接。</p></div>
+          <div class="card accent-mint"><div class="icon">v1</div><h3>计划版本没有更新</h3><p>工具结果已经证明原计划不可行，Planner 却没有生成新版本，Executor 只能继续执行已经过时的步骤。</p></div>
+        </div>
+        <div class="code-card" style="margin-top:16px"><div class="code-head"><span>典型的无进展循环</span><button class="copy-button" type="button">复制</button></div><pre><code>执行动作
+  ↓
+得到模糊失败
+  ↓
+状态没有更新
+  ↓
+Planner 仍认为旧计划有效
+  ↓
+再次选择相同动作
+  ↺</code></pre></div>
+        <div class="callout"><strong>判断标准：</strong>每次失败后，参数、工具、计划、已知状态或用户提供的信息，至少要有一项发生有效变化；否则就不是恢复，而是在重复。</div>
+        <div class="code-card" style="margin-top:16px"><div class="code-head"><span>no-progress detector · pseudo code</span><button class="copy-button" type="button">复制</button></div><pre><code>const repeated =
+  current.tool === previous.tool &&
+  current.argsHash === previous.argsHash &&
+  current.errorCode === previous.errorCode &&
+  current.progressScore <= previous.progressScore
+
+if (repeated) {
+  throw new NoProgressLoopError()
+}</code></pre></div>
+        <div class="callout warning"><strong>发现循环后：</strong>不要继续原样调用，应进入“换参数 → 换工具 → Replan → Handoff → 请求用户介入”的恢复路径。</div>
+      </section>
+
+      <section class="section" id="decision">
+        <div class="section-kicker">03 · FURTHER NOTES</div><h2>进一步补充：先选故障，再决定动作</h2>
+        <p class="lead">下面开始是对原文的补充。点击一种典型故障，观察不同错误对应的处理方式。</p>
+        <div class="simulator">
+          <div class="sim-head"><div><h3>故障决策器</h3><p>同一个“执行失败”，正确处理可能完全相反。</p></div><span class="tag">CLICK TO INSPECT</span></div>
+          <div class="error-tabs" id="errorTabs"></div>
+          <div class="sim-result" aria-live="polite"><div class="action-badge" id="actionBadge"></div><div><h3 id="actionTitle"></h3><p id="actionText"></p></div></div>
+        </div>
+      </section>
+
+      <section class="section" id="classify">
+        <div class="section-kicker">04 · CLASSIFY FIRST</div><h2>失败不是一种状态，而是一组不同问题</h2>
+        <p class="lead">工具最好返回机器可读的错误码、错误类型、是否可重试、建议等待时间、调用标识和可能的下一步，而不是只丢出一句自然语言。</p>
+        <div class="table-wrap"><table><thead><tr><th>错误类型</th><th>例子</th><th>默认策略</th><th>为什么</th></tr></thead><tbody>
+          <tr><td>临时错误</td><td>超时、连接中断、429、503</td><td>退避 + 抖动 + 有限重试</td><td>外部环境可能自行恢复</td></tr>
+          <tr><td>参数错误</td><td>字段缺失、格式不符</td><td>修正参数；必要时询问用户</td><td>原样重试不会产生新结果</td></tr>
+          <tr><td>权限错误</td><td>401、403、缺少授权</td><td>请求授权或人工接管</td><td>换模型通常无法补齐权限</td></tr>
+          <tr><td>资源错误</td><td>文件、订单、工具不存在</td><td>重新定位资源或 Replan</td><td>原计划依赖已失效</td></tr>
+          <tr><td>能力不匹配</td><td>工具不支持格式或动作</td><td>换工具或降低目标</td><td>需要真正不同的执行路径</td></tr>
+          <tr><td>语义失败</td><td>调用成功，但结果不满足目标</td><td>验证反馈 → Replan</td><td>HTTP 200 不代表任务成功</td></tr>
+        </tbody></table></div>
+        <div class="code-card" style="margin-top:16px"><div class="code-head"><span>structured tool error</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  "ok": false,
+  "error_code": "RATE_LIMITED",
+  "error_type": "transient",
+  "retryable": true,
+  "retry_after_ms": 2400,
+  "operation_id": "op_8f31",
+  "side_effect_state": "none",
+  "suggested_action": "retry_with_backoff"
+}</code></pre></div>
+      </section>
+
+      <section class="section" id="side-effect">
+        <div class="section-kicker">05 · THE MOST DANGEROUS GAP</div><h2>先确认副作用，再谈重试</h2>
+        <p class="lead">真实系统里最危险的情况不是“明确失败”，而是请求超时后，客户端以为失败，服务端其实已经完成。此时直接重试，可能重复扣款、重复下单或重复发消息。</p>
+        <div class="two-col">
+          <div class="card accent-coral"><div class="icon">!</div><h3>不确定结果</h3><p>网络在返回前断开，只能证明“没有收到响应”，不能证明“操作没有发生”。先用 operation_id 查询状态。</p></div>
+          <div class="card accent-mint"><div class="icon">✓</div><h3>幂等执行</h3><p>给有副作用的动作附加 idempotency_key。同一业务意图重复提交时，服务端返回第一次结果，不再重复执行。</p></div>
+        </div>
+        <div class="code-card" style="margin-top:16px"><div class="code-head"><span>safe retry with idempotency</span><button class="copy-button" type="button">复制</button></div><pre><code>key = "send-report:report_123:user_456"
+
+result = send_report(payload, idempotency_key=key)
+if result.timeout:
+    status = get_operation(result.operation_id)
+    if status == "completed":
+        return load_previous_result(key)
+    if status == "not_started":
+        return retry_with_same_key()</code></pre></div>
+      </section>
+
+      <section class="section" id="retry">
+        <div class="section-kicker">06 · RETRY WITH A BUDGET</div><h2>重试是一种受控实验，不是循环祈祷</h2>
+        <div class="pipeline">
+          <div class="pipe-row"><b>BACKOFF</b><p>等待时间指数增长，并尊重服务端 Retry-After。</p><span class="tag">1s → 2s → 4s</span></div>
+          <div class="pipe-row"><b>JITTER</b><p>加入随机偏移，避免大量任务同时醒来形成重试风暴。</p><span class="tag">± RANDOM</span></div>
+          <div class="pipe-row"><b>BUDGET</b><p>同时限制重试次数、总耗时、Token、工具调用次数和真实费用。</p><span class="tag">HARD LIMIT</span></div>
+          <div class="pipe-row"><b>CIRCUIT</b><p>同一工具或服务连续失败时，对该故障域熔断；不要轻易停止所有 Agent。</p><span class="tag">FAIL FAST</span></div>
+        </div>
+        <div class="callout warning"><strong>不要重试：</strong>确定性的参数错误、权限不足、已确认不存在的资源，以及会突破风险或费用边界的动作。</div>
+      </section>
+
+      <section class="section" id="fallback">
+        <div class="section-kicker">07 · CHANGE THE PATH</div><h2>换路必须产生实质差异</h2>
+        <p class="lead">“再试一次”不叫新策略。每次降级都要说明：上一条路径为什么失败、新路径改变了哪个约束、能力损失是什么。</p>
+        <div class="three-col">
+          <div class="card"><div class="icon">⚙</div><h3>改参数</h3><p>缩小时间范围、减少批量大小、修正格式、降低并发度。适合调用边界不匹配。</p></div>
+          <div class="card accent-purple"><div class="icon">⌁</div><h3>换工具</h3><p>主搜索不可用时切备用数据源；解析器不兼容时切换格式。适合能力或可用性故障。</p></div>
+          <div class="card accent-mint"><div class="icon">◇</div><h3>降级目标</h3><p>无法完成全量分析时先返回已验证部分，并明确缺口。降级不能伪装成完整成功。</p></div>
+        </div>
+        <div class="callout"><strong>换模型的边界：</strong>模型输出不稳定、能力不足或上下文不适配时可以换；如果根因是工具故障、权限不足或数据缺失，换模型通常无效。</div>
+      </section>
+
+      <section class="section" id="replan">
+        <div class="section-kicker">08 · REPLAN</div><h2>不要用更多 Token 重写旧计划</h2>
+        <p class="lead">Replan 的输入不是一句“刚才失败了”。Planner 必须看到可验证的当前状态，并把已经证明无效的路径写成硬约束。</p>
+        <div class="two-col">
+          <div class="card"><div class="icon">⇥</div><h3>交给 Planner 的状态</h3><ul><li>原始目标与验收条件</li><li>已完成结果及其证据</li><li>当前阻塞和错误分类</li><li>尝试过的路径与返回结果</li><li>剩余预算、权限与时间</li></ul></div>
+          <div class="card accent-purple"><div class="icon">v2</div><h3>新版计划的要求</h3><ul><li>携带 plan_version</li><li>复用有效结果，不从头再做</li><li>避开已证伪路径</li><li>给每一步写成功判定</li><li>明确新的停止条件</li></ul></div>
+        </div>
+      </section>
+
+      <section class="section" id="handoff">
+        <div class="section-kicker">09 · HANDOFF</div><h2>交接不是把失败甩给另一个 Agent</h2>
+        <p class="lead">多 Agent 场景可以由 Orchestrator 根据职责、权限和全局状态裁决；单 Agent 系统也能由工作流引擎或 supervisor 完成交接。重点是交接契约，而不是角色数量。</p>
+        <div class="table-wrap"><table><thead><tr><th>交接字段</th><th>必须写什么</th><th>避免什么</th></tr></thead><tbody>
+          <tr><td>目标</td><td>剩余目标、验收条件、优先级</td><td>只说“你继续处理”</td></tr>
+          <tr><td>当前状态</td><td>已完成结果、检查点、相关资源</td><td>让接收方从头猜</td></tr>
+          <tr><td>失败证据</td><td>错误类型、调用 ID、尝试次数</td><td>只转发模糊报错</td></tr>
+          <tr><td>约束</td><td>禁止路径、剩余预算、权限范围</td><td>重复踩同一个故障</td></tr>
+          <tr><td>接收条件</td><td>所需能力、权限与完成回执</td><td>两个角色任意互相甩任务</td></tr>
+        </tbody></table></div>
+      </section>
+
+      <section class="section" id="observability">
+        <div class="section-kicker">10 · RECOVER FROM FACTS</div><h2>没有检查点与日志，恢复只能靠猜</h2>
+        <div class="three-col">
+          <div class="card"><div class="icon">▣</div><h3>检查点</h3><p>保存 plan_version、step_id、输入摘要、已验证结果与外部 operation_id，从最近稳定点恢复。</p></div>
+          <div class="card accent-mint"><div class="icon">◎</div><h3>可观测性</h3><p>串联 trace_id、tool_call_id、attempt、耗时、Token、成本和最终状态，才能定位失败发生在哪一层。</p></div>
+          <div class="card accent-coral"><div class="icon">⏹</div><h3>停止条件</h3><p>成功、确定性失败、预算触顶、高风险动作或需要新授权时必须停止，并把控制权交还给用户。</p></div>
+        </div>
+      </section>
+
+      <section class="section" id="full-flow">
+        <div class="section-kicker">11 · PRODUCTION FLOW</div><h2>最终应落成这条恢复链路</h2>
+        <p class="lead">这条链路保留原图的核心思想，同时把最容易造成生产事故的“副作用不确定”提到了重试之前。</p>
+        <div class="flow-map" aria-label="Agent 失败恢复流程">
+          <div class="flow-step"><b>记录失败</b><small>结构化错误</small></div><div class="flow-step"><b>副作用确认</b><small>查询操作状态</small></div>
+          <div class="flow-step"><b>有限重试</b><small>退避 + 抖动</small></div><div class="flow-step"><b>降级换路</b><small>实质性改变</small></div>
+          <div class="flow-step"><b>Replan</b><small>从检查点恢复</small></div><div class="flow-step"><b>Handoff</b><small>契约式交接</small></div>
+          <div class="flow-step"><b>人工接管</b><small>权限 / 风险 / 预算</small></div>
+        </div>
+        <div class="code-card" style="margin-top:20px"><div class="code-head"><span>failure controller · pseudo code</span><button class="copy-button" type="button">复制</button></div><pre><code>async function recover(context, error) {
+  const failure = classify(error)
+  await saveCheckpoint(context, failure)
+
+  if (failure.sideEffectState === "unknown") {
+    const state = await queryOperation(failure.operationId)
+    if (state === "completed") return reuseResult(state)
+  }
+
+  if (failure.retryable && context.retryBudget.hasRemaining()) {
+    return retryWithBackoffAndJitter(context)
+  }
+  if (hasMeaningfulFallback(failure, context)) {
+    return runFallback(context, failure)
+  }
+  if (!planStillValid(context, failure)) {
+    return replanFromCheckpoint(context, failure)
+  }
+  if (canHandoff(context, failure)) return handoffWithContract(context)
+  return requestHumanIntervention(context, failure)
+}</code></pre></div>
+
+        <div class="checklist" style="margin-top:20px">
+          <h3>上线前自检</h3>
+          <div class="check-grid" id="checkGrid">
+            <label class="check-item"><input type="checkbox"><span><b>错误结构化</b><span>错误码、类型、retryable、operation_id 齐全</span></span></label>
+            <label class="check-item"><input type="checkbox"><span><b>副作用可查询</b><span>超时后能确认动作是否已经生效</span></span></label>
+            <label class="check-item"><input type="checkbox"><span><b>写操作幂等</b><span>同一业务意图复用同一个幂等键</span></span></label>
+            <label class="check-item"><input type="checkbox"><span><b>重试有预算</b><span>次数、耗时、Token、调用和费用均有限制</span></span></label>
+            <label class="check-item"><input type="checkbox"><span><b>Replan 有版本</b><span>保留有效结果，并屏蔽已证伪路径</span></span></label>
+            <label class="check-item"><input type="checkbox"><span><b>Handoff 有契约</b><span>目标、状态、证据、约束、接收条件完整</span></span></label>
+            <label class="check-item"><input type="checkbox"><span><b>全链路可观测</b><span>trace、attempt、耗时、成本和状态可追踪</span></span></label>
+            <label class="check-item"><input type="checkbox"><span><b>人工出口明确</b><span>授权、风险或预算触顶时立即停下</span></span></label>
+          </div>
+          <div class="check-progress"><span id="checkProgress"></span></div><div class="check-caption" id="checkCaption">0 / 8 已确认</div>
+        </div>
+      </section>
+    </article>
+  </main>
+
+  <footer>Agent Failure Recovery · 失败不可怕，不确定状态下重复执行才危险</footer>
+  <script>
+    const scenarios = [
+      {name:'临时错误',hint:'超时 / 429',action:'有限重试',title:'先退避，再带抖动重试',text:'确认没有未知副作用后，遵循 Retry-After 或指数退避；达到次数、耗时或成本预算后停止。'},
+      {name:'参数错误',hint:'字段 / 格式',action:'修参或询问',title:'原样重试没有意义',text:'如果系统能确定性修复格式，就生成有实质差异的新参数；缺少业务信息时，请用户补充。'},
+      {name:'权限不足',hint:'401 / 403',action:'授权 / 人工',title:'换模型补不了权限',text:'停止自动重试，明确缺少什么权限、由谁授权，以及授权后从哪个检查点继续。'},
+      {name:'结果未知',hint:'写操作超时',action:'先查状态',title:'最危险的不是失败，而是不知道成功没有',text:'使用 operation_id 查询真实状态；若确需重试，必须复用同一个幂等键。'},
+      {name:'能力不匹配',hint:'工具不支持',action:'换路 / 降级',title:'选择能力不同的新路径',text:'改参数、换工具或降低目标，并记录新路径相对旧路径的实质变化和能力损失。'},
+      {name:'计划失效',hint:'前提已变化',action:'立即 Replan',title:'不要继续消耗旧计划的预算',text:'从最近检查点恢复，把已完成结果、当前阻塞、失败证据和禁止路径交给 Planner。'}
+    ]
+    const tabs = document.getElementById('errorTabs')
+    function showScenario(index) {
+      const item = scenarios[index]
+      document.querySelectorAll('.error-tab').forEach((tab,i)=>tab.classList.toggle('active',i===index))
+      document.getElementById('actionBadge').textContent = item.action
+      document.getElementById('actionTitle').textContent = item.title
+      document.getElementById('actionText').textContent = item.text
+    }
+    scenarios.forEach((item,index)=>{
+      const button = document.createElement('button')
+      button.className = 'error-tab'; button.type = 'button'
+      button.innerHTML = `<b>${item.name}</b>${item.hint}`
+      button.addEventListener('click',()=>showScenario(index)); tabs.appendChild(button)
+    })
+    showScenario(0)
+
+    const root = document.documentElement
+    const storedTheme = localStorage.getItem('agent-failure-theme')
+    if (storedTheme) root.dataset.theme = storedTheme
+    document.getElementById('themeToggle').addEventListener('click',()=>{
+      const next = root.dataset.theme === 'dark' ? 'light' : 'dark'
+      root.dataset.theme = next; localStorage.setItem('agent-failure-theme',next)
+    })
+    const bar = document.getElementById('progressBar')
+    function updateProgress(){ const max=document.documentElement.scrollHeight-innerHeight; bar.style.width=`${max>0?scrollY/max*100:0}%` }
+    addEventListener('scroll',updateProgress,{passive:true}); updateProgress()
+
+    const links = [...document.querySelectorAll('.toc a')]
+    const sections = links.map(link=>document.querySelector(link.getAttribute('href'))).filter(Boolean)
+    const observer = new IntersectionObserver(entries=>{ entries.forEach(entry=>{ if(entry.isIntersecting){ links.forEach(link=>link.classList.toggle('active',link.getAttribute('href')===`#${entry.target.id}`)) } }) },{rootMargin:'-18% 0px -70%'})
+    sections.forEach(section=>observer.observe(section))
+
+    const checks = [...document.querySelectorAll('#checkGrid input')]
+    function updateChecks(){ const count=checks.filter(input=>input.checked).length; document.getElementById('checkProgress').style.width=`${count/checks.length*100}%`; document.getElementById('checkCaption').textContent=`${count} / ${checks.length} 已确认` }
+    checks.forEach(input=>input.addEventListener('change',updateChecks)); updateChecks()
+    document.querySelectorAll('.copy-button').forEach(button=>button.addEventListener('click',async()=>{
+      const code=button.closest('.code-card').querySelector('code').innerText
+      await navigator.clipboard.writeText(code); const old=button.textContent; button.textContent='已复制'; setTimeout(()=>button.textContent=old,1200)
+    }))
+  </script>
+</body>
+</html>

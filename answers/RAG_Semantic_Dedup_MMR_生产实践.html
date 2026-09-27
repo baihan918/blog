@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RAG 中 Semantic Dedup 与 MMR 的生产实践">
+  <title>RAG 中 Semantic Dedup 与 MMR 的生产实践</title>
+  <link rel="stylesheet" href="../assets/answer-pages.css?v=2">
+  <script>window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] } };</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">MD</span><span class="brand-title">RAG 中 Semantic Dedup 与 MMR 的生产实践</span></div>
+    <div class="top-actions"><a class="source-link" href="0-md/RAG_Semantic_Dedup_MMR_%E7%94%9F%E4%BA%A7%E5%AE%9E%E8%B7%B5.md">查看 Markdown</a><button class="menu-button" id="menuToggle" type="button" aria-label="打开目录" aria-expanded="false">☰</button><button class="icon-button" id="themeToggle" type="button" aria-label="切换深浅主题">◐</button></div>
+  </header>
+  <section class="hero"><div class="eyebrow">Markdown Reading Page</div><h1>RAG 中 Semantic Dedup 与 MMR 的生产实践</h1></section>
+  <main class="layout" id="main">
+    <aside class="toc-shell" id="tocShell"><nav class="toc" aria-label="页面目录"><p class="toc-title">READING MAP</p><a href="#1-问题背景" data-toc="1-问题背景" data-level="2">1. 问题背景</a>
+<a href="#2-semantic-dedup-是什么" data-toc="2-semantic-dedup-是什么" data-level="2">2. Semantic Dedup 是什么</a>
+<a href="#3-semantic-dedup-最大的问题-误删" data-toc="3-semantic-dedup-最大的问题-误删" data-level="2">3. Semantic Dedup 最大的问题：误删</a>
+<a href="#降低误删的方法" data-toc="降低误删的方法" data-level="3">降低误删的方法</a>
+<a href="#4-mmr-是什么" data-toc="4-mmr-是什么" data-level="2">4. MMR 是什么</a>
+<a href="#5-semantic-dedup-与-mmr-的核心区别" data-toc="5-semantic-dedup-与-mmr-的核心区别" data-level="2">5. Semantic Dedup 与 MMR 的核心区别</a>
+<a href="#6-已经有-mmr-还需要-semantic-dedup-吗" data-toc="6-已经有-mmr-还需要-semantic-dedup-吗" data-level="2">6. 已经有 MMR，还需要 Semantic Dedup 吗？</a>
+<a href="#7-什么情况下值得增加-semantic-dedup" data-toc="7-什么情况下值得增加-semantic-dedup" data-level="2">7. 什么情况下值得增加 Semantic Dedup</a>
+<a href="#7-1-chunk-overlap-导致大量重复" data-toc="7-1-chunk-overlap-导致大量重复" data-level="3">7.1 Chunk Overlap 导致大量重复</a>
+<a href="#7-2-多数据源存在大量复制内容" data-toc="7-2-多数据源存在大量复制内容" data-level="3">7.2 多数据源存在大量复制内容</a>
+<a href="#7-3-reranker-成本较高" data-toc="7-3-reranker-成本较高" data-level="3">7.3 Reranker 成本较高</a>
+<a href="#8-能在-indexing-阶段去重-就不要每次-query-都重新去重" data-toc="8-能在-indexing-阶段去重-就不要每次-query-都重新去重" data-level="2">8. 能在 Indexing 阶段去重，就不要每次 Query 都重新去重</a>
+<a href="#9-多版本知识不能依赖-semantic-dedup" data-toc="9-多版本知识不能依赖-semantic-dedup" data-level="2">9. 多版本知识不能依赖 Semantic Dedup</a>
+<a href="#10-推荐的生产-retrieval-pipeline" data-toc="10-推荐的生产-retrieval-pipeline" data-level="2">10. 推荐的生产 Retrieval Pipeline</a>
+<a href="#11-什么时候升级为-semantic-dedup-mmr" data-toc="11-什么时候升级为-semantic-dedup-mmr" data-level="2">11. 什么时候升级为 Semantic Dedup + MMR</a>
+<a href="#12-如何通过-eval-决定是否需要-semantic-dedup" data-toc="12-如何通过-eval-决定是否需要-semantic-dedup" data-level="2">12. 如何通过 Eval 决定是否需要 Semantic Dedup</a>
+<a href="#duplicate-ratio" data-toc="duplicate-ratio" data-level="3">Duplicate Ratio</a>
+<a href="#recall-k" data-toc="recall-k" data-level="3">Recall@K</a>
+<a href="#context-precision" data-toc="context-precision" data-level="3">Context Precision</a>
+<a href="#latency" data-toc="latency" data-level="3">Latency</a>
+<a href="#13-最终工程原则" data-toc="13-最终工程原则" data-level="2">13. 最终工程原则</a>
+<a href="#14-面试回答模板" data-toc="14-面试回答模板" data-level="2">14. 面试回答模板</a></nav></aside>
+    <article class="article"><h2 id="1-问题背景" data-section="SECTION 01">1. 问题背景</h2>
+<p>RAG 使用 Vector Search / BM25 / Hybrid Search 召回 Top-K 后，经常会出现大量“相关但冗余”的 Chunk。</p>
+<p>例如查询：</p>
+<blockquote><p>退款规则是什么？</p></blockquote>
+<p>召回结果可能是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Chunk A：用户可以在订单详情页申请退款。
+Chunk B：用户完成支付后，可以通过订单详情页发起退款申请。
+Chunk C：退款申请提交后，需要经过商家审核。
+Chunk D：退款审核通过后，款项将在 1～3 个工作日到账。</code></pre></div>
+<p>A 和 B 高度重复。如果直接把 Top-K 全部交给 LLM，会造成：</p>
+<ul><li>Context Token 浪费</li><li>有效信息密度降低</li><li>真正有价值的 Chunk 被重复内容挤出 Top-K</li><li>Reranker 计算资源浪费</li><li>LLM 更容易受到重复证据影响</li></ul>
+<p>但解决这个问题时，不能简单认为“加 Semantic Dedup 就行”。生产环境需要同时考虑：</p>
+<ul><li>是否会误删真正有价值的信息</li><li>是否增加检索延迟</li><li>与 MMR 是否功能重叠</li><li>是否应该在 Indexing 阶段解决，而不是 Query 阶段解决</li></ul>
+<hr>
+<h2 id="2-semantic-dedup-是什么" data-section="SECTION 02">2. Semantic Dedup 是什么</h2>
+<p>Semantic Dedup（语义去重）用于识别语义高度相似的 Chunk，并删除 Near-Duplicate 内容。</p>
+<p>最简单的实现方式是计算 Chunk 之间的 Embedding Cosine Similarity。</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>selected = []
+
+for chunk in candidates:
+    redundant = False
+
+    for item in selected:
+        similarity = cosine_similarity(
+            chunk.embedding,
+            item.embedding
+        )
+
+        if similarity &gt; threshold:
+            redundant = True
+            break
+
+    if not redundant:
+        selected.append(chunk)</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>A ↔ B = 0.96 → 认为高度重复
+A ↔ C = 0.72 → 保留</code></pre></div>
+<p>Semantic Dedup 是真实存在的工程手段，但：</p>
+<blockquote><p>“Chunk 相似度超过 0.9 就删除”不是 RAG 的统一生产标准，只是一种 Near-Duplicate Heuristic。</p></blockquote>
+<p>阈值不能拍脑袋确定，需要根据具体 Embedding 模型、Chunk 粒度、数据分布和 Eval Dataset 调整。</p>
+<hr>
+<h2 id="3-semantic-dedup-最大的问题-误删" data-section="SECTION 03">3. Semantic Dedup 最大的问题：误删</h2>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query：退款需要多久？
+
+Chunk A：普通订单退款将在 3 天内到账。
+Chunk B：跨境订单退款将在 7 天内到账。</code></pre></div>
+<p>A 和 B 的文本结构非常接近，Embedding Similarity 可能达到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>cosine(A, B) = 0.94</code></pre></div>
+<p>但两者包含不同的业务条件：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>普通订单 → 3 天
+跨境订单 → 7 天</code></pre></div>
+<p>如果使用：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>similarity &gt; 0.92 → 删除</code></pre></div>
+<p>就可能把真正有价值的信息删除。</p>
+<p>因此：</p>
+<blockquote><p>Chunk ↔ Chunk 的 Embedding Similarity 只能说明语义接近，不能证明两个 Chunk 携带完全相同的事实。</p></blockquote>
+<h3 id="降低误删的方法">降低误删的方法</h3>
+<p>可以结合：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Semantic Similarity
+        +
+Metadata Consistency
+        +
+Entity Consistency
+        +
+Version Consistency
+        +
+关键业务条件检测</code></pre></div>
+<p>但随着规则增加，Semantic Dedup 会越来越复杂。</p>
+<p>这也是为什么普通 RAG 场景下，不应该默认增加 Semantic Dedup。</p>
+<hr>
+<h2 id="4-mmr-是什么" data-section="SECTION 04">4. MMR 是什么</h2>
+<p>MMR（Maximal Marginal Relevance）解决的是：</p>
+<blockquote><p>如何在“与 Query 相关”和“与已经选择的 Chunk 不重复”之间取得平衡。</p></blockquote>
+<p>经典思想：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>MMR(d) =
+λ × Sim(Query, d)
+-
+(1 - λ) × max Sim(d, Selected)</code></pre></div>
+<p>其中：</p>
+<ul><li><code>Sim(Query, d)</code>：候选 Chunk 与 Query 的相关性</li><li><code>Sim(d, Selected)</code>：候选 Chunk 与已经选择 Chunk 的相似度</li><li><code>λ</code>：相关性与多样性的权衡参数</li></ul>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query：退款规则
+
+A：普通订单退款时间       relevance = 0.95
+B：普通订单退款到账时间   relevance = 0.93
+C：跨境订单退款时间       relevance = 0.91
+D：退款审核规则           relevance = 0.88</code></pre></div>
+<p>选择 A 后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>B 与 A 非常相似 → MMR Score 被降低
+C 与 A 有差异   → 更容易进入最终结果
+D 提供新的信息 → 更容易进入最终结果</code></pre></div>
+<hr>
+<h2 id="5-semantic-dedup-与-mmr-的核心区别" data-section="SECTION 05">5. Semantic Dedup 与 MMR 的核心区别</h2>
+<p>最重要的区别是：</p>
+<blockquote><p>Semantic Dedup 更接近 Hard Filtering；MMR 更接近 Soft Penalty / Diversified Selection。</p></blockquote>
+<p>Semantic Dedup：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>A 与 B similarity &gt; threshold
+
+→ B 删除</code></pre></div>
+<p>MMR：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>B 与 A 非常相似
+
+→ B 的选择优先级降低
+→ 但并不是直接认为 B 没有价值</code></pre></div>
+<p>因此 MMR 在 Retrieval 阶段通常更加安全。</p>
+<div class="table-wrap"><table><thead><tr><th>能力</th><th>Semantic Dedup</th><th>MMR</th></tr></thead><tbody><tr><td>去除完全/近似重复</td><td>强</td><td>间接实现</td></tr><tr><td>保证结果多样性</td><td>一般</td><td>强</td></tr><tr><td>是否 Hard Delete</td><td>是</td><td>否</td></tr><tr><td>误删风险</td><td>较高</td><td>较低</td></tr><tr><td>参数</td><td>Similarity Threshold</td><td>λ / Fetch K / Top K</td></tr><tr><td>普通 RAG 是否必需</td><td>否</td><td>更值得优先考虑</td></tr></tbody></table></div>
+<hr>
+<h2 id="6-已经有-mmr-还需要-semantic-dedup-吗" data-section="SECTION 06">6. 已经有 MMR，还需要 Semantic Dedup 吗？</h2>
+<p>答案是：</p>
+<blockquote><p>不一定。默认情况下可以先不上 Semantic Dedup。</p></blockquote>
+<p>对于普通生产 RAG，可以优先：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Retrieval
+    ↓
+MMR
+    ↓
+Reranker
+    ↓
+Top-K</code></pre></div>
+<p>如果 MMR 已经能够有效降低重复率，再增加 Semantic Dedup 只会增加：</p>
+<ul><li>系统复杂度</li><li>参数数量</li><li>检索延迟</li><li>误删风险</li><li>Debug 难度</li></ul>
+<p>因此 Semantic Dedup 应该是一个由 Eval 驱动引入的优化，而不是默认组件。</p>
+<hr>
+<h2 id="7-什么情况下值得增加-semantic-dedup" data-section="SECTION 07">7. 什么情况下值得增加 Semantic Dedup</h2>
+<h3 id="7-1-chunk-overlap-导致大量重复">7.1 Chunk Overlap 导致大量重复</h3>
+<p>例如 Chunking：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Chunk 1：AAAA BBBB CCCC DDDD
+Chunk 2：          CCCC DDDD EEEE FFFF
+Chunk 3：                    EEEE FFFF GGGG</code></pre></div>
+<p>召回后可能大量出现：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>A
+A'
+A''
+B
+B'
+B''
+C</code></pre></div>
+<p>这种场景 Semantic Dedup 有价值。</p>
+<h3 id="7-2-多数据源存在大量复制内容">7.2 多数据源存在大量复制内容</h3>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD：
+退款申请需要经过商家审核。
+
+FAQ：
+退款申请需要经过商家审核。
+
+帮助中心：
+用户退款申请需要经过商家审核。</code></pre></div>
+<p>如果大量知识源存在这种复制，Near-Duplicate Removal 可以减少候选池污染。</p>
+<h3 id="7-3-reranker-成本较高">7.3 Reranker 成本较高</h3>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Retrieval Top100
+       ↓
+Semantic Dedup
+       ↓
+40 candidates
+       ↓
+Cross Encoder Reranker</code></pre></div>
+<p>虽然 Semantic Dedup 本身增加计算，但把 Reranker 输入从 100 降到 40 后，整体延迟和成本反而可能降低。</p>
+<p>是否真的降低延迟，需要通过 Profiling 验证。</p>
+<hr>
+<h2 id="8-能在-indexing-阶段去重-就不要每次-query-都重新去重" data-section="SECTION 08">8. 能在 Indexing 阶段去重，就不要每次 Query 都重新去重</h2>
+<p>更推荐：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Document Ingestion
+      ↓
+Exact Duplicate Detection
+      ↓
+Near-Duplicate Detection
+      ↓
+合理 Chunking
+      ↓
+Version Governance
+      ↓
+Embedding
+      ↓
+Vector DB</code></pre></div>
+<p>而不是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>重复数据全部进入 Vector DB
+      ↓
+每次 Query
+      ↓
+重新做 Semantic Dedup</code></pre></div>
+<p>原则：</p>
+<blockquote><p>能在数据治理阶段解决的重复问题，尽量不要转移到在线 Retrieval 阶段解决。</p></blockquote>
+<p>这样可以减少：</p>
+<ul><li>Vector DB 存储</li><li>Embedding 成本</li><li>Retrieval 噪声</li><li>Query-Time 计算量</li></ul>
+<hr>
+<h2 id="9-多版本知识不能依赖-semantic-dedup" data-section="SECTION 09">9. 多版本知识不能依赖 Semantic Dedup</h2>
+<p>对于 Workspace / 企业知识库尤其重要。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>PRD 1.0：退款审核时间 3～5 天
+PRD 1.1：退款审核时间 1～3 天
+PRD 1.2：退款审核时间 24 小时</code></pre></div>
+<p>这三个 Chunk 的 Embedding Similarity 很可能非常高。</p>
+<p>但是它们不是重复数据，而是：</p>
+<blockquote><p>同一个知识实体发生了版本演进。</p></blockquote>
+<p>因此不能：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>similarity &gt; threshold
+→ 删除旧/新 Chunk</code></pre></div>
+<p>应该通过 Metadata / Version Governance 解决：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>workspace_id
+business_domain
+doc_type
+version
+status
+effective_from</code></pre></div>
+<p>Retrieval Pipeline：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Retrieval
+    ↓
+Version Resolution
+    ↓
+选择当前有效版本
+    ↓
+MMR
+    ↓
+Reranker</code></pre></div>
+<p>Semantic Similarity 不应该承担版本治理职责。</p>
+<hr>
+<h2 id="10-推荐的生产-retrieval-pipeline" data-section="SECTION 10">10. 推荐的生产 Retrieval Pipeline</h2>
+<p>对于普通企业级 RAG，可以先从：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                 Query
+                   │
+             Query Rewrite
+                   │
+          ┌────────┴────────┐
+          ↓                 ↓
+     Vector Search         BM25
+          │                 │
+          └────────┬────────┘
+                   ↓
+              RRF / Fusion
+                   ↓
+              Top 30~50
+                   ↓
+         Metadata Filtering
+                   ↓
+          Version Resolution
+                   ↓
+                  MMR
+                   ↓
+             Top 10~20
+                   ↓
+               Reranker
+                   ↓
+              Top 5~8
+                   ↓
+            Context Builder
+                   ↓
+                  LLM</code></pre></div>
+<p>第一版：</p>
+<blockquote><p>不默认增加 Semantic Dedup。</p></blockquote>
+<hr>
+<h2 id="11-什么时候升级为-semantic-dedup-mmr" data-section="SECTION 11">11. 什么时候升级为 Semantic Dedup + MMR</h2>
+<p>通过 Retrieval Eval 发现：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Top30：
+
+退款入口
+退款入口
+退款入口
+退款入口
+退款入口
+退款审核
+退款到账
+...</code></pre></div>
+<p>并且：</p>
+<ul><li>Duplicate Ratio 很高</li><li>MMR 后仍存在明显重复</li><li>重复 Chunk 大量消耗 Reranker 计算</li><li>Context 中重复 Evidence 依然严重</li></ul>
+<p>再升级：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Hybrid Retrieval
+       ↓
+Top 50~100
+       ↓
+Version / Metadata Resolution
+       ↓
+Exact Dedup
+       ↓
+Near-Duplicate / Semantic Dedup
+       ↓
+MMR
+       ↓
+Reranker
+       ↓
+Top-K</code></pre></div>
+<p>Semantic Dedup 此时承担的是：</p>
+<blockquote><p>Candidate Pool Cleaner</p></blockquote>
+<p>而不是主要的 Retrieval Ranking 算法。</p>
+<hr>
+<h2 id="12-如何通过-eval-决定是否需要-semantic-dedup" data-section="SECTION 12">12. 如何通过 Eval 决定是否需要 Semantic Dedup</h2>
+<p>建议监控：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Recall@K
+MRR
+NDCG
+Context Precision
+Context Recall
+Duplicate Ratio
+Retrieval Latency
+Rerank Latency
+End-to-End Latency</code></pre></div>
+<p>重点关注：</p>
+<h3 id="duplicate-ratio">Duplicate Ratio</h3>
+<p>最终 Context 中重复 Evidence 的比例。</p>
+<h3 id="recall-k">Recall@K</h3>
+<p>Semantic Dedup 是否把真正正确的答案删除。</p>
+<h3 id="context-precision">Context Precision</h3>
+<p>进入 LLM 的 Context 中，有多少是真正有价值的信息。</p>
+<h3 id="latency">Latency</h3>
+<p>比较：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>方案 A：
+Retrieval → MMR → Reranker
+
+方案 B：
+Retrieval → Semantic Dedup → MMR → Reranker</code></pre></div>
+<p>只有当方案 B 在：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>质量 ↑
+或者
+成本 ↓
+或者
+延迟 ↓</code></pre></div>
+<p>至少一个维度产生明显收益，同时没有严重影响 Recall，才值得增加这一层。</p>
+<hr>
+<h2 id="13-最终工程原则" data-section="SECTION 13">13. 最终工程原则</h2>
+<p>不要设计成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>“Semantic Dedup 是生产级技术”
+        ↓
+“所以生产 RAG 必须加”</code></pre></div>
+<p>正确思路是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>发现 Retrieval 问题
+        ↓
+确定问题类型
+        ↓
+选择最简单的解决方案
+        ↓
+Eval
+        ↓
+确认收益
+        ↓
+再决定是否进入生产 Pipeline</code></pre></div>
+<p>对于相似但冗余的召回结果：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>优先级建议：
+
+1. 数据源去重 / 数据治理
+2. 合理 Chunking
+3. Metadata / Version Resolution
+4. MMR
+5. Reranker
+6. 如果仍存在严重 Near-Duplicate，再增加 Semantic Dedup</code></pre></div>
+<p>核心原则：</p>
+<blockquote><p>不要因为某个技术“生产可用”，就把它加入生产架构；应该让 Eval 数据决定系统是否真的需要它。</p></blockquote>
+<hr>
+<h2 id="14-面试回答模板" data-section="SECTION 14">14. 面试回答模板</h2>
+<p>如果面试官问：</p>
+<blockquote><p>RAG 如何减少相似但冗余的召回片段？</p></blockquote>
+<p>可以回答：</p>
+<blockquote><p>我不会直接把 Vector Search 的 Top-K 全部交给 LLM。首先会通过合理 Chunking 和 Ingestion-Time Dedup 尽量从数据源减少重复；Retrieval 阶段会 Over-Fetch，然后通过 Metadata 和 Version Resolution 处理版本冲突，再通过 MMR 在 Query Relevance 和 Evidence Diversity 之间做平衡，之后使用 Reranker 得到最终 Top-K。  Semantic Dedup 也可以通过 Chunk Embedding Similarity 删除 Near-Duplicate，但它属于 Hard Filtering，存在误删“语义相似但事实条件不同”的 Chunk 的风险，同时会增加在线计算。所以如果 MMR 已经能够解决重复问题，我不会默认增加 Semantic Dedup。只有 Retrieval Eval 发现 Duplicate Ratio 仍然很高，或者大量重复 Chunk 正在浪费 Reranker 计算时，才会增加这一层，并通过 Recall@K、Context Precision 和 Latency 验证收益。</p></blockquote>
+<p>一句话总结：</p>
+<blockquote><p><strong>MMR 是默认更安全的 Diversity Selection；Semantic Dedup 是针对严重 Near-Duplicate 问题的可选 Candidate Pool Cleaner，而不是生产 RAG 的必选组件。</strong></p></blockquote></article>
+  </main>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+  <footer>RAG 中 Semantic Dedup 与 MMR 的生产实践</footer>
+  <script src="../assets/answer-pages.js"></script>
+</body>
+</html>

@@ -1,0 +1,2664 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="从变量、数据结构到文件处理与面向对象，一页掌握 Python 与 JavaScript 的核心差异。">
+  <meta name="theme-color" content="#f7f5ef">
+  <title>Python 速通 × JavaScript 对比</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f2e9;
+      --paper: #fffdf8;
+      --paper-strong: #ffffff;
+      --ink: #17202f;
+      --muted: #687182;
+      --line: #dedbd1;
+      --line-soft: #ebe8df;
+      --python: #3776ab;
+      --python-deep: #24557d;
+      --python-soft: #e7f2fb;
+      --javascript: #d7ad00;
+      --javascript-deep: #755d00;
+      --javascript-soft: #fff5c7;
+      --coral: #e56b4e;
+      --mint: #2d8a73;
+      --shadow: 0 22px 60px rgba(51, 46, 34, 0.1);
+      --sidebar-width: 310px;
+      --content-width: 920px;
+      --radius-lg: 26px;
+      --radius-md: 16px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page: #121720;
+      --paper: #19212c;
+      --paper-strong: #1f2936;
+      --ink: #edf2f7;
+      --muted: #a8b2c1;
+      --line: #344151;
+      --line-soft: #2b3645;
+      --python-soft: #172d42;
+      --javascript-soft: #3c3517;
+      --javascript-deep: #f6d654;
+      --python-deep: #78b9ec;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 8% 3%, rgba(55, 118, 171, 0.13), transparent 27rem),
+        radial-gradient(circle at 93% 16%, rgba(247, 223, 30, 0.16), transparent 25rem),
+        var(--page);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.78;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 180ms ease, color 180ms ease;
+    }
+
+    ::selection { background: rgba(55, 118, 171, 0.22); }
+    a { color: inherit; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    .skip-link {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      transform: translateY(-160%);
+      padding: 10px 14px;
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 10px;
+    }
+    .skip-link:focus { transform: translateY(0); }
+
+    .progress-track {
+      position: fixed;
+      inset: 0 0 auto 0;
+      height: 4px;
+      z-index: 90;
+      background: transparent;
+    }
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--python), #66a5d5 48%, #f7df1e);
+      transition: width 80ms linear;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 70;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+      padding: 0 clamp(18px, 4vw, 58px);
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+      background: color-mix(in srgb, var(--page) 82%, transparent);
+      backdrop-filter: blur(5px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 760;
+      letter-spacing: -0.02em;
+    }
+    .brand-mark {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: 38px;
+      height: 38px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(31, 39, 54, 0.1);
+    }
+    .brand-mark span {
+      display: grid;
+      place-items: center;
+      font: 800 11px/1 var(--mono);
+    }
+    .brand-mark .py { color: #fff; background: var(--python); }
+    .brand-mark .js { color: #171717; background: #f7df1e; }
+    .top-actions { display: flex; align-items: center; gap: 9px; }
+    .icon-button {
+      display: inline-grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper);
+      cursor: pointer;
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+    }
+    .icon-button:hover { transform: translateY(-2px); border-color: var(--python); }
+    .menu-button { display: none; }
+
+    .hero {
+      position: relative;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: clamp(62px, 9vw, 118px) clamp(22px, 5vw, 70px) clamp(52px, 7vw, 82px);
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      top: 64px;
+      right: 8%;
+      width: 280px;
+      height: 280px;
+      border: 1px solid color-mix(in srgb, var(--python) 25%, transparent);
+      border-radius: 50%;
+      box-shadow: 0 0 0 34px color-mix(in srgb, var(--javascript) 8%, transparent), 0 0 0 68px color-mix(in srgb, var(--python) 5%, transparent);
+      pointer-events: none;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 18px;
+      color: var(--python-deep);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 3px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--python), #f7df1e);
+    }
+    .hero h1 {
+      position: relative;
+      z-index: 1;
+      max-width: 850px;
+      margin: 0;
+      font-size: clamp(46px, 7vw, 88px);
+      line-height: 1.02;
+      letter-spacing: -0.055em;
+    }
+    .hero h1 .python-word { color: var(--python); }
+    .hero h1 .javascript-word {
+      color: var(--javascript-deep);
+      text-decoration: underline;
+      text-decoration-color: #f7df1e;
+      text-decoration-thickness: 0.16em;
+      text-underline-offset: 0.12em;
+    }
+    .hero-description {
+      position: relative;
+      z-index: 1;
+      max-width: 710px;
+      margin: 26px 0 0;
+      color: var(--muted);
+      font-size: clamp(17px, 2vw, 21px);
+    }
+    .hero-stats {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 34px;
+    }
+    .stat {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 10px 15px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--paper) 88%, transparent);
+      box-shadow: 0 8px 24px rgba(45, 40, 28, 0.05);
+    }
+    .stat strong { color: var(--ink); font: 800 18px/1 var(--mono); }
+    .stat span { color: var(--muted); font-size: 13px; }
+
+    .language-ribbon {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      max-width: 1180px;
+      margin: 0 auto 54px;
+      padding: 0 clamp(22px, 4vw, 44px);
+    }
+    .ribbon-side {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      min-height: 88px;
+      padding: 18px 24px;
+      border: 1px solid var(--line);
+    }
+    .ribbon-side:first-child { border-radius: 20px 0 0 20px; background: var(--python-soft); }
+    .ribbon-side:last-child { border-left: 0; border-radius: 0 20px 20px 0; background: var(--javascript-soft); }
+    .ribbon-logo {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 50px;
+      height: 50px;
+      border-radius: 15px;
+      color: #fff;
+      background: var(--python);
+      font: 800 18px/1 var(--mono);
+    }
+    .ribbon-side:last-child .ribbon-logo { color: #171717; background: #f7df1e; }
+    .ribbon-side strong { display: block; font-size: 16px; }
+    .ribbon-side small { display: block; margin-top: 3px; color: var(--muted); }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) minmax(0, var(--content-width));
+      align-items: start;
+      justify-content: center;
+      gap: 30px;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 24px 100px;
+    }
+    .sidebar {
+      position: sticky;
+      top: 88px;
+      max-height: calc(100vh - 110px);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: color-mix(in srgb, var(--paper) 94%, transparent);
+      box-shadow: 0 14px 45px rgba(51, 46, 34, 0.07);
+    }
+    .sidebar-head {
+      padding: 20px 20px 14px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .sidebar-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .shortcut { color: var(--muted); font: 600 11px/1 var(--mono); }
+    .toc-search {
+      width: 100%;
+      padding: 10px 12px;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      outline: none;
+      background: var(--paper-strong);
+      font-size: 13px;
+    }
+    .toc-search:focus { border-color: var(--python); box-shadow: 0 0 0 3px rgba(55, 118, 171, 0.12); }
+    .toc {
+      max-height: calc(100vh - 215px);
+      padding: 10px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line) transparent;
+    }
+    .toc-link {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 9px 10px;
+      color: var(--muted);
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.45;
+      transition: color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+    .toc-link:hover { color: var(--ink); background: var(--line-soft); transform: translateX(2px); }
+    .toc-link.active { color: var(--python-deep); background: var(--python-soft); font-weight: 720; }
+    .toc-number { color: var(--python); font: 700 11px/1.8 var(--mono); }
+    .toc-branch { color: var(--line); text-align: center; }
+    .toc-link.depth-3 { padding-top: 6px; padding-bottom: 6px; padding-left: 18px; font-size: 12px; }
+    .toc-link.is-hidden { display: none; }
+
+    .content {
+      min-width: 0;
+      padding: clamp(28px, 5vw, 68px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .content > h2 {
+      position: relative;
+      margin: 86px 0 28px;
+      padding: 28px 30px 28px 82px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(110deg, var(--python-soft), color-mix(in srgb, var(--paper) 90%, transparent) 55%, var(--javascript-soft));
+      font-size: clamp(26px, 4vw, 36px);
+      line-height: 1.25;
+      letter-spacing: -0.035em;
+    }
+    .content > h2:first-child { margin-top: 0; }
+    .content > h2::before {
+      content: counter(chapter, decimal-leading-zero);
+      counter-increment: chapter;
+      position: absolute;
+      left: 25px;
+      top: 27px;
+      color: var(--python);
+      font: 800 17px/1.6 var(--mono);
+    }
+    .content { counter-reset: chapter; }
+    .content h3 {
+      margin: 54px 0 18px;
+      padding-bottom: 9px;
+      border-bottom: 2px solid var(--line-soft);
+      font-size: clamp(21px, 3vw, 27px);
+      line-height: 1.35;
+      letter-spacing: -0.025em;
+    }
+    .content h4 { margin: 36px 0 12px; font-size: 18px; }
+    .heading-anchor {
+      margin-left: 10px;
+      color: var(--line);
+      text-decoration: none;
+      opacity: 0;
+      transition: color 140ms ease, opacity 140ms ease;
+    }
+    h2:hover .heading-anchor, h3:hover .heading-anchor, h4:hover .heading-anchor, .heading-anchor:focus { color: var(--python); opacity: 1; }
+    .content p { margin: 14px 0; }
+    .content strong { color: var(--ink); font-weight: 760; }
+    .content a:not(.heading-anchor) { color: var(--python-deep); text-underline-offset: 3px; }
+    .content ul, .content ol { padding-left: 1.35em; }
+    .content li { margin: 6px 0; padding-left: 4px; }
+    .content li::marker { color: var(--python); font-weight: 800; }
+    .content hr { height: 1px; margin: 60px 0; border: 0; background: var(--line); }
+    .content blockquote {
+      position: relative;
+      margin: 24px 0;
+      padding: 18px 22px 18px 54px;
+      border: 1px solid color-mix(in srgb, var(--python) 24%, var(--line));
+      border-left: 4px solid var(--python);
+      border-radius: 14px;
+      background: var(--python-soft);
+      color: var(--muted);
+    }
+    .content blockquote::before {
+      content: "i";
+      position: absolute;
+      left: 19px;
+      top: 19px;
+      display: grid;
+      place-items: center;
+      width: 21px;
+      height: 21px;
+      color: #fff;
+      border-radius: 50%;
+      background: var(--python);
+      font: 800 13px/1 serif;
+    }
+    .content blockquote p { margin: 0; }
+    .content :not(pre) > code {
+      padding: 0.16em 0.42em;
+      color: var(--coral);
+      border: 1px solid color-mix(in srgb, var(--coral) 18%, var(--line));
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--coral) 7%, var(--paper-strong));
+      font: 0.88em/1.5 var(--mono);
+      overflow-wrap: anywhere;
+    }
+
+    .code-card {
+      margin: 20px 0 26px;
+      overflow: hidden;
+      border: 1px solid #2d3948;
+      border-radius: var(--radius-md);
+      background: #111821;
+      box-shadow: 0 14px 34px rgba(15, 23, 34, 0.16);
+    }
+    .code-python { border-top: 3px solid #4b91c7; }
+    .code-javascript { border-top: 3px solid #f7df1e; }
+    .code-neutral { border-top: 3px solid #8090a5; }
+    .code-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 42px;
+      padding: 0 12px 0 16px;
+      color: #aeb9c7;
+      border-bottom: 1px solid #293544;
+      background: #17212c;
+    }
+    .language-badge { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+    .language-dot { width: 8px; height: 8px; border-radius: 50%; background: #8090a5; }
+    .code-python .language-dot { background: #4b91c7; box-shadow: 0 0 0 3px rgba(75, 145, 199, 0.16); }
+    .code-javascript .language-dot { background: #f7df1e; box-shadow: 0 0 0 3px rgba(247, 223, 30, 0.12); }
+    .copy-code {
+      padding: 5px 9px;
+      color: #aeb9c7;
+      border: 1px solid #354354;
+      border-radius: 7px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .copy-code:hover { color: #fff; border-color: #718096; }
+    .copy-code.copied { color: #9ae6b4; border-color: #32724c; }
+    pre {
+      margin: 0;
+      padding: 19px 20px 22px;
+      overflow-x: auto;
+      color: #d9e1ea;
+      tab-size: 4;
+      scrollbar-width: thin;
+      scrollbar-color: #415064 transparent;
+    }
+    pre code { font: 13.5px/1.72 var(--mono); white-space: pre; }
+    .tok-comment { color: #7d8b9c; font-style: italic; }
+    .tok-string { color: #a9dc76; }
+    .tok-number { color: #fc9867; }
+    .tok-keyword { color: #78b9ec; font-weight: 650; }
+    .code-javascript .tok-keyword { color: #ffd866; }
+    .tok-constant { color: #ab9df2; }
+
+    .table-wrap { overflow-x: auto; }
+    table {
+      display: table;
+      width: 100%;
+      margin: 22px 0 30px;
+      overflow: hidden;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      font-size: 14px;
+    }
+    thead { background: linear-gradient(90deg, var(--python-soft), var(--javascript-soft)); }
+    th, td { padding: 12px 14px; border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: top; }
+    th { color: var(--ink); font-weight: 760; }
+    tr:last-child td { border-bottom: 0; }
+    th:last-child, td:last-child { border-right: 0; }
+    tbody tr:nth-child(even) { background: color-mix(in srgb, var(--line-soft) 38%, transparent); }
+    tbody tr:hover { background: var(--python-soft); }
+
+    .footer {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 0 24px 70px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+    }
+    .footer-rule { width: 60px; height: 3px; margin: 0 auto 20px; border-radius: 3px; background: linear-gradient(90deg, var(--python), #f7df1e); }
+    .back-to-top {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      color: #fff;
+      border: 0;
+      border-radius: 14px;
+      background: var(--ink);
+      box-shadow: 0 10px 28px rgba(19, 27, 39, 0.2);
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+    .back-to-top.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .sidebar-overlay { display: none; }
+
+    @media (max-width: 1040px) {
+      .workspace { grid-template-columns: 260px minmax(0, 1fr); gap: 20px; }
+      .content { padding: 34px; }
+      .hero::after { opacity: 0.5; right: -100px; }
+    }
+
+    @media (max-width: 820px) {
+      .menu-button { display: inline-grid; }
+      .workspace { display: block; padding: 0 14px 70px; }
+      .content { padding: 26px 20px; border-radius: 20px; }
+      .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 95;
+        width: min(86vw, 330px);
+        max-height: none;
+        border-radius: 0 22px 22px 0;
+        transform: translateX(-105%);
+        transition: transform 220ms ease;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .toc { max-height: calc(100vh - 128px); }
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        background: rgba(8, 13, 20, 0.5);
+        backdrop-filter: blur(2px);
+      }
+      .sidebar-overlay.visible { display: block; }
+      .language-ribbon { margin-bottom: 30px; }
+      .hero { padding-top: 58px; }
+    }
+
+    @media (max-width: 620px) {
+      .brand-text { display: none; }
+      .topbar { padding: 0 14px; }
+      .hero h1 { font-size: clamp(41px, 13vw, 62px); }
+      .hero-description { font-size: 16px; }
+      .language-ribbon { grid-template-columns: 1fr; padding: 0 14px; }
+      .ribbon-side:first-child { border-radius: 17px 17px 0 0; }
+      .ribbon-side:last-child { border-left: 1px solid var(--line); border-top: 0; border-radius: 0 0 17px 17px; }
+      .content > h2 { margin-top: 62px; padding: 24px 20px 24px 62px; }
+      .content > h2::before { left: 18px; top: 25px; }
+      .content h3 { margin-top: 42px; }
+      table { font-size: 12.5px; }
+      th, td { min-width: 116px; padding: 10px; }
+      pre { padding: 16px; }
+      pre code { font-size: 12.5px; }
+      .heading-anchor { display: none; }
+    }
+
+    @media print {
+      .topbar, .sidebar, .sidebar-overlay, .back-to-top, .copy-code, .progress-track { display: none !important; }
+      body { background: #fff; }
+      .hero { padding: 30px 0; }
+      .hero::after { display: none; }
+      .language-ribbon { padding: 0; }
+      .workspace { display: block; max-width: none; padding: 0; }
+      .content { max-width: none; padding: 0; border: 0; box-shadow: none; }
+      .code-card { break-inside: avoid; }
+      h2, h3, table { break-after: avoid; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><span class="py">Py</span><span class="js">JS</span></span>
+      <span class="brand-text">语法迁移手册</span>
+    </div>
+    <div class="top-actions">
+      <button class="icon-button menu-button" id="menuButton" type="button" aria-label="打开章节目录" aria-expanded="false">☰</button>
+      <button class="icon-button" id="themeButton" type="button" aria-label="切换深浅色模式" title="切换深浅色模式">◐</button>
+    </div>
+  </header>
+
+  <section class="hero" aria-labelledby="page-title">
+    <div class="eyebrow">From syntax to mental model</div>
+    <h1 id="page-title"><span class="python-word">Python</span> 速通<br>× <span class="javascript-word">JavaScript</span> 对比</h1>
+    <p class="hero-description">从变量、数据结构到文件处理与面向对象，一页掌握 Python 与 JavaScript 的核心差异。不只是语法翻译，更强调两门语言在运行行为上的真正不同。</p>
+    <div class="hero-stats" aria-label="内容统计">
+      <div class="stat"><strong>13</strong><span>个核心章节</span></div>
+      <div class="stat"><strong>101</strong><span>段代码示例</span></div>
+      <div class="stat"><strong>11</strong><span>张对照表</span></div>
+      <div class="stat"><strong>1</strong><span>个完整综合案例</span></div>
+    </div>
+  </section>
+
+  <section class="language-ribbon" aria-label="两门语言定位">
+    <div class="ribbon-side">
+      <span class="ribbon-logo">Py</span>
+      <span><strong>Python</strong><small>简洁、显式、数据与 AI 生态丰富</small></span>
+    </div>
+    <div class="ribbon-side">
+      <span class="ribbon-logo">JS</span>
+      <span><strong>JavaScript</strong><small>Web 原生、事件驱动、全栈统一</small></span>
+    </div>
+  </section>
+
+  <div class="workspace">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-head">
+        <div class="sidebar-title"><span>学习目录</span><span class="shortcut">⌘ K</span></div>
+        <input class="toc-search" id="tocSearch" type="search" placeholder="搜索章节…" aria-label="搜索章节">
+      </div>
+      <nav class="toc" id="toc"><a class="toc-link depth-2" href="#section-1" data-toc-link="section-1">
+      <span class="toc-number">01</span>
+      <span>一、整体学习路线</span>
+    </a>
+<a class="toc-link depth-2" href="#section-2" data-toc-link="section-2">
+      <span class="toc-number">02</span>
+      <span>二、变量与基本类型</span>
+    </a>
+<a class="toc-link depth-3" href="#section-3" data-toc-link="section-3">
+      <span class="toc-branch">↳</span>
+      <span>1. 动态类型</span>
+    </a>
+<a class="toc-link depth-3" href="#section-4" data-toc-link="section-4">
+      <span class="toc-branch">↳</span>
+      <span>2. 整数和浮点数</span>
+    </a>
+<a class="toc-link depth-3" href="#section-5" data-toc-link="section-5">
+      <span class="toc-branch">↳</span>
+      <span>3. 字符串</span>
+    </a>
+<a class="toc-link depth-3" href="#section-6" data-toc-link="section-6">
+      <span class="toc-branch">↳</span>
+      <span>4. 布尔值与逻辑非</span>
+    </a>
+<a class="toc-link depth-3" href="#section-7" data-toc-link="section-7">
+      <span class="toc-branch">↳</span>
+      <span>5. 类型转换</span>
+    </a>
+<a class="toc-link depth-2" href="#section-8" data-toc-link="section-8">
+      <span class="toc-number">03</span>
+      <span>三、基本运算符</span>
+    </a>
+<a class="toc-link depth-3" href="#section-9" data-toc-link="section-9">
+      <span class="toc-branch">↳</span>
+      <span>1. 算术运算</span>
+    </a>
+<a class="toc-link depth-3" href="#section-10" data-toc-link="section-10">
+      <span class="toc-branch">↳</span>
+      <span>2. // 整除的差异</span>
+    </a>
+<a class="toc-link depth-3" href="#section-11" data-toc-link="section-11">
+      <span class="toc-branch">↳</span>
+      <span>3. 负数取余的差异</span>
+    </a>
+<a class="toc-link depth-3" href="#section-12" data-toc-link="section-12">
+      <span class="toc-branch">↳</span>
+      <span>4. 比较运算</span>
+    </a>
+<a class="toc-link depth-3" href="#section-13" data-toc-link="section-13">
+      <span class="toc-branch">↳</span>
+      <span>5. 逻辑运算</span>
+    </a>
+<a class="toc-link depth-2" href="#section-14" data-toc-link="section-14">
+      <span class="toc-number">04</span>
+      <span>四、数据结构</span>
+    </a>
+<a class="toc-link depth-3" href="#section-15" data-toc-link="section-15">
+      <span class="toc-branch">↳</span>
+      <span>4.1 列表与数组</span>
+    </a>
+<a class="toc-link depth-3" href="#section-16" data-toc-link="section-16">
+      <span class="toc-branch">↳</span>
+      <span>创建、访问和修改</span>
+    </a>
+<a class="toc-link depth-3" href="#section-17" data-toc-link="section-17">
+      <span class="toc-branch">↳</span>
+      <span>添加与删除</span>
+    </a>
+<a class="toc-link depth-3" href="#section-18" data-toc-link="section-18">
+      <span class="toc-branch">↳</span>
+      <span>负数索引</span>
+    </a>
+<a class="toc-link depth-3" href="#section-19" data-toc-link="section-19">
+      <span class="toc-branch">↳</span>
+      <span>切片</span>
+    </a>
+<a class="toc-link depth-3" href="#section-20" data-toc-link="section-20">
+      <span class="toc-branch">↳</span>
+      <span>列表推导式</span>
+    </a>
+<a class="toc-link depth-3" href="#section-21" data-toc-link="section-21">
+      <span class="toc-branch">↳</span>
+      <span>4.2 字典、普通对象与 Map</span>
+    </a>
+<a class="toc-link depth-3" href="#section-22" data-toc-link="section-22">
+      <span class="toc-branch">↳</span>
+      <span>使用普通对象</span>
+    </a>
+<a class="toc-link depth-3" href="#section-23" data-toc-link="section-23">
+      <span class="toc-branch">↳</span>
+      <span>新增、修改和删除</span>
+    </a>
+<a class="toc-link depth-3" href="#section-24" data-toc-link="section-24">
+      <span class="toc-branch">↳</span>
+      <span>遍历键值对</span>
+    </a>
+<a class="toc-link depth-3" href="#section-25" data-toc-link="section-25">
+      <span class="toc-branch">↳</span>
+      <span>什么时候使用 Map</span>
+    </a>
+<a class="toc-link depth-3" href="#section-26" data-toc-link="section-26">
+      <span class="toc-branch">↳</span>
+      <span>4.3 元组</span>
+    </a>
+<a class="toc-link depth-3" href="#section-27" data-toc-link="section-27">
+      <span class="toc-branch">↳</span>
+      <span>4.4 列表、元组和字符串转换</span>
+    </a>
+<a class="toc-link depth-3" href="#section-28" data-toc-link="section-28">
+      <span class="toc-branch">↳</span>
+      <span>容器连接为字符串</span>
+    </a>
+<a class="toc-link depth-3" href="#section-29" data-toc-link="section-29">
+      <span class="toc-branch">↳</span>
+      <span>字符串拆成字符</span>
+    </a>
+<a class="toc-link depth-3" href="#section-30" data-toc-link="section-30">
+      <span class="toc-branch">↳</span>
+      <span>列表转元组</span>
+    </a>
+<a class="toc-link depth-3" href="#section-31" data-toc-link="section-31">
+      <span class="toc-branch">↳</span>
+      <span>按空白拆分字符串</span>
+    </a>
+<a class="toc-link depth-2" href="#section-32" data-toc-link="section-32">
+      <span class="toc-number">05</span>
+      <span>五、条件判断</span>
+    </a>
+<a class="toc-link depth-2" href="#section-33" data-toc-link="section-33">
+      <span class="toc-number">06</span>
+      <span>六、循环</span>
+    </a>
+<a class="toc-link depth-3" href="#section-34" data-toc-link="section-34">
+      <span class="toc-branch">↳</span>
+      <span>6.1 for 循环</span>
+    </a>
+<a class="toc-link depth-3" href="#section-35" data-toc-link="section-35">
+      <span class="toc-branch">↳</span>
+      <span>6.2 range</span>
+    </a>
+<a class="toc-link depth-3" href="#section-36" data-toc-link="section-36">
+      <span class="toc-branch">↳</span>
+      <span>6.3 while、continue 和自增</span>
+    </a>
+<a class="toc-link depth-2" href="#section-37" data-toc-link="section-37">
+      <span class="toc-number">07</span>
+      <span>七、函数</span>
+    </a>
+<a class="toc-link depth-3" href="#section-38" data-toc-link="section-38">
+      <span class="toc-branch">↳</span>
+      <span>1. 定义与调用</span>
+    </a>
+<a class="toc-link depth-3" href="#section-39" data-toc-link="section-39">
+      <span class="toc-branch">↳</span>
+      <span>2. 默认参数</span>
+    </a>
+<a class="toc-link depth-3" href="#section-40" data-toc-link="section-40">
+      <span class="toc-branch">↳</span>
+      <span>3. 返回多个值与解构</span>
+    </a>
+<a class="toc-link depth-2" href="#section-41" data-toc-link="section-41">
+      <span class="toc-number">08</span>
+      <span>八、文件操作</span>
+    </a>
+<a class="toc-link depth-3" href="#section-42" data-toc-link="section-42">
+      <span class="toc-branch">↳</span>
+      <span>8.1 Python 文件写入与读取</span>
+    </a>
+<a class="toc-link depth-3" href="#section-43" data-toc-link="section-43">
+      <span class="toc-branch">↳</span>
+      <span>8.2 Node.js 对应写法</span>
+    </a>
+<a class="toc-link depth-2" href="#section-44" data-toc-link="section-44">
+      <span class="toc-number">09</span>
+      <span>九、异常处理</span>
+    </a>
+<a class="toc-link depth-2" href="#section-45" data-toc-link="section-45">
+      <span class="toc-number">10</span>
+      <span>十、类与对象</span>
+    </a>
+<a class="toc-link depth-3" href="#section-46" data-toc-link="section-46">
+      <span class="toc-branch">↳</span>
+      <span>1. Python</span>
+    </a>
+<a class="toc-link depth-3" href="#section-47" data-toc-link="section-47">
+      <span class="toc-branch">↳</span>
+      <span>2. JavaScript</span>
+    </a>
+<a class="toc-link depth-2" href="#section-48" data-toc-link="section-48">
+      <span class="toc-number">11</span>
+      <span>十一、综合案例：单词频率统计</span>
+    </a>
+<a class="toc-link depth-3" href="#section-49" data-toc-link="section-49">
+      <span class="toc-branch">↳</span>
+      <span>1. Notebook 中的 Python 实现思路</span>
+    </a>
+<a class="toc-link depth-3" href="#section-50" data-toc-link="section-50">
+      <span class="toc-branch">↳</span>
+      <span>2. JavaScript 的 Node.js 实现</span>
+    </a>
+<a class="toc-link depth-3" href="#section-51" data-toc-link="section-51">
+      <span class="toc-branch">↳</span>
+      <span>3. 原案例的文本清洗限制</span>
+    </a>
+<a class="toc-link depth-2" href="#section-52" data-toc-link="section-52">
+      <span class="toc-number">12</span>
+      <span>十二、原 Notebook 中需要修正的内容</span>
+    </a>
+<a class="toc-link depth-3" href="#section-53" data-toc-link="section-53">
+      <span class="toc-branch">↳</span>
+      <span>1. 字符串拼接结果错误</span>
+    </a>
+<a class="toc-link depth-3" href="#section-54" data-toc-link="section-54">
+      <span class="toc-branch">↳</span>
+      <span>2. 运算示例的注释沿用了旧变量</span>
+    </a>
+<a class="toc-link depth-3" href="#section-55" data-toc-link="section-55">
+      <span class="toc-branch">↳</span>
+      <span>3. pop() 的说明错误</span>
+    </a>
+<a class="toc-link depth-3" href="#section-56" data-toc-link="section-56">
+      <span class="toc-branch">↳</span>
+      <span>4. 负数索引说明错误</span>
+    </a>
+<a class="toc-link depth-3" href="#section-57" data-toc-link="section-57">
+      <span class="toc-branch">↳</span>
+      <span>5. 字典“无序”的说法已经不准确</span>
+    </a>
+<a class="toc-link depth-3" href="#section-58" data-toc-link="section-58">
+      <span class="toc-branch">↳</span>
+      <span>6. “元祖”应为“元组”</span>
+    </a>
+<a class="toc-link depth-3" href="#section-59" data-toc-link="section-59">
+      <span class="toc-branch">↳</span>
+      <span>7. join() 的输出注释错误</span>
+    </a>
+<a class="toc-link depth-3" href="#section-60" data-toc-link="section-60">
+      <span class="toc-branch">↳</span>
+      <span>8. range() 的步长注释错误</span>
+    </a>
+<a class="toc-link depth-3" href="#section-61" data-toc-link="section-61">
+      <span class="toc-branch">↳</span>
+      <span>9. 函数返回值注释错误</span>
+    </a>
+<a class="toc-link depth-3" href="#section-62" data-toc-link="section-62">
+      <span class="toc-branch">↳</span>
+      <span>10. 当前类示例无法执行</span>
+    </a>
+<a class="toc-link depth-3" href="#section-63" data-toc-link="section-63">
+      <span class="toc-branch">↳</span>
+      <span>11. 综合案例应明确编码</span>
+    </a>
+<a class="toc-link depth-2" href="#section-64" data-toc-link="section-64">
+      <span class="toc-number">13</span>
+      <span>十三、从 JavaScript 转学 Python 的重点</span>
+    </a></nav>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <main class="content" id="main-content">
+      <p>本文按照 <code>python速通.ipynb</code> 的顺序，整理其中全部有效知识点，并说明它们与 JavaScript 的对应关系。</p>
+<blockquote>
+<p>对比默认使用现代 Python 3 和现代 JavaScript（ES6+）。涉及文件操作时，JavaScript 示例运行在 Node.js 中；浏览器里的 JavaScript 不能直接读写任意本地文件。</p>
+</blockquote>
+<h2 id="section-1" data-section-heading>一、整体学习路线<a class="heading-anchor" href="#section-1" aria-label="跳转到本节">#</a></h2><div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>运行结果 / 结构</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-text">变量与基本类型
+  → 运算符
+  → 列表、字典、元组、字符串
+  → 条件判断
+  → 循环
+  → 函数
+  → 文件读写
+  → 异常处理
+  → 类与对象
+  → 综合案例：单词频率统计</code></pre>
+  </div><p>两门语言都属于动态类型语言，许多基础概念能够一一对应，但以下差异需要优先记住：</p>
+<table>
+<thead>
+<tr>
+<th>关注点</th>
+<th>Python</th>
+<th>JavaScript</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>代码块</td>
+<td>缩进</td>
+<td><code>{}</code></td>
+</tr>
+<tr>
+<td>变量声明</td>
+<td>直接赋值</td>
+<td>推荐 <code>const</code>、<code>let</code></td>
+</tr>
+<tr>
+<td>整数与浮点数</td>
+<td><code>int</code>、<code>float</code> 分开</td>
+<td>通常统一为 <code>number</code></td>
+</tr>
+<tr>
+<td>空值</td>
+<td><code>None</code></td>
+<td><code>null</code>、<code>undefined</code></td>
+</tr>
+<tr>
+<td>列表</td>
+<td><code>list</code></td>
+<td><code>Array</code></td>
+</tr>
+<tr>
+<td>字典</td>
+<td><code>dict</code></td>
+<td>普通对象或 <code>Map</code></td>
+</tr>
+<tr>
+<td>元组</td>
+<td>内置 <code>tuple</code>，不可变</td>
+<td>没有完全对应的内置类型</td>
+</tr>
+<tr>
+<td>整除</td>
+<td><code>//</code></td>
+<td>没有对应运算符</td>
+</tr>
+<tr>
+<td>幂运算</td>
+<td><code>**</code></td>
+<td><code>**</code></td>
+</tr>
+<tr>
+<td>逻辑运算</td>
+<td><code>and</code>、<code>or</code>、<code>not</code></td>
+<td><code>&amp;&amp;</code>、`</td>
+</tr>
+<tr>
+<td>文件操作</td>
+<td>内置 <code>open()</code></td>
+<td>Node.js 的 <code>fs</code> 模块</td>
+</tr>
+<tr>
+<td>创建对象</td>
+<td><code>Dog(...)</code></td>
+<td><code>new Dog(...)</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="section-2" data-section-heading>二、变量与基本类型<a class="heading-anchor" href="#section-2" aria-label="跳转到本节">#</a></h2><h3 id="section-3" data-section-heading>1. 动态类型<a class="heading-anchor" href="#section-3" aria-label="跳转到本节">#</a></h3><p>Python 和 JavaScript 都是动态类型语言：变量的类型由运行时的值决定，同一个变量之后可以指向不同类型的值。</p>
+<p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">value = <span class="tok-number">10</span>
+value = <span class="tok-string">&quot;hello&quot;</span></code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">let</span> value = <span class="tok-number">10</span>;
+value = <span class="tok-string">&quot;hello&quot;</span>;</code></pre>
+  </div><p>JavaScript 需要使用声明关键字：</p>
+<ul>
+<li><code>const</code>：变量绑定不会重新赋值，默认优先使用。</li>
+<li><code>let</code>：后续需要重新赋值时使用。</li>
+<li><code>var</code>：旧式声明，有函数作用域和变量提升等历史行为，现代代码通常不推荐。</li>
+</ul>
+<h3 id="section-4" data-section-heading>2. 整数和浮点数<a class="heading-anchor" href="#section-4" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">age = <span class="tok-number">25</span>          <span class="tok-comment"># int</span>
+price = <span class="tok-number">9.99</span>      <span class="tok-comment"># float</span></code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> age = <span class="tok-number">25</span>;       <span class="tok-comment">// number</span>
+<span class="tok-keyword">const</span> price = <span class="tok-number">9.99</span>;   <span class="tok-comment">// number</span></code></pre>
+  </div><p>关键区别：</p>
+<ul>
+<li>Python 的 <code>int</code> 可以表示任意精度整数，<code>float</code> 通常是双精度浮点数。</li>
+<li>JavaScript 的普通整数和小数通常都是 <code>number</code>，大整数可以使用 <code>bigint</code>，例如 <code>123n</code>。</li>
+<li>JavaScript 的安全整数范围有限，可以通过 <code>Number.isSafeInteger()</code> 判断。</li>
+</ul>
+<h3 id="section-5" data-section-heading>3. 字符串<a class="heading-anchor" href="#section-5" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">name = <span class="tok-string">&quot;小明&quot;</span>
+print(<span class="tok-string">&quot;Hi &quot;</span> + name)</code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> name = <span class="tok-string">&quot;小明&quot;</span>;
+console.log(<span class="tok-string">&quot;Hi &quot;</span> + name);
+console.log(<span class="tok-string">`Hi ${name}`</span>);</code></pre>
+  </div><p>两门语言都支持字符串拼接和模板式插值：</p>
+<table>
+<thead>
+<tr>
+<th>Python</th>
+<th>JavaScript</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>f&quot;Hi {name}&quot;</code></td>
+<td><code>`Hi ${name}`</code></td>
+</tr>
+</tbody></table>
+<p><strong>实战拆解：<code>&quot;xxx%sxxx&quot; % (&quot;123&quot;)</code></strong></p>
+<p>这是 Python 的旧式字符串格式化语法。左边字符串中的 <code>%s</code> 是占位符，右边 <code>%</code> 后面的值会被填入该位置：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">result = <span class="tok-string">&quot;xxx%sxxx&quot;</span> % (<span class="tok-string">&quot;123&quot;</span>)
+print(result)  <span class="tok-comment"># xxx123xxx</span></code></pre>
+  </div><p>可以按下面三步理解：</p>
+<ol>
+<li><code>&quot;xxx%sxxx&quot;</code> 是字符串模板。</li>
+<li><code>%s</code> 表示“这里放入一个转换为字符串后的值”。</li>
+<li><code>% (&quot;123&quot;)</code> 把字符串 <code>&quot;123&quot;</code> 填到 <code>%s</code> 所在的位置。</li>
+</ol>
+<p>这里的 <code>(&quot;123&quot;)</code> 只是加了括号的普通字符串，不是元组；Python 的单元素元组必须带逗号，写成 <code>(&quot;123&quot;,)</code>。</p>
+<p>只有一个占位符时，括号通常可以省略：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-string">&quot;xxx%sxxx&quot;</span> % <span class="tok-string">&quot;123&quot;</span>  <span class="tok-comment"># &quot;xxx123xxx&quot;</span></code></pre>
+  </div><p>有多个占位符时，需要把多个值放入元组，并按照位置依次替换：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-string">&quot;name=%s, age=%s&quot;</span> % (<span class="tok-string">&quot;小明&quot;</span>, <span class="tok-number">18</span>)
+<span class="tok-comment"># &quot;name=小明, age=18&quot;</span></code></pre>
+  </div><p>常见占位符包括：<code>%s</code> 表示字符串，<code>%d</code> 表示十进制整数，<code>%f</code> 表示浮点数；如果要输出百分号本身，需要写 <code>%%</code>。</p>
+<p>现代 Python 通常更推荐可读性更好的 f-string：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">value = <span class="tok-string">&quot;123&quot;</span>
+result = f<span class="tok-string">&quot;xxx{value}xxx&quot;</span>  <span class="tok-comment"># &quot;xxx123xxx&quot;</span></code></pre>
+  </div><p>JavaScript 中对应的是模板字符串：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> value = <span class="tok-string">&quot;123&quot;</span>;
+<span class="tok-keyword">const</span> result = <span class="tok-string">`xxx${value}xxx`</span>; <span class="tok-comment">// &quot;xxx123xxx&quot;</span></code></pre>
+  </div><p>一句话记忆：<code>&quot;xxx%sxxx&quot; % &quot;123&quot;</code> = <strong>用右侧的值替换左侧的 <code>%s</code></strong>。</p>
+<h3 id="section-6" data-section-heading>4. 布尔值与逻辑非<a class="heading-anchor" href="#section-6" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">is_rain = <span class="tok-constant">False</span>
+print(<span class="tok-keyword">not</span> is_rain)  <span class="tok-comment"># True</span></code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> isRain = <span class="tok-constant">false</span>;
+console.log(!isRain); <span class="tok-comment">// true</span></code></pre>
+  </div><p>大小写不同：Python 使用 <code>True</code>、<code>False</code>，JavaScript 使用 <code>true</code>、<code>false</code>。</p>
+<h3 id="section-7" data-section-heading>5. 类型转换<a class="heading-anchor" href="#section-7" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">num_str = <span class="tok-string">&quot;123&quot;</span>
+num_int = int(num_str)
+print(num_int + <span class="tok-number">7</span>)   <span class="tok-comment"># 130</span>
+print(num_str + <span class="tok-string">&quot;7&quot;</span>) <span class="tok-comment"># &quot;1237&quot;</span></code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> numStr = <span class="tok-string">&quot;123&quot;</span>;
+<span class="tok-keyword">const</span> numInt = Number(numStr);
+console.log(numInt + <span class="tok-number">7</span>);  <span class="tok-comment">// 130</span>
+console.log(numStr + <span class="tok-number">7</span>);  <span class="tok-comment">// &quot;1237&quot;</span></code></pre>
+  </div><p>关键区别：</p>
+<ul>
+<li>Python 不允许直接执行 <code>&quot;123&quot; + 7</code>，会抛出 <code>TypeError</code>。</li>
+<li>JavaScript 的 <code>+</code> 同时负责数值相加和字符串拼接，遇到字符串时可能发生隐式类型转换。</li>
+<li>JavaScript 中建议显式使用 <code>Number()</code>、<code>String()</code>、<code>Boolean()</code>，减少隐式转换造成的问题。</li>
+</ul>
+<p>常见转换对照：</p>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>Python</th>
+<th>JavaScript</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>转整数</td>
+<td><code>int(value)</code></td>
+<td><code>Number(value)</code> 或 <code>parseInt(value, 10)</code></td>
+</tr>
+<tr>
+<td>转浮点数</td>
+<td><code>float(value)</code></td>
+<td><code>Number(value)</code> 或 <code>parseFloat(value)</code></td>
+</tr>
+<tr>
+<td>转字符串</td>
+<td><code>str(value)</code></td>
+<td><code>String(value)</code></td>
+</tr>
+<tr>
+<td>转布尔值</td>
+<td><code>bool(value)</code></td>
+<td><code>Boolean(value)</code></td>
+</tr>
+<tr>
+<td>查看类型</td>
+<td><code>type(value)</code></td>
+<td><code>typeof value</code></td>
+</tr>
+</tbody></table>
+<p>注意：JavaScript 的 <code>typeof null</code> 是历史遗留的 <code>&quot;object&quot;</code>，不能据此判断 <code>null</code>。</p>
+<hr>
+<h2 id="section-8" data-section-heading>三、基本运算符<a class="heading-anchor" href="#section-8" aria-label="跳转到本节">#</a></h2><h3 id="section-9" data-section-heading>1. 算术运算<a class="heading-anchor" href="#section-9" aria-label="跳转到本节">#</a></h3><p>假设：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">a = <span class="tok-number">10</span>
+b = <span class="tok-number">4</span></code></pre>
+  </div><div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> a = <span class="tok-number">10</span>;
+<span class="tok-keyword">const</span> b = <span class="tok-number">4</span>;</code></pre>
+  </div><table>
+<thead>
+<tr>
+<th>含义</th>
+<th>Python</th>
+<th>JavaScript</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>加法</td>
+<td><code>a + b</code></td>
+<td><code>a + b</code></td>
+<td><code>14</code></td>
+</tr>
+<tr>
+<td>减法</td>
+<td><code>a - b</code></td>
+<td><code>a - b</code></td>
+<td><code>6</code></td>
+</tr>
+<tr>
+<td>乘法</td>
+<td><code>a * b</code></td>
+<td><code>a * b</code></td>
+<td><code>40</code></td>
+</tr>
+<tr>
+<td>普通除法</td>
+<td><code>a / b</code></td>
+<td><code>a / b</code></td>
+<td><code>2.5</code></td>
+</tr>
+<tr>
+<td>取余/余数</td>
+<td><code>a % b</code></td>
+<td><code>a % b</code></td>
+<td><code>2</code></td>
+</tr>
+<tr>
+<td>整除</td>
+<td><code>a // b</code></td>
+<td>无直接对应</td>
+<td><code>2</code></td>
+</tr>
+<tr>
+<td>幂运算</td>
+<td><code>a ** b</code></td>
+<td><code>a ** b</code></td>
+<td><code>10000</code></td>
+</tr>
+</tbody></table>
+<h3 id="section-10" data-section-heading>2. <code>//</code> 整除的差异<a class="heading-anchor" href="#section-10" aria-label="跳转到本节">#</a></h3><p>Python 的 <code>//</code> 会向负无穷方向取整：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-number">10</span> // <span class="tok-number">3</span>    <span class="tok-comment"># 3</span>
+-<span class="tok-number">11</span> // <span class="tok-number">3</span>  <span class="tok-comment"># -4</span></code></pre>
+  </div><p>JavaScript 没有 <code>//</code> 运算符。对于普通数值，可以使用：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript">Math.floor(<span class="tok-number">10</span> / <span class="tok-number">3</span>);   <span class="tok-comment">// 3</span>
+Math.floor(-<span class="tok-number">11</span> / <span class="tok-number">3</span>); <span class="tok-comment">// -4</span></code></pre>
+  </div><p>不要把 <code>Math.trunc()</code> 当作 Python <code>//</code> 的完整替代：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript">Math.trunc(-<span class="tok-number">11</span> / <span class="tok-number">3</span>); <span class="tok-comment">// -3，向 0 截断</span>
+Math.floor(-<span class="tok-number">11</span> / <span class="tok-number">3</span>); <span class="tok-comment">// -4，向负无穷取整</span></code></pre>
+  </div><h3 id="section-11" data-section-heading>3. 负数取余的差异<a class="heading-anchor" href="#section-11" aria-label="跳转到本节">#</a></h3><p>这是 Python 和 JavaScript 中非常容易踩坑的一点。</p>
+<p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">-<span class="tok-number">11</span> // <span class="tok-number">3</span>  <span class="tok-comment"># -4</span>
+-<span class="tok-number">11</span> % <span class="tok-number">3</span>   <span class="tok-comment"># 1</span></code></pre>
+  </div><p>Python 保证：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>运行结果 / 结构</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-text">a = (a // b) * b + (a % b)
+-11 = (-4) * 3 + 1</code></pre>
+  </div><p>当除数 <code>b</code> 为正数时，Python 的余数位于 <code>0 &lt;= 余数 &lt; b</code>。</p>
+<p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript">-<span class="tok-number">11</span> % <span class="tok-number">3</span>; <span class="tok-comment">// -2</span></code></pre>
+  </div><p>JavaScript 的 <code>%</code> 更接近“截断除法后的余数”，结果通常与被除数同号：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>运行结果 / 结构</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-text">-11 = (-3) * 3 + (-2)</code></pre>
+  </div><p>因此：</p>
+<table>
+<thead>
+<tr>
+<th>表达式</th>
+<th align="right">Python</th>
+<th align="right">JavaScript</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>-11 // 3</code></td>
+<td align="right"><code>-4</code></td>
+<td align="right">无 <code>//</code>，<code>Math.floor(-11 / 3)</code> 为 <code>-4</code></td>
+</tr>
+<tr>
+<td><code>-11 % 3</code></td>
+<td align="right"><code>1</code></td>
+<td align="right"><code>-2</code></td>
+</tr>
+</tbody></table>
+<p>如果要在 JavaScript 中实现与 Python 一致的模运算，可以写：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">function</span> pythonModulo(a, b) {
+  <span class="tok-keyword">return</span> ((a % b) + b) % b;
+}
+
+pythonModulo(-<span class="tok-number">11</span>, <span class="tok-number">3</span>); <span class="tok-comment">// 1</span></code></pre>
+  </div><h3 id="section-12" data-section-heading>4. 比较运算<a class="heading-anchor" href="#section-12" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">a == c
+a != c
+a &gt; c</code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript">a === c;
+a !== c;
+a &gt; c;</code></pre>
+  </div><p>关键区别：</p>
+<ul>
+<li>Python 的 <code>==</code> 比较值，<code>is</code> 比较对象身份。</li>
+<li>JavaScript 同时存在宽松相等 <code>==</code> 和严格相等 <code>===</code>。</li>
+<li>JavaScript 通常应优先使用 <code>===</code> 和 <code>!==</code>，避免隐式类型转换。</li>
+</ul>
+<p>例如：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-string">&quot;1&quot;</span> == <span class="tok-number">1</span>;  <span class="tok-comment">// true，发生类型转换</span>
+<span class="tok-string">&quot;1&quot;</span> === <span class="tok-number">1</span>; <span class="tok-comment">// false，类型不同</span></code></pre>
+  </div><h3 id="section-13" data-section-heading>5. 逻辑运算<a class="heading-anchor" href="#section-13" aria-label="跳转到本节">#</a></h3><table>
+<thead>
+<tr>
+<th>含义</th>
+<th>Python</th>
+<th>JavaScript</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>逻辑或</td>
+<td><code>a or b</code></td>
+<td>`a</td>
+</tr>
+<tr>
+<td>逻辑与</td>
+<td><code>a and b</code></td>
+<td><code>a &amp;&amp; b</code></td>
+</tr>
+<tr>
+<td>逻辑非</td>
+<td><code>not a</code></td>
+<td><code>!a</code></td>
+</tr>
+</tbody></table>
+<p>两门语言的“与”和“或”不一定返回布尔值，而是返回参与运算的某个值：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-number">10</span> <span class="tok-keyword">or</span> <span class="tok-number">0</span>   <span class="tok-comment"># 10</span>
+<span class="tok-number">10</span> <span class="tok-keyword">and</span> <span class="tok-number">0</span>  <span class="tok-comment"># 0</span></code></pre>
+  </div><div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-number">10</span> || <span class="tok-number">0</span>;  <span class="tok-comment">// 10</span>
+<span class="tok-number">10</span> &amp;&amp; <span class="tok-number">0</span>;  <span class="tok-comment">// 0</span></code></pre>
+  </div><p>但真假值规则存在重要差异：</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>Python</th>
+<th>JavaScript</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>空字符串</td>
+<td>假</td>
+<td>假</td>
+</tr>
+<tr>
+<td>数字 <code>0</code></td>
+<td>假</td>
+<td>假</td>
+</tr>
+<tr>
+<td><code>None</code> / <code>null</code></td>
+<td>假</td>
+<td>假</td>
+</tr>
+<tr>
+<td>空列表 <code>[]</code></td>
+<td>假</td>
+<td>真</td>
+</tr>
+<tr>
+<td>空字典/对象 <code>{}</code></td>
+<td>假</td>
+<td>真</td>
+</tr>
+</tbody></table>
+<p>JavaScript 中数组和对象都是对象，即使为空也是真值。</p>
+<hr>
+<h2 id="section-14" data-section-heading>四、数据结构<a class="heading-anchor" href="#section-14" aria-label="跳转到本节">#</a></h2><h3 id="section-15" data-section-heading>4.1 列表与数组<a class="heading-anchor" href="#section-15" aria-label="跳转到本节">#</a></h3><p>Python 的 <code>list</code> 对应 JavaScript 的 <code>Array</code>。二者都是可变、有序容器，并且都能存放不同类型的值。</p>
+<h3 id="section-16" data-section-heading>创建、访问和修改<a class="heading-anchor" href="#section-16" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">scores = [<span class="tok-number">85</span>, <span class="tok-number">90</span>, <span class="tok-number">78</span>]
+print(scores[<span class="tok-number">1</span>])
+scores[<span class="tok-number">1</span>] = <span class="tok-number">95</span></code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> scores = [<span class="tok-number">85</span>, <span class="tok-number">90</span>, <span class="tok-number">78</span>];
+console.log(scores[<span class="tok-number">1</span>]);
+scores[<span class="tok-number">1</span>] = <span class="tok-number">95</span>;</code></pre>
+  </div><p><code>const</code> 数组仍然可以修改内部元素；它只是不允许变量重新指向另一个数组。</p>
+<h3 id="section-17" data-section-heading>添加与删除<a class="heading-anchor" href="#section-17" aria-label="跳转到本节">#</a></h3><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>Python</th>
+<th>JavaScript</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>尾部添加</td>
+<td><code>scores.append(88)</code></td>
+<td><code>scores.push(88)</code></td>
+</tr>
+<tr>
+<td>删除并返回尾元素</td>
+<td><code>scores.pop()</code></td>
+<td><code>scores.pop()</code></td>
+</tr>
+<tr>
+<td>删除并返回首元素</td>
+<td><code>scores.pop(0)</code></td>
+<td><code>scores.shift()</code></td>
+</tr>
+<tr>
+<td>首部添加</td>
+<td><code>scores.insert(0, 88)</code></td>
+<td><code>scores.unshift(88)</code></td>
+</tr>
+</tbody></table>
+<h3 id="section-18" data-section-heading>负数索引<a class="heading-anchor" href="#section-18" aria-label="跳转到本节">#</a></h3><p>Python 原生支持负数索引：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">letters = [<span class="tok-string">&quot;a&quot;</span>, <span class="tok-string">&quot;b&quot;</span>, <span class="tok-string">&quot;c&quot;</span>, <span class="tok-string">&quot;d&quot;</span>, <span class="tok-string">&quot;e&quot;</span>]
+letters[-<span class="tok-number">1</span>]  <span class="tok-comment"># &quot;e&quot;</span>
+letters[-<span class="tok-number">2</span>]  <span class="tok-comment"># &quot;d&quot;</span></code></pre>
+  </div><p>JavaScript 的方括号不支持这种负数索引，应使用 <code>at()</code>：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> letters = [<span class="tok-string">&quot;a&quot;</span>, <span class="tok-string">&quot;b&quot;</span>, <span class="tok-string">&quot;c&quot;</span>, <span class="tok-string">&quot;d&quot;</span>, <span class="tok-string">&quot;e&quot;</span>];
+letters.at(-<span class="tok-number">1</span>); <span class="tok-comment">// &quot;e&quot;</span>
+letters.at(-<span class="tok-number">2</span>); <span class="tok-comment">// &quot;d&quot;</span></code></pre>
+  </div><p><code>letters[-1]</code> 在 JavaScript 中访问的是名为 <code>&quot;-1&quot;</code> 的对象属性，不是倒数第一个元素。</p>
+<h3 id="section-19" data-section-heading>切片<a class="heading-anchor" href="#section-19" aria-label="跳转到本节">#</a></h3><p>两门语言都采用左闭右开的区间：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">letters[<span class="tok-number">1</span>:<span class="tok-number">3</span>]  <span class="tok-comment"># [&quot;b&quot;, &quot;c&quot;]</span></code></pre>
+  </div><div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript">letters.slice(<span class="tok-number">1</span>, <span class="tok-number">3</span>); <span class="tok-comment">// [&quot;b&quot;, &quot;c&quot;]</span></code></pre>
+  </div><h3 id="section-20" data-section-heading>列表推导式<a class="heading-anchor" href="#section-20" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">squares = [x ** <span class="tok-number">2</span> <span class="tok-keyword">for</span> x <span class="tok-keyword">in</span> range(<span class="tok-number">5</span>)]</code></pre>
+  </div><p>JavaScript 没有列表推导式，通常使用 <code>map()</code>：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> squares = Array.<span class="tok-keyword">from</span>({ length: <span class="tok-number">5</span> }, (_, x) =&gt; x ** <span class="tok-number">2</span>);</code></pre>
+  </div><p>带条件的 Python 列表推导式通常对应 JavaScript 的 <code>filter()</code> 和 <code>map()</code>：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">squares = [x ** <span class="tok-number">2</span> <span class="tok-keyword">for</span> x <span class="tok-keyword">in</span> range(<span class="tok-number">10</span>) <span class="tok-keyword">if</span> x % <span class="tok-number">2</span> == <span class="tok-number">0</span>]</code></pre>
+  </div><div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> squares = Array.<span class="tok-keyword">from</span>({ length: <span class="tok-number">10</span> }, (_, x) =&gt; x)
+  .filter((x) =&gt; x % <span class="tok-number">2</span> === <span class="tok-number">0</span>)
+  .map((x) =&gt; x ** <span class="tok-number">2</span>);</code></pre>
+  </div><h3 id="section-21" data-section-heading>4.2 字典、普通对象与 Map<a class="heading-anchor" href="#section-21" aria-label="跳转到本节">#</a></h3><p>Python 的 <code>dict</code> 是键值对容器。JavaScript 中要根据场景选择普通对象或 <code>Map</code>。</p>
+<h3 id="section-22" data-section-heading>使用普通对象<a class="heading-anchor" href="#section-22" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">student = {
+    <span class="tok-string">&quot;name&quot;</span>: <span class="tok-string">&quot;李华&quot;</span>,
+    <span class="tok-string">&quot;age&quot;</span>: <span class="tok-number">22</span>,
+    <span class="tok-string">&quot;courses&quot;</span>: [<span class="tok-string">&quot;Math&quot;</span>, <span class="tok-string">&quot;CS&quot;</span>]
+}
+
+print(student[<span class="tok-string">&quot;name&quot;</span>])
+print(student.get(<span class="tok-string">&quot;gender&quot;</span>, <span class="tok-string">&quot;未知&quot;</span>))</code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> student = {
+  name: <span class="tok-string">&quot;李华&quot;</span>,
+  age: <span class="tok-number">22</span>,
+  courses: [<span class="tok-string">&quot;Math&quot;</span>, <span class="tok-string">&quot;CS&quot;</span>],
+};
+
+console.log(student.name);
+console.log(student.gender ?? <span class="tok-string">&quot;未知&quot;</span>);</code></pre>
+  </div><p>这里使用 <code>??</code> 而不是 <code>||</code>，因为 <code>??</code> 只在左侧是 <code>null</code> 或 <code>undefined</code> 时使用默认值，不会把 <code>0</code>、<code>false</code>、空字符串误判为缺失。</p>
+<p><strong>实战拆解：<code>**fused_item[&quot;best_item&quot;]</code></strong></p>
+<p>在字典字面量 <code>{...}</code> 内，两个星号 <code>**</code> 表示<strong>字典解包</strong>：取出目标字典中的所有键值对，并合并到正在创建的新字典中。它类似 JavaScript 对象中的展开语法 <code>...</code>。</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">fused_item = {
+    <span class="tok-string">&quot;best_item&quot;</span>: {
+        <span class="tok-string">&quot;id&quot;</span>: <span class="tok-number">101</span>,
+        <span class="tok-string">&quot;text&quot;</span>: <span class="tok-string">&quot;Python 字典解包&quot;</span>,
+        <span class="tok-string">&quot;original_score&quot;</span>: <span class="tok-number">0.82</span>,
+    },
+    <span class="tok-string">&quot;best_original_score&quot;</span>: <span class="tok-number">0.95</span>,
+    <span class="tok-string">&quot;rrf_score&quot;</span>: <span class="tok-number">0.032</span>,
+    <span class="tok-string">&quot;matched_queries&quot;</span>: [<span class="tok-string">&quot;字典展开&quot;</span>, <span class="tok-string">&quot;Python **&quot;</span>],
+}
+
+result = {
+    **fused_item[<span class="tok-string">&quot;best_item&quot;</span>],
+    <span class="tok-string">&quot;original_score&quot;</span>: fused_item[<span class="tok-string">&quot;best_original_score&quot;</span>],
+    <span class="tok-string">&quot;rrf_score&quot;</span>: fused_item[<span class="tok-string">&quot;rrf_score&quot;</span>],
+    <span class="tok-string">&quot;matched_query_count&quot;</span>: len(fused_item[<span class="tok-string">&quot;matched_queries&quot;</span>]),
+    <span class="tok-string">&quot;matched_queries&quot;</span>: fused_item[<span class="tok-string">&quot;matched_queries&quot;</span>],
+}</code></pre>
+  </div><p>执行顺序可以理解为：</p>
+<ol>
+<li>先读取 <code>fused_item[&quot;best_item&quot;]</code>，得到原始最佳结果字典。</li>
+<li>通过 <code>**</code>，把它的 <code>id</code>、<code>text</code>、<code>original_score</code> 等字段复制到新字典 <code>result</code>。</li>
+<li>再加入融合检索产生的 <code>rrf_score</code>、命中查询数量和查询列表。</li>
+</ol>
+<p><strong>同名键以后面的值为准。</strong>上例的 <code>best_item</code> 原本有 <code>original_score: 0.82</code>，但后面再次设置了 <code>original_score</code>，因此最终值是 <code>0.95</code>。</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> result = {
+  ...fusedItem.bestItem,
+  originalScore: fusedItem.bestOriginalScore,
+  rrfScore: fusedItem.rrfScore,
+  matchedQueryCount: fusedItem.matchedQueries.length,
+  matchedQueries: fusedItem.matchedQueries,
+};</code></pre>
+  </div><p>需要注意：这里进行的是<strong>浅拷贝</strong>。顶层字典是新的，但其中嵌套的列表、字典等对象不会被递归复制。另外，<code>fused_item[&quot;best_item&quot;]</code> 必须是字典或其他映射对象，否则这种字典解包会报错；其中的键需要是可哈希类型。</p>
+<p>一句话记忆：<code>**fused_item[&quot;best_item&quot;]</code> = <strong>把最佳结果的全部字段铺进新字典</strong>。</p>
+<h3 id="section-23" data-section-heading>新增、修改和删除<a class="heading-anchor" href="#section-23" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">student[<span class="tok-string">&quot;gender&quot;</span>] = <span class="tok-string">&quot;female&quot;</span>
+<span class="tok-keyword">del</span> student[<span class="tok-string">&quot;age&quot;</span>]</code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript">student.gender = <span class="tok-string">&quot;female&quot;</span>;
+<span class="tok-keyword">delete</span> student.age;</code></pre>
+  </div><h3 id="section-24" data-section-heading>遍历键值对<a class="heading-anchor" href="#section-24" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">for</span> key, value <span class="tok-keyword">in</span> student.items():
+    print(f<span class="tok-string">&quot;{key}: {value}&quot;</span>)</code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">for</span> (<span class="tok-keyword">const</span> [key, value] <span class="tok-keyword">of</span> Object.entries(student)) {
+  console.log(<span class="tok-string">`${key}: ${value}`</span>);
+}</code></pre>
+  </div><p>常用方法对照：</p>
+<table>
+<thead>
+<tr>
+<th>Python <code>dict</code></th>
+<th>JavaScript 普通对象</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>student.keys()</code></td>
+<td><code>Object.keys(student)</code></td>
+</tr>
+<tr>
+<td><code>student.values()</code></td>
+<td><code>Object.values(student)</code></td>
+</tr>
+<tr>
+<td><code>student.items()</code></td>
+<td><code>Object.entries(student)</code></td>
+</tr>
+<tr>
+<td><code>student.get(key, default)</code></td>
+<td><code>student[key] ?? default</code></td>
+</tr>
+<tr>
+<td><code>key in student</code></td>
+<td><code>Object.hasOwn(student, key)</code></td>
+</tr>
+</tbody></table>
+<h3 id="section-25" data-section-heading>什么时候使用 Map<a class="heading-anchor" href="#section-25" aria-label="跳转到本节">#</a></h3><p>如果键不是固定字段名，或者需要频繁增加、删除和遍历键值对，JavaScript 的 <code>Map</code> 更接近 Python 的 <code>dict</code>：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> student = <span class="tok-keyword">new</span> Map();
+student.set(<span class="tok-string">&quot;name&quot;</span>, <span class="tok-string">&quot;李华&quot;</span>);
+student.set(<span class="tok-string">&quot;age&quot;</span>, <span class="tok-number">22</span>);
+
+console.log(student.get(<span class="tok-string">&quot;name&quot;</span>));
+console.log(student.has(<span class="tok-string">&quot;gender&quot;</span>));
+student.<span class="tok-keyword">delete</span>(<span class="tok-string">&quot;age&quot;</span>);
+
+<span class="tok-keyword">for</span> (<span class="tok-keyword">const</span> [key, value] <span class="tok-keyword">of</span> student) {
+  console.log(<span class="tok-string">`${key}: ${value}`</span>);
+}</code></pre>
+  </div><p>现代 Python 的字典会保持插入顺序。JavaScript 的 <code>Map</code> 也保持插入顺序；普通对象的属性顺序有更具体的规则，尤其是整数形式的键可能被重新排序。</p>
+<h3 id="section-26" data-section-heading>4.3 元组<a class="heading-anchor" href="#section-26" aria-label="跳转到本节">#</a></h3><p>Python 元组是有序、不可变的容器：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">my_tuple = (<span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>, <span class="tok-string">&quot;a&quot;</span>)
+print(my_tuple[<span class="tok-number">0</span>])
+<span class="tok-comment"># my_tuple[0] = 5  # TypeError</span></code></pre>
+  </div><p>JavaScript 没有与 Python 元组完全对应的通用内置类型。常见替代方式是数组：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> tupleLike = [<span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>, <span class="tok-string">&quot;a&quot;</span>];</code></pre>
+  </div><p>如果希望运行时阻止修改，可以进行浅冻结：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> tupleLike = Object.freeze([<span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>, <span class="tok-string">&quot;a&quot;</span>]);</code></pre>
+  </div><p><code>Object.freeze()</code> 只做浅冻结；数组内部如果还有对象，嵌套对象仍可能被修改。</p>
+<h3 id="section-27" data-section-heading>4.4 列表、元组和字符串转换<a class="heading-anchor" href="#section-27" aria-label="跳转到本节">#</a></h3><h3 id="section-28" data-section-heading>容器连接为字符串<a class="heading-anchor" href="#section-28" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">letters = [<span class="tok-string">&quot;h&quot;</span>, <span class="tok-string">&quot;e&quot;</span>, <span class="tok-string">&quot;l&quot;</span>, <span class="tok-string">&quot;l&quot;</span>, <span class="tok-string">&quot;o&quot;</span>]
+text = <span class="tok-string">&quot;-&quot;</span>.join(letters)  <span class="tok-comment"># &quot;h-e-l-l-o&quot;</span></code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> letters = [<span class="tok-string">&quot;h&quot;</span>, <span class="tok-string">&quot;e&quot;</span>, <span class="tok-string">&quot;l&quot;</span>, <span class="tok-string">&quot;l&quot;</span>, <span class="tok-string">&quot;o&quot;</span>];
+<span class="tok-keyword">const</span> text = letters.join(<span class="tok-string">&quot;-&quot;</span>); <span class="tok-comment">// &quot;h-e-l-l-o&quot;</span></code></pre>
+  </div><p>Python 的 <code>join()</code> 要求所有元素都是字符串：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-string">&quot;-&quot;</span>.join([<span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>])  <span class="tok-comment"># TypeError</span></code></pre>
+  </div><p>JavaScript 会隐式执行字符串转换：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript">[<span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>].join(<span class="tok-string">&quot;-&quot;</span>); <span class="tok-comment">// &quot;1-2-3&quot;</span></code></pre>
+  </div><h3 id="section-29" data-section-heading>字符串拆成字符<a class="heading-anchor" href="#section-29" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">list(<span class="tok-string">&quot;hello&quot;</span>)  <span class="tok-comment"># [&quot;h&quot;, &quot;e&quot;, &quot;l&quot;, &quot;l&quot;, &quot;o&quot;]</span></code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript">Array.<span class="tok-keyword">from</span>(<span class="tok-string">&quot;hello&quot;</span>); <span class="tok-comment">// [&quot;h&quot;, &quot;e&quot;, &quot;l&quot;, &quot;l&quot;, &quot;o&quot;]</span>
+[...<span class="tok-string">&quot;hello&quot;</span>];       <span class="tok-comment">// [&quot;h&quot;, &quot;e&quot;, &quot;l&quot;, &quot;l&quot;, &quot;o&quot;]</span></code></pre>
+  </div><h3 id="section-30" data-section-heading>列表转元组<a class="heading-anchor" href="#section-30" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">tuple([<span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>, <span class="tok-string">&quot;a&quot;</span>])  <span class="tok-comment"># (1, 2, 3, &quot;a&quot;)</span></code></pre>
+  </div><p>JavaScript 没有内置元组转换；可根据目的使用数组复制和冻结：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> tupleLike = Object.freeze([...myList]);</code></pre>
+  </div><h3 id="section-31" data-section-heading>按空白拆分字符串<a class="heading-anchor" href="#section-31" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-string">&quot;i love china&quot;</span>.split()  <span class="tok-comment"># [&quot;i&quot;, &quot;love&quot;, &quot;china&quot;]</span></code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-string">&quot;i love china&quot;</span>.trim().split(/\s+/); <span class="tok-comment">// [&quot;i&quot;, &quot;love&quot;, &quot;china&quot;]</span></code></pre>
+  </div><p>Python 的无参数 <code>split()</code> 会处理连续空白和换行；JavaScript 的 <code>split(&quot; &quot;)</code> 只按单个空格字符切割，语义并不完全相同。</p>
+<hr>
+<h2 id="section-32" data-section-heading>五、条件判断<a class="heading-anchor" href="#section-32" aria-label="跳转到本节">#</a></h2><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">age = <span class="tok-number">50</span>
+
+<span class="tok-keyword">if</span> age &lt; <span class="tok-number">18</span>:
+    print(<span class="tok-string">&quot;未成年&quot;</span>)
+<span class="tok-keyword">elif</span> age &lt; <span class="tok-number">45</span>:
+    print(<span class="tok-string">&quot;成年人&quot;</span>)
+<span class="tok-keyword">elif</span> <span class="tok-number">45</span> &lt;= age &lt; <span class="tok-number">65</span>:
+    print(<span class="tok-string">&quot;45～64 岁&quot;</span>)
+<span class="tok-keyword">else</span>:
+    print(<span class="tok-string">&quot;65 岁及以上&quot;</span>)</code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> age = <span class="tok-number">50</span>;
+
+<span class="tok-keyword">if</span> (age &lt; <span class="tok-number">18</span>) {
+  console.log(<span class="tok-string">&quot;未成年&quot;</span>);
+} <span class="tok-keyword">else</span> <span class="tok-keyword">if</span> (age &lt; <span class="tok-number">45</span>) {
+  console.log(<span class="tok-string">&quot;成年人&quot;</span>);
+} <span class="tok-keyword">else</span> <span class="tok-keyword">if</span> (age &gt;= <span class="tok-number">45</span> &amp;&amp; age &lt; <span class="tok-number">65</span>) {
+  console.log(<span class="tok-string">&quot;45～64 岁&quot;</span>);
+} <span class="tok-keyword">else</span> {
+  console.log(<span class="tok-string">&quot;65 岁及以上&quot;</span>);
+}</code></pre>
+  </div><p>关键区别：</p>
+<ul>
+<li>Python 使用缩进界定代码块，条件后有冒号。</li>
+<li>JavaScript 使用花括号，条件通常放在圆括号中。</li>
+<li>Python 使用 <code>elif</code>，JavaScript 使用 <code>else if</code>。</li>
+<li>Python 支持 <code>45 &lt;= age &lt; 65</code> 这样的链式比较。</li>
+<li>JavaScript 不能写成 <code>45 &lt;= age &lt; 65</code>，必须拆成 <code>age &gt;= 45 &amp;&amp; age &lt; 65</code>。</li>
+</ul>
+<p>JavaScript 中写 <code>45 &lt;= age &lt; 65</code> 会先得到布尔值，再把布尔值转换成数字继续比较，结果通常不符合业务意图。</p>
+<hr>
+<h2 id="section-33" data-section-heading>六、循环<a class="heading-anchor" href="#section-33" aria-label="跳转到本节">#</a></h2><h3 id="section-34" data-section-heading>6.1 for 循环<a class="heading-anchor" href="#section-34" aria-label="跳转到本节">#</a></h3><p>Python 遍历列表：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">for</span> i <span class="tok-keyword">in</span> [<span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>, <span class="tok-number">4</span>]:
+    print(i ** <span class="tok-number">2</span>)</code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">for</span> (<span class="tok-keyword">const</span> i <span class="tok-keyword">of</span> [<span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>, <span class="tok-number">4</span>]) {
+  console.log(i ** <span class="tok-number">2</span>);
+}</code></pre>
+  </div><p>特别注意 JavaScript 的 <code>for...of</code> 与 <code>for...in</code>：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">for</span> (<span class="tok-keyword">const</span> value <span class="tok-keyword">of</span> [<span class="tok-string">&quot;a&quot;</span>, <span class="tok-string">&quot;b&quot;</span>]) {
+  console.log(value); <span class="tok-comment">// &quot;a&quot;、&quot;b&quot;</span>
+}
+
+<span class="tok-keyword">for</span> (<span class="tok-keyword">const</span> index <span class="tok-keyword">in</span> [<span class="tok-string">&quot;a&quot;</span>, <span class="tok-string">&quot;b&quot;</span>]) {
+  console.log(index); <span class="tok-comment">// &quot;0&quot;、&quot;1&quot;</span>
+}</code></pre>
+  </div><p>遍历数组元素通常使用 <code>for...of</code>，不要误用 <code>for...in</code>。</p>
+<p><strong>实战拆解：<code>enumerate(results[:5], 1)</code></strong></p>
+<p>这段表达式常用于“只展示前 5 条结果，并从 1 开始编号”。可以从内向外理解：</p>
+<ul>
+<li><code>results[:5]</code>：通过切片取出 <code>results</code> 的前 5 个元素；如果不足 5 个，就取实际存在的全部元素。</li>
+<li><code>enumerate(..., 1)</code>：遍历这些元素时，同时生成序号；第二个参数 <code>1</code> 表示序号从 1 开始，省略时默认从 0 开始。</li>
+<li>每轮会产生一个 <code>(序号, 元素)</code> 二元组，通常在 <code>for</code> 中直接解包为两个变量。</li>
+</ul>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">results = [<span class="tok-string">&quot;苹果&quot;</span>, <span class="tok-string">&quot;香蕉&quot;</span>, <span class="tok-string">&quot;橙子&quot;</span>, <span class="tok-string">&quot;葡萄&quot;</span>, <span class="tok-string">&quot;西瓜&quot;</span>, <span class="tok-string">&quot;桃子&quot;</span>]
+
+<span class="tok-keyword">for</span> index, result <span class="tok-keyword">in</span> enumerate(results[:<span class="tok-number">5</span>], <span class="tok-number">1</span>):
+    print(index, result)
+
+<span class="tok-comment"># 1 苹果</span>
+<span class="tok-comment"># 2 香蕉</span>
+<span class="tok-comment"># 3 橙子</span>
+<span class="tok-comment"># 4 葡萄</span>
+<span class="tok-comment"># 5 西瓜</span></code></pre>
+  </div><p>其中 <code>index, result</code> 是元组解包：例如 <code>(1, &quot;苹果&quot;)</code> 会被分别赋值给 <code>index</code> 和 <code>result</code>。</p>
+<p>对应的 JavaScript 写法可以使用 <code>slice(0, 5)</code> 配合数组下标：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> results = [<span class="tok-string">&quot;苹果&quot;</span>, <span class="tok-string">&quot;香蕉&quot;</span>, <span class="tok-string">&quot;橙子&quot;</span>, <span class="tok-string">&quot;葡萄&quot;</span>, <span class="tok-string">&quot;西瓜&quot;</span>, <span class="tok-string">&quot;桃子&quot;</span>];
+
+results.slice(<span class="tok-number">0</span>, <span class="tok-number">5</span>).forEach((result, index) =&gt; {
+  console.log(index + <span class="tok-number">1</span>, result);
+});</code></pre>
+  </div><p>一句话记忆：<code>enumerate(results[:5], 1)</code> = <strong>前 5 条 + 从 1 编号</strong>。</p>
+<h3 id="section-35" data-section-heading>6.2 range<a class="heading-anchor" href="#section-35" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">for</span> i <span class="tok-keyword">in</span> range(<span class="tok-number">2</span>, <span class="tok-number">10</span>, <span class="tok-number">3</span>):
+    print(i)  <span class="tok-comment"># 2、5、8</span></code></pre>
+  </div><p><code>range(start, stop, step)</code> 采用左闭右开区间，不包含 <code>stop</code>。</p>
+<p>JavaScript 没有内置 <code>range()</code>，通常写普通循环：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">for</span> (<span class="tok-keyword">let</span> i = <span class="tok-number">2</span>; i &lt; <span class="tok-number">10</span>; i += <span class="tok-number">3</span>) {
+  console.log(i); <span class="tok-comment">// 2、5、8</span>
+}</code></pre>
+  </div><h3 id="section-36" data-section-heading>6.3 while、continue 和自增<a class="heading-anchor" href="#section-36" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">count = <span class="tok-number">0</span>
+
+<span class="tok-keyword">while</span> count &lt; <span class="tok-number">5</span>:
+    print(count)
+    count += <span class="tok-number">0.5</span>
+    <span class="tok-keyword">if</span> count &gt; <span class="tok-number">4</span>:
+        <span class="tok-keyword">continue</span>
+    print(count)</code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">let</span> count = <span class="tok-number">0</span>;
+
+<span class="tok-keyword">while</span> (count &lt; <span class="tok-number">5</span>) {
+  console.log(count);
+  count += <span class="tok-number">0.5</span>;
+  <span class="tok-keyword">if</span> (count &gt; <span class="tok-number">4</span>) {
+    <span class="tok-keyword">continue</span>;
+  }
+  console.log(count);
+}</code></pre>
+  </div><p><code>continue</code> 会跳过本轮循环剩余代码，直接进入下一轮。两门语言都支持 <code>break</code> 立即结束循环。</p>
+<p>JavaScript 还支持 <code>count++</code>，但它只能增加 <code>1</code>；Python 没有 <code>++</code> 运算符。</p>
+<hr>
+<h2 id="section-37" data-section-heading>七、函数<a class="heading-anchor" href="#section-37" aria-label="跳转到本节">#</a></h2><h3 id="section-38" data-section-heading>1. 定义与调用<a class="heading-anchor" href="#section-38" aria-label="跳转到本节">#</a></h3><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">def</span> greet(name, greeting=<span class="tok-string">&quot;你好&quot;</span>):
+    <span class="tok-keyword">return</span> f<span class="tok-string">&quot;{greeting}, {name}!&quot;</span>
+
+print(greet(<span class="tok-string">&quot;Alice&quot;</span>))
+print(greet(<span class="tok-string">&quot;Bob&quot;</span>, <span class="tok-string">&quot;Hello&quot;</span>))</code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">function</span> greet(name, greeting = <span class="tok-string">&quot;你好&quot;</span>) {
+  <span class="tok-keyword">return</span> <span class="tok-string">`${greeting}, ${name}!`</span>;
+}
+
+console.log(greet(<span class="tok-string">&quot;Alice&quot;</span>));
+console.log(greet(<span class="tok-string">&quot;Bob&quot;</span>, <span class="tok-string">&quot;Hello&quot;</span>));</code></pre>
+  </div><p>也可以使用箭头函数：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> greet = (name, greeting = <span class="tok-string">&quot;你好&quot;</span>) =&gt; <span class="tok-string">`${greeting}, ${name}!`</span>;</code></pre>
+  </div><h3 id="section-39" data-section-heading>2. 默认参数<a class="heading-anchor" href="#section-39" aria-label="跳转到本节">#</a></h3><p>两门语言都支持默认参数，但细节不同：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript">greet(<span class="tok-string">&quot;Alice&quot;</span>, <span class="tok-constant">undefined</span>); <span class="tok-comment">// 使用默认值</span>
+greet(<span class="tok-string">&quot;Alice&quot;</span>, <span class="tok-constant">null</span>);      <span class="tok-comment">// greeting 为 null，不使用默认值</span></code></pre>
+  </div><p>Python 需要额外注意：不要把可变对象直接作为默认参数，否则它会在多次调用之间复用。</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-comment"># 不推荐</span>
+<span class="tok-keyword">def</span> add_item(item, items=[]):
+    items.append(item)
+    <span class="tok-keyword">return</span> items</code></pre>
+  </div><p>应改为：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">def</span> add_item(item, items=<span class="tok-constant">None</span>):
+    <span class="tok-keyword">if</span> items <span class="tok-keyword">is</span> <span class="tok-constant">None</span>:
+        items = []
+    items.append(item)
+    <span class="tok-keyword">return</span> items</code></pre>
+  </div><h3 id="section-40" data-section-heading>3. 返回多个值与解构<a class="heading-anchor" href="#section-40" aria-label="跳转到本节">#</a></h3><p>Python 实际返回一个元组：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">def</span> calculate(a, b):
+    <span class="tok-keyword">return</span> a + b, a * b
+
+sum_result, product_result = calculate(<span class="tok-number">5</span>, <span class="tok-number">4</span>)
+<span class="tok-comment"># 9、20</span></code></pre>
+  </div><p>JavaScript 可以返回数组并解构：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">function</span> calculate(a, b) {
+  <span class="tok-keyword">return</span> [a + b, a * b];
+}
+
+<span class="tok-keyword">const</span> [sumResult, productResult] = calculate(<span class="tok-number">5</span>, <span class="tok-number">4</span>);</code></pre>
+  </div><p>当返回值含义较多时，JavaScript 更适合返回对象：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">function</span> calculate(a, b) {
+  <span class="tok-keyword">return</span> {
+    sum: a + b,
+    product: a * b,
+  };
+}
+
+<span class="tok-keyword">const</span> { sum, product } = calculate(<span class="tok-number">5</span>, <span class="tok-number">4</span>);</code></pre>
+  </div><p>Python 也支持返回字典或自定义对象，避免调用者依赖位置记忆含义。</p>
+<hr>
+<h2 id="section-41" data-section-heading>八、文件操作<a class="heading-anchor" href="#section-41" aria-label="跳转到本节">#</a></h2><h3 id="section-42" data-section-heading>8.1 Python 文件写入与读取<a class="heading-anchor" href="#section-42" aria-label="跳转到本节">#</a></h3><div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">with</span> open(<span class="tok-string">&quot;diary.txt&quot;</span>, <span class="tok-string">&quot;w&quot;</span>, encoding=<span class="tok-string">&quot;utf-8&quot;</span>) <span class="tok-keyword">as</span> file:
+    file.write(<span class="tok-string">&quot;2023-10-01\n&quot;</span>)
+    file.write(<span class="tok-string">&quot;今天学习了Python\n&quot;</span>)
+
+<span class="tok-keyword">with</span> open(<span class="tok-string">&quot;diary.txt&quot;</span>, <span class="tok-string">&quot;r&quot;</span>, encoding=<span class="tok-string">&quot;utf-8&quot;</span>) <span class="tok-keyword">as</span> file:
+    lines = file.readlines()
+    <span class="tok-keyword">for</span> line <span class="tok-keyword">in</span> lines:
+        print(line.strip())</code></pre>
+  </div><p>重点：</p>
+<ul>
+<li><code>&quot;w&quot;</code> 表示覆盖写入。</li>
+<li><code>&quot;r&quot;</code> 表示读取。</li>
+<li><code>\n</code> 表示换行。</li>
+<li><code>encoding=&quot;utf-8&quot;</code> 明确文本编码。</li>
+<li><code>with</code> 代码块结束后会自动关闭文件。</li>
+<li><code>strip()</code> 会移除字符串首尾空白，包括换行符。</li>
+</ul>
+<h3 id="section-43" data-section-heading>8.2 Node.js 对应写法<a class="heading-anchor" href="#section-43" aria-label="跳转到本节">#</a></h3><p>同步写法：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">import</span> fs <span class="tok-keyword">from</span> <span class="tok-string">&quot;node:fs&quot;</span>;
+
+fs.writeFileSync(
+  <span class="tok-string">&quot;diary.txt&quot;</span>,
+  <span class="tok-string">&quot;2023-10-01\n今天学习了JavaScript\n&quot;</span>,
+  <span class="tok-string">&quot;utf8&quot;</span>,
+);
+
+<span class="tok-keyword">const</span> content = fs.readFileSync(<span class="tok-string">&quot;diary.txt&quot;</span>, <span class="tok-string">&quot;utf8&quot;</span>);
+<span class="tok-keyword">const</span> lines = content.split(/\r?\n/);
+
+<span class="tok-keyword">for</span> (<span class="tok-keyword">const</span> line <span class="tok-keyword">of</span> lines) {
+  console.log(line.trim());
+}</code></pre>
+  </div><p>异步写法：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">import</span> fs <span class="tok-keyword">from</span> <span class="tok-string">&quot;node:fs/promises&quot;</span>;
+
+<span class="tok-keyword">await</span> fs.writeFile(
+  <span class="tok-string">&quot;diary.txt&quot;</span>,
+  <span class="tok-string">&quot;2023-10-01\n今天学习了JavaScript\n&quot;</span>,
+  <span class="tok-string">&quot;utf8&quot;</span>,
+);
+
+<span class="tok-keyword">const</span> content = <span class="tok-keyword">await</span> fs.readFile(<span class="tok-string">&quot;diary.txt&quot;</span>, <span class="tok-string">&quot;utf8&quot;</span>);</code></pre>
+  </div><p>关键区别：</p>
+<ul>
+<li>Python 提供内置 <code>open()</code>；JavaScript 需要引入 Node.js 的 <code>fs</code> 模块。</li>
+<li>Node.js 服务端代码更常用 Promise 版本的异步文件 API，避免同步 I/O 阻塞事件循环。</li>
+<li>浏览器 JavaScript 受到安全沙箱限制，不能像 Node.js 一样通过路径任意读写用户文件。</li>
+<li>相对路径都基于程序运行时的当前工作目录，不一定是源代码文件所在目录。</li>
+</ul>
+<hr>
+<h2 id="section-44" data-section-heading>九、异常处理<a class="heading-anchor" href="#section-44" aria-label="跳转到本节">#</a></h2><p>Python：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">try</span>:
+    x = <span class="tok-number">10</span> / <span class="tok-number">0</span>
+<span class="tok-keyword">except</span> ZeroDivisionError:
+    x = <span class="tok-number">1</span>
+    print(<span class="tok-string">&quot;除数不能为零！&quot;</span>)</code></pre>
+  </div><p>JavaScript：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">try</span> {
+  <span class="tok-keyword">const</span> x = riskyOperation();
+} <span class="tok-keyword">catch</span> (error) {
+  console.error(error);
+}</code></pre>
+  </div><p>关键差异：JavaScript 的普通数字除以零不会抛出异常：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-number">10</span> / <span class="tok-number">0</span>; <span class="tok-comment">// Infinity</span>
+<span class="tok-number">0</span> / <span class="tok-number">0</span>;  <span class="tok-comment">// NaN</span></code></pre>
+  </div><p>所以不能通过 <code>try...catch</code> 捕获 JavaScript 普通数字的除零行为，应主动校验：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">function</span> divide(a, b) {
+  <span class="tok-keyword">if</span> (b === <span class="tok-number">0</span>) {
+    <span class="tok-keyword">throw</span> <span class="tok-keyword">new</span> RangeError(<span class="tok-string">&quot;除数不能为零&quot;</span>);
+  }
+  <span class="tok-keyword">return</span> a / b;
+}
+
+<span class="tok-keyword">try</span> {
+  console.log(divide(<span class="tok-number">10</span>, <span class="tok-number">0</span>));
+} <span class="tok-keyword">catch</span> (error) {
+  <span class="tok-keyword">if</span> (error <span class="tok-keyword">instanceof</span> RangeError) {
+    console.error(error.message);
+  } <span class="tok-keyword">else</span> {
+    <span class="tok-keyword">throw</span> error;
+  }
+}</code></pre>
+  </div><p>对照：</p>
+<table>
+<thead>
+<tr>
+<th>Python</th>
+<th>JavaScript</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>try</code></td>
+<td><code>try</code></td>
+</tr>
+<tr>
+<td><code>except</code></td>
+<td><code>catch</code></td>
+</tr>
+<tr>
+<td><code>raise</code></td>
+<td><code>throw</code></td>
+</tr>
+<tr>
+<td><code>finally</code></td>
+<td><code>finally</code></td>
+</tr>
+<tr>
+<td><code>ZeroDivisionError</code></td>
+<td>普通数字除零不抛异常</td>
+</tr>
+<tr>
+<td><code>FileNotFoundError</code></td>
+<td>Node.js 常见错误码 <code>ENOENT</code></td>
+</tr>
+</tbody></table>
+<p>捕获异常时应尽量处理具体错误，不要无条件吞掉所有异常。</p>
+<hr>
+<h2 id="section-45" data-section-heading>十、类与对象<a class="heading-anchor" href="#section-45" aria-label="跳转到本节">#</a></h2><h3 id="section-46" data-section-heading>1. Python<a class="heading-anchor" href="#section-46" aria-label="跳转到本节">#</a></h3><div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">class</span> Dog:
+    <span class="tok-keyword">def</span> __init__(self, name, age, color):
+        self.name = name
+        self.age = age
+        self.color = color
+
+    <span class="tok-keyword">def</span> bark(self):
+        print(f<span class="tok-string">&quot;{self.name} says woof!&quot;</span>)
+
+
+dog1 = Dog(<span class="tok-string">&quot;Buddy&quot;</span>, <span class="tok-number">3</span>, <span class="tok-string">&quot;brown&quot;</span>)
+dog1.bark()</code></pre>
+  </div><h3 id="section-47" data-section-heading>2. JavaScript<a class="heading-anchor" href="#section-47" aria-label="跳转到本节">#</a></h3><div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">class</span> Dog {
+  constructor(name, age, color) {
+    <span class="tok-keyword">this</span>.name = name;
+    <span class="tok-keyword">this</span>.age = age;
+    <span class="tok-keyword">this</span>.color = color;
+  }
+
+  bark() {
+    console.log(<span class="tok-string">`${this.name} says woof!`</span>);
+  }
+}
+
+<span class="tok-keyword">const</span> dog1 = <span class="tok-keyword">new</span> Dog(<span class="tok-string">&quot;Buddy&quot;</span>, <span class="tok-number">3</span>, <span class="tok-string">&quot;brown&quot;</span>);
+dog1.bark();</code></pre>
+  </div><p>对照：</p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>Python</th>
+<th>JavaScript</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>定义类</td>
+<td><code>class Dog:</code></td>
+<td><code>class Dog {}</code></td>
+</tr>
+<tr>
+<td>构造方法</td>
+<td><code>__init__</code></td>
+<td><code>constructor</code></td>
+</tr>
+<tr>
+<td>当前实例</td>
+<td>显式参数 <code>self</code></td>
+<td>隐式上下文 <code>this</code></td>
+</tr>
+<tr>
+<td>实例属性</td>
+<td><code>self.name</code></td>
+<td><code>this.name</code></td>
+</tr>
+<tr>
+<td>创建实例</td>
+<td><code>Dog(...)</code></td>
+<td><code>new Dog(...)</code></td>
+</tr>
+<tr>
+<td>定义方法</td>
+<td><code>def bark(self):</code></td>
+<td><code>bark() {}</code></td>
+</tr>
+</tbody></table>
+<p>JavaScript 的 <code>this</code> 由函数如何被调用决定。把对象方法单独传递给其他函数时，可能丢失原来的 <code>this</code>：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> bark = dog1.bark;
+bark(); <span class="tok-comment">// this 可能是 undefined</span></code></pre>
+  </div><p>Python 的实例方法通过 <code>self</code> 显式访问实例，行为更直观。</p>
+<hr>
+<h2 id="section-48" data-section-heading>十一、综合案例：单词频率统计<a class="heading-anchor" href="#section-48" aria-label="跳转到本节">#</a></h2><p>这个案例综合使用了：</p>
+<ul>
+<li>函数定义和返回值</li>
+<li>文件读取</li>
+<li>异常处理</li>
+<li>字符串转小写</li>
+<li>字符串切分</li>
+<li>列表遍历</li>
+<li>字典读取、更新和默认值</li>
+</ul>
+<h3 id="section-49" data-section-heading>1. Notebook 中的 Python 实现思路<a class="heading-anchor" href="#section-49" aria-label="跳转到本节">#</a></h3><div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">def</span> count_words(filename):
+    <span class="tok-keyword">try</span>:
+        <span class="tok-keyword">with</span> open(filename, <span class="tok-string">&quot;r&quot;</span>, encoding=<span class="tok-string">&quot;utf-8&quot;</span>) <span class="tok-keyword">as</span> file:
+            content = file.read().lower()
+            words = content.split()
+
+        word_count = {}
+        <span class="tok-keyword">for</span> word <span class="tok-keyword">in</span> words:
+            word_count[word] = word_count.get(word, <span class="tok-number">0</span>) + <span class="tok-number">1</span>
+
+        <span class="tok-keyword">return</span> word_count
+    <span class="tok-keyword">except</span> FileNotFoundError:
+        print(<span class="tok-string">&quot;文件不存在！&quot;</span>)
+        <span class="tok-keyword">return</span> {}</code></pre>
+  </div><p>执行过程：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>运行结果 / 结构</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-text">文件路径
+  → 读取全文
+  → 转为小写
+  → 按空白切词
+  → 遍历单词
+  → 使用字典累计频率
+  → 返回统计结果</code></pre>
+  </div><p><code>word_count.get(word, 0)</code> 表示：如果单词已存在就取得原计数，否则使用 <code>0</code>，然后加 <code>1</code>。</p>
+<h3 id="section-50" data-section-heading>2. JavaScript 的 Node.js 实现<a class="heading-anchor" href="#section-50" aria-label="跳转到本节">#</a></h3><p>使用普通对象：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">import</span> fs <span class="tok-keyword">from</span> <span class="tok-string">&quot;node:fs/promises&quot;</span>;
+
+<span class="tok-keyword">async</span> <span class="tok-keyword">function</span> countWords(filename) {
+  <span class="tok-keyword">try</span> {
+    <span class="tok-keyword">const</span> content = (<span class="tok-keyword">await</span> fs.readFile(filename, <span class="tok-string">&quot;utf8&quot;</span>)).toLowerCase();
+    <span class="tok-keyword">const</span> words = content.trim().split(/\s+/);
+    <span class="tok-keyword">const</span> wordCount = Object.create(<span class="tok-constant">null</span>);
+
+    <span class="tok-keyword">for</span> (<span class="tok-keyword">const</span> word <span class="tok-keyword">of</span> words) {
+      wordCount[word] = (wordCount[word] ?? <span class="tok-number">0</span>) + <span class="tok-number">1</span>;
+    }
+
+    <span class="tok-keyword">return</span> wordCount;
+  } <span class="tok-keyword">catch</span> (error) {
+    <span class="tok-keyword">if</span> (error?.code === <span class="tok-string">&quot;ENOENT&quot;</span>) {
+      console.error(<span class="tok-string">&quot;文件不存在！&quot;</span>);
+      <span class="tok-keyword">return</span> Object.create(<span class="tok-constant">null</span>);
+    }
+    <span class="tok-keyword">throw</span> error;
+  }
+}
+
+<span class="tok-keyword">const</span> result = <span class="tok-keyword">await</span> countWords(<span class="tok-string">&quot;综合案例文本.txt&quot;</span>);
+console.log(<span class="tok-string">&quot;单词频率:&quot;</span>, result);</code></pre>
+  </div><p>使用 <code>Map</code>：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> wordCount = <span class="tok-keyword">new</span> Map();
+
+<span class="tok-keyword">for</span> (<span class="tok-keyword">const</span> word <span class="tok-keyword">of</span> words) {
+  wordCount.set(word, (wordCount.get(word) ?? <span class="tok-number">0</span>) + <span class="tok-number">1</span>);
+}</code></pre>
+  </div><p><code>Map</code> 版本与 Python 的 <code>dict.get()</code> 思路更接近。</p>
+<h3 id="section-51" data-section-heading>3. 原案例的文本清洗限制<a class="heading-anchor" href="#section-51" aria-label="跳转到本节">#</a></h3><p>原案例只按空白切分，不会去除标点。因此下面这些内容会被统计成不同单词：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>运行结果 / 结构</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-text">dog
+dog,
+dog.
+dog!</code></pre>
+  </div><p>更合理的简单 Python 版本可以先用正则提取单词：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-keyword">import</span> re
+
+words = re.findall(r<span class="tok-string">&quot;[a-z]+(?:[-_][a-z]+)*&quot;</span>, content.lower())</code></pre>
+  </div><p>JavaScript 对应写法：</p>
+<div class="code-card code-javascript" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>JavaScript</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-javascript"><span class="tok-keyword">const</span> words = content.toLowerCase().match(/[a-z]+(?:[-_][a-z]+)*/g) ?? [];</code></pre>
+  </div><p>“如何定义单词”取决于业务：连字符、下划线、数字、中文和 Unicode 字符是否算单词，都需要明确规则。</p>
+<hr>
+<h2 id="section-52" data-section-heading>十二、原 Notebook 中需要修正的内容<a class="heading-anchor" href="#section-52" aria-label="跳转到本节">#</a></h2><p>下面是阅读原 Notebook 时需要注意的错误或不严谨表述。</p>
+<h3 id="section-53" data-section-heading>1. 字符串拼接结果错误<a class="heading-anchor" href="#section-53" aria-label="跳转到本节">#</a></h3><p>原注释把下面结果写成了 <code>130</code>：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">num_str = <span class="tok-string">&quot;123&quot;</span>
+num_str + <span class="tok-string">&quot;7&quot;</span></code></pre>
+  </div><p>实际结果是字符串 <code>&quot;1237&quot;</code>。只有先转换成整数再加 <code>7</code> 才会得到 <code>130</code>。</p>
+<h3 id="section-54" data-section-heading>2. 运算示例的注释沿用了旧变量<a class="heading-anchor" href="#section-54" aria-label="跳转到本节">#</a></h3><p>代码使用 <code>a = 10</code>、<code>b = 4</code>，部分注释却仍按 <code>b = 3</code> 描述。实际结果应以当前代码为准：</p>
+<div class="code-card code-neutral" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>运行结果 / 结构</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-text">a + b  = 14
+a - b  = 6
+a * b  = 40
+a / b  = 2.5
+a % b  = 2
+a // b = 2
+a ** b = 10000</code></pre>
+  </div><h3 id="section-55" data-section-heading>3. <code>pop()</code> 的说明错误<a class="heading-anchor" href="#section-55" aria-label="跳转到本节">#</a></h3><div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">scores.pop()</code></pre>
+  </div><p>它删除的是最后一个元素，不是第一个元素。删除第一个元素应使用 <code>scores.pop(0)</code>。</p>
+<h3 id="section-56" data-section-heading>4. 负数索引说明错误<a class="heading-anchor" href="#section-56" aria-label="跳转到本节">#</a></h3><div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">letters = [<span class="tok-string">&quot;a&quot;</span>, <span class="tok-string">&quot;b&quot;</span>, <span class="tok-string">&quot;c&quot;</span>, <span class="tok-string">&quot;d&quot;</span>, <span class="tok-string">&quot;e&quot;</span>]
+letters[-<span class="tok-number">2</span>]</code></pre>
+  </div><p>结果是 <code>&quot;d&quot;</code>，<code>letters[-1]</code> 才是 <code>&quot;e&quot;</code>。</p>
+<h3 id="section-57" data-section-heading>5. 字典“无序”的说法已经不准确<a class="heading-anchor" href="#section-57" aria-label="跳转到本节">#</a></h3><p>现代 Python 的 <code>dict</code> 会保持插入顺序，但仍应通过键访问数据，不要把字典当作列表使用。</p>
+<h3 id="section-58" data-section-heading>6. “元祖”应为“元组”<a class="heading-anchor" href="#section-58" aria-label="跳转到本节">#</a></h3><p>正确术语是“元组（tuple）”。</p>
+<h3 id="section-59" data-section-heading>7. <code>join()</code> 的输出注释错误<a class="heading-anchor" href="#section-59" aria-label="跳转到本节">#</a></h3><div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python"><span class="tok-string">&quot;-&quot;</span>.join([<span class="tok-string">&quot;h&quot;</span>, <span class="tok-string">&quot;e&quot;</span>, <span class="tok-string">&quot;l&quot;</span>, <span class="tok-string">&quot;l&quot;</span>, <span class="tok-string">&quot;o&quot;</span>])</code></pre>
+  </div><p>结果是 <code>&quot;h-e-l-l-o&quot;</code>，不是 <code>&quot;hello&quot;</code>。</p>
+<h3 id="section-60" data-section-heading>8. <code>range()</code> 的步长注释错误<a class="heading-anchor" href="#section-60" aria-label="跳转到本节">#</a></h3><div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">range(<span class="tok-number">2</span>, <span class="tok-number">10</span>, <span class="tok-number">3</span>)</code></pre>
+  </div><p>步长是 <code>3</code>，结果是 <code>2、5、8</code>，不是步长 <code>2</code>。</p>
+<h3 id="section-61" data-section-heading>9. 函数返回值注释错误<a class="heading-anchor" href="#section-61" aria-label="跳转到本节">#</a></h3><div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">calculate(<span class="tok-number">5</span>, <span class="tok-number">4</span>)</code></pre>
+  </div><p>和与积是 <code>9</code>、<code>20</code>，不是 <code>7</code>、<code>12</code>。</p>
+<h3 id="section-62" data-section-heading>10. 当前类示例无法执行<a class="heading-anchor" href="#section-62" aria-label="跳转到本节">#</a></h3><p>原代码存在两个问题：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">self.color = coler       <span class="tok-comment"># coler 拼写错误</span>
+dog1 = Dog(<span class="tok-string">&quot;Buddy&quot;</span>, <span class="tok-number">3</span>)  <span class="tok-comment"># 少传 color 参数</span></code></pre>
+  </div><p>应改为：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">self.color = color
+dog1 = Dog(<span class="tok-string">&quot;Buddy&quot;</span>, <span class="tok-number">3</span>, <span class="tok-string">&quot;brown&quot;</span>)</code></pre>
+  </div><p>Notebook 中保存的 <code>Buddy says woof!</code> 输出很可能来自代码被修改之前的某次执行，并不代表当前单元格可以重新运行成功。</p>
+<h3 id="section-63" data-section-heading>11. 综合案例应明确编码<a class="heading-anchor" href="#section-63" aria-label="跳转到本节">#</a></h3><p>读取文本时建议写出：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">open(filename, <span class="tok-string">&quot;r&quot;</span>, encoding=<span class="tok-string">&quot;utf-8&quot;</span>)</code></pre>
+  </div><p>避免运行环境默认编码不同导致中文文件读取失败。</p>
+<hr>
+<h2 id="section-64" data-section-heading>十三、从 JavaScript 转学 Python 的重点<a class="heading-anchor" href="#section-64" aria-label="跳转到本节">#</a></h2><p>如果已经熟悉 JavaScript，学习这份 Python 速通内容时应优先建立以下对应关系：</p>
+<ol>
+<li><code>const</code>、<code>let</code> 不再出现，Python 变量直接赋值。</li>
+<li><code>{}</code> 代码块变成缩进，缩进属于语法的一部分。</li>
+<li><code>===</code> 变成 <code>==</code>，对象身份比较使用 <code>is</code>。</li>
+<li><code>&amp;&amp;</code>、<code>||</code>、<code>!</code> 变成 <code>and</code>、<code>or</code>、<code>not</code>。</li>
+<li><code>Array</code> 变成 <code>list</code>，<code>push()</code> 变成 <code>append()</code>。</li>
+<li><code>Object</code> 或 <code>Map</code> 对应 <code>dict</code>。</li>
+<li><code>for...of</code> 大致对应 Python 的 <code>for...in</code>；Python 会依次取得可迭代对象产生的元素，遍历字典时默认取得键，不要套用 JavaScript <code>for...in</code> 的含义。</li>
+<li>Python 支持负数索引、切片、列表推导式和链式比较。</li>
+<li>Python 有 <code>//</code>，而且 Python 与 JavaScript 的负数 <code>%</code> 结果可能不同。</li>
+<li>Python 的空列表、空字典是假值，JavaScript 的空数组、空对象是真值。</li>
+<li><code>def</code> 对应 <code>function</code>，Python 多返回值实际是元组。</li>
+<li><code>with open()</code> 对应 Node.js <code>fs</code>，但 Node.js 更常使用异步 I/O。</li>
+<li><code>except</code> 对应 <code>catch</code>，但 JavaScript 普通数字除以零不会抛异常。</li>
+<li><code>self</code> 对应 <code>this</code>，Python 创建实例不使用 <code>new</code>。</li>
+</ol>
+<p>掌握这些差异后，就可以把已有的 JavaScript 编程思维迁移到 Python，并继续学习模型 API 调用、JSON 处理、第三方包、异步请求和大模型应用开发。</p>
+
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-rule"></div>
+    <p>基于《Python 速通知识点与 JavaScript 对比》生成 · 适合复习、查阅与打印</p>
+  </footer>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var themeButton = document.getElementById('themeButton');
+      var storedTheme = null;
+      try { storedTheme = localStorage.getItem('python-js-theme'); } catch (error) {}
+      if (storedTheme) root.dataset.theme = storedTheme;
+
+      themeButton.addEventListener('click', function () {
+        var next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        root.dataset.theme = next;
+        try { localStorage.setItem('python-js-theme', next); } catch (error) {}
+      });
+
+      var progressBar = document.getElementById('progressBar');
+      var backToTop = document.getElementById('backToTop');
+      function updateScrollState() {
+        var max = document.documentElement.scrollHeight - window.innerHeight;
+        var ratio = max > 0 ? window.scrollY / max : 0;
+        progressBar.style.width = Math.min(100, Math.max(0, ratio * 100)) + '%';
+        backToTop.classList.toggle('visible', window.scrollY > 700);
+      }
+      updateScrollState();
+      window.addEventListener('scroll', updateScrollState, { passive: true });
+      backToTop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+      document.querySelectorAll('[data-code-card]').forEach(function (card) {
+        var button = card.querySelector('.copy-code');
+        var code = card.querySelector('code');
+        button.addEventListener('click', async function () {
+          try {
+            await navigator.clipboard.writeText(code.textContent);
+            button.textContent = '已复制';
+            button.classList.add('copied');
+            setTimeout(function () {
+              button.textContent = '复制';
+              button.classList.remove('copied');
+            }, 1400);
+          } catch (error) {
+            var selection = window.getSelection();
+            var range = document.createRange();
+            range.selectNodeContents(code);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            button.textContent = '请按 ⌘C';
+          }
+        });
+      });
+
+      document.querySelectorAll('table').forEach(function (table) {
+        var wrapper = document.createElement('div');
+        wrapper.className = 'table-wrap';
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+      });
+
+      var tocLinks = Array.from(document.querySelectorAll('[data-toc-link]'));
+      var headingElements = Array.from(document.querySelectorAll('[data-section-heading]'));
+      if ('IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            tocLinks.forEach(function (link) {
+              link.classList.toggle('active', link.dataset.tocLink === entry.target.id);
+            });
+            var active = document.querySelector('.toc-link.active');
+            if (active) active.scrollIntoView({ block: 'nearest' });
+          });
+        }, { rootMargin: '-18% 0px -72% 0px', threshold: 0 });
+        headingElements.forEach(function (heading) { observer.observe(heading); });
+      }
+
+      var search = document.getElementById('tocSearch');
+      search.addEventListener('input', function () {
+        var query = search.value.trim().toLowerCase();
+        tocLinks.forEach(function (link) {
+          link.classList.toggle('is-hidden', query && !link.textContent.toLowerCase().includes(query));
+        });
+      });
+      document.addEventListener('keydown', function (event) {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+          event.preventDefault();
+          openSidebar();
+          search.focus();
+        }
+        if (event.key === 'Escape') closeSidebar();
+      });
+
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebarOverlay');
+      var menuButton = document.getElementById('menuButton');
+      function openSidebar() {
+        if (window.matchMedia('(max-width: 820px)').matches) {
+          sidebar.classList.add('open');
+          overlay.classList.add('visible');
+          menuButton.setAttribute('aria-expanded', 'true');
+        }
+      }
+      function closeSidebar() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('visible');
+        menuButton.setAttribute('aria-expanded', 'false');
+      }
+      menuButton.addEventListener('click', function () {
+        if (sidebar.classList.contains('open')) closeSidebar(); else openSidebar();
+      });
+      overlay.addEventListener('click', closeSidebar);
+      tocLinks.forEach(function (link) { link.addEventListener('click', closeSidebar); });
+    })();
+  </script>
+</body>
+</html>

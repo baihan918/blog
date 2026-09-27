@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="双塔检索、向量归一化、Norm 与 LayerNorm">
+  <title>双塔检索、向量归一化、Norm 与 LayerNorm</title>
+  <link rel="stylesheet" href="../assets/answer-pages.css?v=2">
+  <script>window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] } };</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">MD</span><span class="brand-title">双塔检索、向量归一化、Norm 与 LayerNorm</span></div>
+    <div class="top-actions"><a class="source-link" href="0-md/%E5%8F%8C%E5%A1%94%E6%A3%80%E7%B4%A2_%E5%90%91%E9%87%8F%E5%BD%92%E4%B8%80%E5%8C%96_Norm%E4%B8%8ELayerNorm.md">查看 Markdown</a><button class="menu-button" id="menuToggle" type="button" aria-label="打开目录" aria-expanded="false">☰</button><button class="icon-button" id="themeToggle" type="button" aria-label="切换深浅主题">◐</button></div>
+  </header>
+  <section class="hero"><div class="eyebrow">Markdown Reading Page</div><h1>双塔检索、向量归一化、Norm 与 LayerNorm</h1></section>
+  <main class="layout" id="main">
+    <aside class="toc-shell" id="tocShell"><nav class="toc" aria-label="页面目录"><p class="toc-title">READING MAP</p><a href="#核心结论-为什么双塔检索通常要做向量归一化" data-toc="核心结论-为什么双塔检索通常要做向量归一化" data-level="2">核心结论：为什么双塔检索通常要做向量归一化？</a>
+<a href="#1-什么是双塔检索-two-tower-dual-encoder" data-toc="1-什么是双塔检索-two-tower-dual-encoder" data-level="2">1. 什么是双塔检索（Two-Tower / Dual Encoder）</a>
+<a href="#双塔为什么适合大规模检索" data-toc="双塔为什么适合大规模检索" data-level="3">双塔为什么适合大规模检索？</a>
+<a href="#2-双塔检索和混合检索中的向量检索是什么关系" data-toc="2-双塔检索和混合检索中的向量检索是什么关系" data-level="2">2. 双塔检索和混合检索中的向量检索是什么关系？</a>
+<a href="#向量归一化和混合检索的分数归一化不是同一步" data-toc="向量归一化和混合检索的分数归一化不是同一步" data-level="3">向量归一化和混合检索的分数归一化，不是同一步</a>
+<a href="#几个概念不要混淆" data-toc="几个概念不要混淆" data-level="3">几个概念不要混淆</a>
+<a href="#3-为什么双塔检索经常需要做向量归一化" data-toc="3-为什么双塔检索经常需要做向量归一化" data-level="2">3. 为什么双塔检索经常需要做向量归一化？</a>
+<a href="#4-什么是-l2-normalize" data-toc="4-什么是-l2-normalize" data-level="2">4. 什么是 L2 Normalize？</a>
+<a href="#5-为什么-normalize-后-dot-product-等价于-cosine-similarity" data-toc="5-为什么-normalize-后-dot-product-等价于-cosine-similarity" data-level="2">5. 为什么 Normalize 后 Dot Product 等价于 Cosine Similarity？</a>
+<a href="#6-norm-到底是什么" data-toc="6-norm-到底是什么" data-level="2">6. Norm 到底是什么？</a>
+<a href="#7-norm-和-layernorm-是一回事吗" data-toc="7-norm-和-layernorm-是一回事吗" data-level="2">7. Norm 和 LayerNorm 是一回事吗？</a>
+<a href="#l2-normalize" data-toc="l2-normalize" data-level="3">L2 Normalize</a>
+<a href="#layernorm" data-toc="layernorm" data-level="3">LayerNorm</a>
+<a href="#8-l2-normalize-和-layernorm-对比" data-toc="8-l2-normalize-和-layernorm-对比" data-level="2">8. L2 Normalize 和 LayerNorm 对比</a>
+<a href="#9-normalize-不是双塔检索的强制要求" data-toc="9-normalize-不是双塔检索的强制要求" data-level="2">9. Normalize 不是双塔检索的强制要求</a>
+<a href="#10-一条完整的知识链路" data-toc="10-一条完整的知识链路" data-level="2">10. 一条完整的知识链路</a>
+<a href="#11-面试回答版本" data-toc="11-面试回答版本" data-level="2">11. 面试回答版本</a>
+<a href="#什么是双塔检索" data-toc="什么是双塔检索" data-level="3">什么是双塔检索？</a>
+<a href="#为什么双塔经常做向量归一化" data-toc="为什么双塔经常做向量归一化" data-level="3">为什么双塔经常做向量归一化？</a>
+<a href="#norm-是什么" data-toc="norm-是什么" data-level="3">Norm 是什么？</a>
+<a href="#norm-和-layernorm-有什么区别" data-toc="norm-和-layernorm-有什么区别" data-level="3">Norm 和 LayerNorm 有什么区别？</a></nav></aside>
+    <article class="article"><h2 id="核心结论-为什么双塔检索通常要做向量归一化" data-section="SECTION 01">核心结论：为什么双塔检索通常要做向量归一化？</h2>
+<p>这是理解整篇内容最关键的一句话：</p>
+<blockquote><p><strong>因为 Dot Product 同时受到「方向」和「向量长度（Norm）」影响。</strong></p></blockquote>
+<p>两个向量 \(q\) 和 \(d\) 的点积可以写成：</p>
+<p>\[ q \cdot d = ||q|| \, ||d|| \cos\theta \]</p>
+<p>因此 Dot Product 的大小实际上由两部分共同决定：</p>
+<ol><li><strong>方向是否接近</strong>：由 \(\cos\theta\) 决定。两个向量夹角越小，通常表示语义越相似。</li><li><strong>向量本身有多长</strong>：由 \(||q||\) 和 \(||d||\) 决定。即使方向没有那么接近，只要某个向量的 Norm 很大，也可能把 Dot Product 放大。</li></ol>
+<p>例如：</p>
+<p>\[ q=[3,4],\quad d_1=[6,8],\quad d_2=[100,0] \]</p>
+<p>\(d_1\) 与 \(q\) 方向完全一致：</p>
+<p>\[ q \cdot d_1 = 3\times6+4\times8=50 \]</p>
+<p>而 \(d_2\) 与 \(q\) 的方向明显不同：</p>
+<p>\[ q \cdot d_2 = 3\times100+4\times0=300 \]</p>
+<p>如果只看未经归一化的 Dot Product，\(d_2\) 反而排在 \(d_1\) 前面。原因并不是它的语义方向更接近，而是：</p>
+<blockquote><p><strong>\(d_2\) 的向量长度太大，把 Dot Product 放大了。</strong></p></blockquote>
+<p>因此，在希望“向量方向代表语义相似度”的 Embedding 模型中，通常先进行 L2 Normalize：</p>
+<p>\[ \hat q=\frac{q}{||q||}, \qquad \hat d=\frac{d}{||d||} \]</p>
+<p>归一化后：</p>
+<p>\[ ||\hat q||=||\hat d||=1 \]</p>
+<p>于是：</p>
+<p>\[ \hat q\cdot\hat d = 1\times1\times\cos\theta = \cos\theta \]</p>
+<p>所以整篇内容最核心的因果链是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Dot Product
+    ↓
+同时受到方向 + 向量长度影响
+    ↓
+向量长度可能干扰语义相似度排序
+    ↓
+L2 Normalize
+    ↓
+所有向量 Norm = 1
+    ↓
+消除向量长度的影响
+    ↓
+Dot Product = Cosine Similarity
+    ↓
+主要比较向量方向</code></pre></div>
+<blockquote><p><strong>L2 Normalize 的本质，就是消除向量长度（Norm）对 Dot Product 的影响，让相似度主要由两个向量的方向决定。</strong></p></blockquote>
+<p>需要特别注意：</p>
+<blockquote><p>这里的“长度”是 <strong>Embedding 向量的模长（Norm）</strong>，不是 Query 文本有多少个字或多少个 Token。</p></blockquote>
+<h2 id="1-什么是双塔检索-two-tower-dual-encoder" data-section="SECTION 02">1. 什么是双塔检索（Two-Tower / Dual Encoder）</h2>
+<p>双塔检索的核心是：<strong>Query 和 Document 分别编码成向量，再计算向量之间的相似度。</strong></p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query ──→ Query Encoder ──→ q
+                              \
+                               similarity
+                              /
+Doc   ──→ Doc Encoder   ──→ d</code></pre></div>
+<p>数学表示：</p>
+<p>\[ q=f_{query}(query) \]</p>
+<p>\[ d=f_{doc}(document) \]</p>
+<p>然后计算：</p>
+<p>\[ score(q,d) \]</p>
+<p>常见相似度包括：</p>
+<ul><li>Cosine Similarity</li><li>Dot Product（内积）</li><li>L2 Distance（欧氏距离）</li></ul>
+<h3 id="双塔为什么适合大规模检索">双塔为什么适合大规模检索？</h3>
+<p>因为 Document 和 Query 是独立编码的，所以 Document Embedding 可以提前离线计算并存入 Vector DB。</p>
+<p>在线查询时只需要：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>用户 Query
+   ↓
+Query Encoder
+   ↓
+Query Vector
+   ↓
+ANN 向量检索
+   ↓
+TopK Documents</code></pre></div>
+<p>因此双塔非常适合作为 RAG 的第一阶段召回。</p>
+<hr>
+<h2 id="2-双塔检索和混合检索中的向量检索是什么关系" data-section="SECTION 03">2. 双塔检索和混合检索中的向量检索是什么关系？</h2>
+<p>在 RAG 场景里，可以把双塔理解为 <strong>Dense Retrieval（稠密向量检索）常用的一种实现架构</strong>。</p>
+<p>但严格来说：</p>
+<blockquote><p>双塔是一种模型/编码架构；向量相似度检索是一种检索方式。</p></blockquote>
+<p>典型 Hybrid Search：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                     Query
+                       │
+             ┌─────────┴─────────┐
+             ↓                   ↓
+        Sparse Search       Dense Search
+          BM25 等             向量检索
+             │                   │
+             │              双塔 Embedding
+             │                   │
+             ↓                   ↓
+           TopK                TopK
+             └─────────┬─────────┘
+                       ↓
+                 Fusion / RRF
+                       ↓
+                    Rerank
+                       ↓
+                    TopN</code></pre></div>
+<p>生产级 RAG 常见链路可以记成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>BM25 + 双塔 Dense Retrieval
+          ↓
+      RRF / Fusion
+          ↓
+       Reranker
+          ↓
+        Top N
+          ↓
+         LLM</code></pre></div>
+<h3 id="向量归一化和混合检索的分数归一化不是同一步">向量归一化和混合检索的分数归一化，不是同一步</h3>
+<p>本页讨论的 <strong>L2 Normalize</strong> 作用于 Query / Document 的 Embedding：把向量模长变为 1，使单位向量的点积等于余弦相似度。它发生在 Dense 检索计算相似度时，是否使用要遵循 Embedding 模型与向量索引的度量约定。</p>
+<p>混合检索中的<strong>分数归一化</strong>作用于各路召回产生的分数，例如 BM25 分数与 Dense 相似度分数。两路分数的量纲、范围和分布可能不同；即使 Dense Embedding 已做 L2 Normalize，也不能因此认为 BM25 分数与 Dense 分数可以直接相加。</p>
+<div class="table-wrap"><table><thead><tr><th>融合方法</th><th>使用什么信息</th><th>融合前是否需要分数归一化</th></tr></thead><tbody>
+<tr><td>RRF</td><td>各路结果的名次：\(\sum_i 1/(k+rank_i(d))\)</td><td>不需要；它不使用原始检索分数</td></tr>
+<tr><td>加权 RRF</td><td>各路名次和权重：\(\sum_i w_i/(k+rank_i(d))\)</td><td>不需要；权重乘的是排名贡献，不是原始分数</td></tr>
+<tr><td>分数加权融合</td><td>各路分数和权重：\(\sum_i w_i\,\tilde{s}_i(d)\)</td><td>通常需要先把各路分数转换到可比较的尺度，再加权求和</td></tr>
+</tbody></table></div>
+<p>例如 BM25 得分为 12、Dense 余弦相似度为 0.8，直接各乘 0.5 后相加，BM25 一项贡献 6，Dense 一项贡献 0.4；相同权重并不意味着两路影响相当。分数加权融合可先在各路候选结果上做 Min-Max 等归一化，或用经过验证的分数校准方法。注意统一分数方向（分数越高越相关），并处理候选集外文档及分数全相同的情况。</p>
+<blockquote><p><strong>记忆点：L2 Normalize 管 Embedding 的模长；RRF / 加权 RRF 管排名，无须融合前的分数归一化；分数加权融合管跨路分数，通常要先做分数归一化或校准。</strong></p></blockquote>
+<h3 id="几个概念不要混淆">几个概念不要混淆</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>双塔模型
+↓
+负责把 Query / Document 编码成向量
+
+Embedding
+↓
+得到 q、d 等高维向量
+
+Similarity Metric
+↓
+定义两个向量如何计算相似度
+例如 Cosine / Dot Product / L2
+
+ANN
+↓
+负责从海量向量中快速寻找 TopK
+
+Vector DB
+↓
+负责向量存储、索引和检索</code></pre></div>
+<hr>
+<h2 id="3-为什么双塔检索经常需要做向量归一化" data-section="SECTION 04">3. 为什么双塔检索经常需要做向量归一化？</h2>
+<p>首先要区分一个容易混淆的概念：</p>
+<blockquote><p>这里说的“长度”不是 Query 文本有多少个 Token，而是 <strong>Embedding 向量的模长（Norm）</strong>。</p></blockquote>
+<p>例如：</p>
+<p>\[ q=[3,4] \]</p>
+<p>它的长度是：</p>
+<p>\[ ||q||_2=\sqrt{3^2+4^2}=5 \]</p>
+<p>如果使用 Dot Product：</p>
+<p>\[ q \cdot d \]</p>
+<p>它实际上可以写成：</p>
+<p>\[ q\cdot d=||q||\,||d||\cos\theta \]</p>
+<p>因此 Dot Product 同时受到两个因素影响：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Dot Product
+    │
+    ├── 向量方向：cosθ
+    │
+    └── 向量模长：||q|| × ||d||</code></pre></div>
+<blockquote><p>因为 <strong>Dot Product 同时受到「方向」和「向量长度」影响。</strong></p></blockquote>
+<p>在很多语义检索模型中，我们更关心两个 Embedding 的<strong>方向是否接近</strong>，而不希望不同向量的模长干扰排序。</p>
+<hr>
+<h2 id="4-什么是-l2-normalize" data-section="SECTION 05">4. 什么是 L2 Normalize？</h2>
+<p>L2 Normalize 的计算方式：</p>
+<p>\[ \hat{x}=\frac{x}{||x||_2} \]</p>
+<p>例如：</p>
+<p>\[ x=[3,4] \]</p>
+<p>它的 L2 Norm：</p>
+<p>\[ ||x||_2=5 \]</p>
+<p>归一化后：</p>
+<p>\[ \hat{x}=[0.6,0.8] \]</p>
+<p>此时：</p>
+<p>\[ ||\hat{x}||_2=1 \]</p>
+<p>关键特点：</p>
+<blockquote><p><strong>L2 Normalize 改变向量长度，但不改变向量方向。</strong></p></blockquote>
+<p>可以理解成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>原始向量：
+
+        ● [3,4]
+       /
+      /
+     /
+O
+
+长度 = 5
+
+Normalize 后：
+
+  ● [0.6,0.8]
+ /
+O
+
+长度 = 1
+方向不变</code></pre></div>
+<p>因此所有 Embedding 都被投影到单位球面上。</p>
+<hr>
+<h2 id="5-为什么-normalize-后-dot-product-等价于-cosine-similarity" data-section="SECTION 06">5. 为什么 Normalize 后 Dot Product 等价于 Cosine Similarity？</h2>
+<p>Cosine Similarity：</p>
+<p>\[ cos(q,d)=\frac{q\cdot d}{||q||||d||} \]</p>
+<p>如果 q 和 d 都经过 L2 Normalize：</p>
+<p>\[ ||q||=1,\quad ||d||=1 \]</p>
+<p>那么：</p>
+<p>\[ cos(q,d)=q\cdot d \]</p>
+<p>所以：</p>
+<blockquote><p><strong>当两个向量都经过 L2 Normalize 后，Dot Product = Cosine Similarity。</strong></p></blockquote>
+<p>代码中经常看到：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>q = F.normalize(query_embedding, p=2, dim=-1)
+d = F.normalize(doc_embedding, p=2, dim=-1)
+
+score = q @ d.T</code></pre></div>
+<p>虽然最后执行的是矩阵乘法 / Dot Product，但由于向量已经归一化，它实际上等价于计算 Cosine Similarity。</p>
+<hr>
+<h2 id="6-norm-到底是什么" data-section="SECTION 07">6. Norm 到底是什么？</h2>
+<p>对于我们讨论的 L2 Norm，可以直接理解成：</p>
+<blockquote><p><strong>向量从原点到终点的长度（magnitude）。</strong></p></blockquote>
+<p>二维向量：</p>
+<p>\[ x=[3,4] \]</p>
+<p>就是勾股定理：</p>
+<p>\[ ||x||_2=\sqrt{3^2+4^2}=5 \]</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>y
+↑
+│
+│        ● (3,4)
+│       /
+│      /  ← 这条线就是向量
+│     /      长度 = Norm = 5
+│    /
+│   /
+0────────────────→ x</code></pre></div>
+<p>所以可以认为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Vector
+  │
+  ├── Direction：方向
+  │
+  └── Magnitude / Norm：长度</code></pre></div>
+<p>到了高维空间概念完全相同。</p>
+<p>例如一个 768 维 Embedding：</p>
+<p>\[ x=[x_1,x_2,...,x_{768}] \]</p>
+<p>它的 L2 Norm：</p>
+<p>\[ ||x||_2=\sqrt{x_1^2+x_2^2+...+x_{768}^2} \]</p>
+<p>只是我们无法像二维、三维那样直接画出来。</p>
+<hr>
+<h2 id="7-norm-和-layernorm-是一回事吗" data-section="SECTION 08">7. Norm 和 LayerNorm 是一回事吗？</h2>
+<p>不是。</p>
+<p>虽然名字里都有 <code>Norm</code>，但它们解决的问题不同。</p>
+<h3 id="l2-normalize">L2 Normalize</h3>
+<p>核心：</p>
+<p>\[ \hat{x}=\frac{x}{||x||_2} \]</p>
+<p>目的：</p>
+<blockquote><p>把向量模长变成 1，同时保持方向不变。</p></blockquote>
+<p>典型应用：</p>
+<ul><li>Embedding</li><li>双塔检索</li><li>Cosine Similarity</li><li>向量数据库检索</li></ul>
+<hr>
+<h3 id="layernorm">LayerNorm</h3>
+<p>LayerNorm 主要用于 Transformer 等神经网络内部。</p>
+<p>它不是简单地计算：</p>
+<p>\[ x/||x|| \]</p>
+<p>而是先计算一组 hidden features 的均值和方差。</p>
+<p>均值：</p>
+<p>\[ \mu=\frac{1}{d}\sum_i x_i \]</p>
+<p>方差：</p>
+<p>\[ \sigma^2=\frac{1}{d}\sum_i(x_i-\mu)^2 \]</p>
+<p>标准化：</p>
+<p>\[ \hat{x_i}=\frac{x_i-\mu}{\sqrt{\sigma^2+\epsilon}} \]</p>
+<p>实际 LayerNorm 通常还有两个可学习参数：</p>
+<p>\[ y_i=\gamma_i\hat{x_i}+\beta_i \]</p>
+<p>其中：</p>
+<ul><li><code>γ</code>：learnable scale</li><li><code>β</code>：learnable bias</li></ul>
+<p>LayerNorm 的核心目的不是让向量长度变成 1，而是<strong>稳定神经网络内部特征的尺度与分布，从而帮助训练</strong>。</p>
+<hr>
+<h2 id="8-l2-normalize-和-layernorm-对比" data-section="SECTION 09">8. L2 Normalize 和 LayerNorm 对比</h2>
+<div class="table-wrap"><table><thead><tr><th>对比项</th><th>L2 Normalize</th><th>LayerNorm</th></tr></thead><tbody><tr><td>主要目的</td><td>统一向量模长</td><td>稳定神经网络内部特征分布</td></tr><tr><td>核心计算</td><td>L2 Norm</td><td>Mean + Variance</td></tr><tr><td>公式核心</td><td><code>x / ‖x‖</code></td><td><code>(x - μ) / sqrt(σ² + ε)</code></td></tr><tr><td>结果</td><td>向量长度 = 1</td><td>affine 前均值约 0、方差约 1</td></tr><tr><td>是否保持原方向</td><td>是</td><td>通常不是</td></tr><tr><td>可学习参数</td><td>通常没有</td><td>通常有 γ、β</td></tr><tr><td>常见位置</td><td>Embedding / Retrieval</td><td>Transformer 内部</td></tr></tbody></table></div>
+<p>可以直接这样区分：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>双塔向量检索
+    ↓
+Embedding
+    ↓
+L2 Normalize
+    ↓
+||x|| = 1
+    ↓
+Dot Product = Cosine Similarity
+
+
+Transformer 内部
+    ↓
+Attention / FFN
+    ↓
+LayerNorm / RMSNorm
+    ↓
+稳定内部特征尺度</code></pre></div>
+<hr>
+<h2 id="9-normalize-不是双塔检索的强制要求" data-section="SECTION 10">9. Normalize 不是双塔检索的强制要求</h2>
+<p>不要记成：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>双塔 → 必须 Normalize</code></pre></div>
+<p>更准确的是：</p>
+<blockquote><p><strong>是否做 L2 Normalize，要和 Embedding 模型训练时定义的 Similarity Metric 保持一致。</strong></p></blockquote>
+<p>如果模型训练目标就是让向量模长携带一部分有效信息，而线上强制 Normalize，就可能损失模型原本学习到的信息。</p>
+<p>工程上应该考虑：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Embedding Model
+      ↓
+训练时使用什么 similarity？
+      ↓
+Cosine → 通常需要 Normalize
+Dot Product → 根据模型定义决定
+      ↓
+Vector DB Metric 与模型保持一致</code></pre></div>
+<hr>
+<h2 id="10-一条完整的知识链路" data-section="SECTION 11">10. 一条完整的知识链路</h2>
+<p>把这次讨论串起来：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                RAG Hybrid Retrieval
+                         │
+              ┌──────────┴──────────┐
+              ↓                     ↓
+            BM25             Dense Retrieval
+                                     │
+                                  双塔模型
+                                     │
+                        ┌────────────┴────────────┐
+                        ↓                         ↓
+                  Query Encoder             Doc Encoder
+                        ↓                         ↓
+                        q                         d
+                        │                         │
+                        └────────────┬────────────┘
+                                     ↓
+                               L2 Normalize
+                                     ↓
+                             ||q|| = ||d|| = 1
+                                     ↓
+                      Dot Product = Cosine
+                                     ↓
+                              ANN TopK Retrieval
+                                     ↓
+                       与 BM25 结果 Fusion / RRF
+                                     ↓
+                                  Reranker
+                                     ↓
+                                   TopN
+                                     ↓
+                                    LLM</code></pre></div>
+<hr>
+<h2 id="11-面试回答版本" data-section="SECTION 12">11. 面试回答版本</h2>
+<h3 id="什么是双塔检索">什么是双塔检索？</h3>
+<p>双塔检索分别使用 Query Encoder 和 Document Encoder 将 Query 和 Document 编码成向量，然后通过 Cosine Similarity、Dot Product 等方式计算相似度。因为 Document Embedding 可以提前离线计算并建立 ANN 索引，所以非常适合大规模检索，通常用于 RAG 的第一阶段召回。</p>
+<h3 id="为什么双塔经常做向量归一化">为什么双塔经常做向量归一化？</h3>
+<p>未经归一化的 Dot Product 可以表示为：</p>
+<p>\[ q\cdot d=||q||||d||cos\theta \]</p>
+<p>因此它同时受到向量模长和方向影响。很多语义检索任务更关心向量方向，所以会使用 L2 Normalize 将 Embedding 的模长统一为 1。归一化以后 Dot Product 就等价于 Cosine Similarity，从而消除模长对相似度排序的影响。</p>
+<p>这里的“长度”不是 Query 的 Token 数，而是 Embedding 向量的 Norm。</p>
+<h3 id="norm-是什么">Norm 是什么？</h3>
+<p>L2 Norm 可以理解成向量的长度，本质上就是勾股定理在高维空间中的推广。例如 <code>[3,4]</code> 的 L2 Norm 是 5。</p>
+<h3 id="norm-和-layernorm-有什么区别">Norm 和 LayerNorm 有什么区别？</h3>
+<p>L2 Norm / L2 Normalize 主要描述和调整向量长度；LayerNorm 则通过均值和方差对神经网络内部特征进行标准化，主要用于稳定模型训练。两者虽然名字都有 Norm，但不是同一个操作。</p></article>
+  </main>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+  <footer>双塔检索、向量归一化、Norm 与 LayerNorm</footer>
+  <script src="../assets/answer-pages.js"></script>
+</body>
+</html>

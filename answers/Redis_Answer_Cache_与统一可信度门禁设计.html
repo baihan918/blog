@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AI 问答系统中的 Redis Answer Cache 与统一可信度门禁设计">
+  <title>AI 问答系统中的 Redis Answer Cache 与统一可信度门禁设计</title>
+  <link rel="stylesheet" href="../assets/answer-pages.css?v=2">
+  <script>window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] } };</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">MD</span><span class="brand-title">AI 问答系统中的 Redis Answer Cache 与统一可信度门禁设计</span></div>
+    <div class="top-actions"><a class="source-link" href="0-md/Redis_Answer_Cache_%E4%B8%8E%E7%BB%9F%E4%B8%80%E5%8F%AF%E4%BF%A1%E5%BA%A6%E9%97%A8%E7%A6%81%E8%AE%BE%E8%AE%A1.md">查看 Markdown</a><button class="menu-button" id="menuToggle" type="button" aria-label="打开目录" aria-expanded="false">☰</button><button class="icon-button" id="themeToggle" type="button" aria-label="切换深浅主题">◐</button></div>
+  </header>
+  <section class="hero"><div class="eyebrow">Markdown Reading Page</div><h1>AI 问答系统中的 Redis Answer Cache 与统一可信度门禁设计</h1></section>
+  <main class="layout" id="main">
+    <aside class="toc-shell" id="tocShell"><nav class="toc" aria-label="页面目录"><p class="toc-title">READING MAP</p><a href="#1-核心结论" data-toc="1-核心结论" data-level="2">1. 核心结论</a>
+<a href="#2-为什么不应该在-semantic-cache-中再放一个独立-judge" data-toc="2-为什么不应该在-semantic-cache-中再放一个独立-judge" data-level="2">2. 为什么不应该在 Semantic Cache 中再放一个独立 Judge</a>
+<a href="#3-推荐的整体链路" data-toc="3-推荐的整体链路" data-level="2">3. 推荐的整体链路</a>
+<a href="#4-semantic-cache-到底负责什么" data-toc="4-semantic-cache-到底负责什么" data-level="2">4. Semantic Cache 到底负责什么</a>
+<a href="#5-metadata-filter-必须在相似度搜索之前参与约束" data-toc="5-metadata-filter-必须在相似度搜索之前参与约束" data-level="2">5. Metadata Filter 必须在相似度搜索之前参与约束</a>
+<a href="#6-cache-hit-后为什么仍然需要经过-confidence-gate" data-toc="6-cache-hit-后为什么仍然需要经过-confidence-gate" data-level="2">6. Cache Hit 后为什么仍然需要经过 Confidence Gate</a>
+<a href="#7-answer-cache-不应该只缓存-answer" data-toc="7-answer-cache-不应该只缓存-answer" data-level="2">7. Answer Cache 不应该只缓存 Answer</a>
+<a href="#8-knowledge-version-与缓存失效" data-toc="8-knowledge-version-与缓存失效" data-level="2">8. Knowledge Version 与缓存失效</a>
+<a href="#9-cache-hit-与-cache-miss-的完整流程" data-toc="9-cache-hit-与-cache-miss-的完整流程" data-level="2">9. Cache Hit 与 Cache Miss 的完整流程</a>
+<a href="#cache-hit" data-toc="cache-hit" data-level="3">Cache Hit</a>
+<a href="#cache-hit-但-gate-fail" data-toc="cache-hit-但-gate-fail" data-level="3">Cache Hit 但 Gate Fail</a>
+<a href="#cache-miss" data-toc="cache-miss" data-level="3">Cache Miss</a>
+<a href="#10-exact-cache-与-semantic-cache" data-toc="10-exact-cache-与-semantic-cache" data-level="2">10. Exact Cache 与 Semantic Cache</a>
+<a href="#exact-cache" data-toc="exact-cache" data-level="3">Exact Cache</a>
+<a href="#semantic-cache" data-toc="semantic-cache" data-level="3">Semantic Cache</a>
+<a href="#11-similarity-threshold-如何确定" data-toc="11-similarity-threshold-如何确定" data-level="2">11. Similarity Threshold 如何确定</a>
+<a href="#12-为什么统一-confidence-gate-更适合扩展" data-toc="12-为什么统一-confidence-gate-更适合扩展" data-level="2">12. 为什么统一 Confidence Gate 更适合扩展</a>
+<a href="#13-延迟收益应该怎么理解" data-toc="13-延迟收益应该怎么理解" data-level="2">13. 延迟收益应该怎么理解</a>
+<a href="#14-最终架构原则" data-toc="14-最终架构原则" data-level="2">14. 最终架构原则</a>
+<a href="#1-cache-负责候选复用-不负责最终事实判断" data-toc="1-cache-负责候选复用-不负责最终事实判断" data-level="3">1. Cache 负责候选复用，不负责最终事实判断</a>
+<a href="#2-所有-candidate-统一经过-confidence-gate" data-toc="2-所有-candidate-统一经过-confidence-gate" data-level="3">2. 所有 Candidate 统一经过 Confidence Gate</a>
+<a href="#3-answer-cache-必须带-evidence" data-toc="3-answer-cache-必须带-evidence" data-level="3">3. Answer Cache 必须带 Evidence</a>
+<a href="#4-cache-hit-是-candidate-hit-不等于-response-hit" data-toc="4-cache-hit-是-candidate-hit-不等于-response-hit" data-level="3">4. Cache Hit 是 Candidate Hit，不等于 Response Hit</a></nav></aside>
+    <article class="article"><h2 id="1-核心结论" data-section="SECTION 01">1. 核心结论</h2>
+<p>在已经存在统一 <strong>Confidence Gate（可信度门禁）</strong> 的 AI 问答系统中，不建议在 Semantic Cache 层额外增加一套 LLM Judge。</p>
+<p>更合理的职责划分是：</p>
+<ul><li><strong>Cache / RAG / Tool / API</strong>：负责高效地产生 Candidate。</li><li><strong>Confidence Gate</strong>：统一判断 Candidate 是否可信、是否可以最终交付给用户。</li><li><strong>Semantic Cache</strong>：只判断&quot;是否存在足够相似、可能可以复用的历史结果&quot;，不承担最终事实可信度判断。</li><li>Cache Hit 后仍然经过统一 Confidence Gate。</li><li>Cache Miss 才进入完整 Retrieval + Generation 流程。</li></ul>
+<p>可以抽象为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Cache / RAG / Tool / API
+        ↓
+Candidate Producer
+        ↓
+Unified Confidence Gate
+        ↓
+      Response</code></pre></div>
+<p>这种设计避免在不同链路中维护多套 Judge，并使缓存真正承担&quot;跳过昂贵计算链路&quot;的作用。</p>
+<hr>
+<h2 id="2-为什么不应该在-semantic-cache-中再放一个独立-judge" data-section="SECTION 02">2. 为什么不应该在 Semantic Cache 中再放一个独立 Judge</h2>
+<p>一种常见设计是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query
+ ↓
+Embedding
+ ↓
+Semantic Cache Search
+ ↓
+Similarity Threshold
+ ↓
+Small LLM Judge
+ ↓
+Cache Hit / Miss</code></pre></div>
+<p>如果 Cache Hit 之后系统最终仍然需要经过一个统一 Confidence Gate，那么这里的小模型 Judge 会造成职责重复：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Semantic Cache Judge
+        ↓
+Confidence Gate</code></pre></div>
+<p>问题包括：</p>
+<ol><li>增加额外 LLM 调用延迟。</li><li>增加 Token 和模型调用成本。</li><li>Cache 层越来越重，削弱缓存本身的性能收益。</li><li>Cache Judge 与最终 Gate 可能采用不同 Prompt、阈值和评价标准。</li><li>后续 Eval、Trace 和问题定位变复杂。</li></ol>
+<p>因此更合理的原则是：</p>
+<blockquote><p>Cache 层负责&quot;能不能找到候选&quot;，统一 Gate 负责&quot;候选能不能交付&quot;。</p></blockquote>
+<hr>
+<h2 id="3-推荐的整体链路" data-section="SECTION 03">3. 推荐的整体链路</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                         Query
+                           ↓
+                     Exact Cache
+                       /       \
+                    Hit         Miss
+                     ↓            ↓
+                     │       Semantic Cache
+                     │         /       \
+                     │      Hit         Miss
+                     │       ↓            ↓
+                     │       │        Retrieval
+                     │       │            ↓
+                     │       │       BM25 + Dense
+                     │       │            ↓
+                     │       │           RRF
+                     │       │            ↓
+                     │       │        Reranker
+                     │       │            ↓
+                     │       │      Context Builder
+                     │       │            ↓
+                     │       │         Generation
+                     │       │            ↓
+                     │       └──────┬─────┘
+                     │              ↓
+                     └──────────────┤
+                                    ↓
+                            Confidence Gate
+                              /           \
+                           PASS           FAIL
+                            ↓               ↓
+                         Return       Retry / RAG /
+                                      Fallback / Abstain</code></pre></div>
+<p>这里 Exact Cache、Semantic Cache 和 RAG 都只是不同的 Candidate Source。</p>
+<p>最终输出必须经过同一个 Confidence Gate。</p>
+<hr>
+<h2 id="4-semantic-cache-到底负责什么" data-section="SECTION 04">4. Semantic Cache 到底负责什么</h2>
+<p>Semantic Cache 只回答：</p>
+<blockquote><p>当前 Query 是否存在一个足够相似的历史 Query，可以把其历史 Answer 作为 Candidate？</p></blockquote>
+<p>基本流程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query
+ ↓
+Embedding
+ ↓
+Metadata Filter
+ ↓
+Redis Vector Search
+ ↓
+Top-1 / Top-K
+ ↓
+Similarity &gt;= Threshold ?
+ ↓
+YES → Cached Candidate
+NO  → Cache Miss</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>历史 Query：
+公司退款多久到账？
+
+当前 Query：
+退款一般几天能到账？</code></pre></div>
+<p>如果 Embedding 相似度达到经过 Eval 校准后的阈值，则得到一个 Cached Candidate。</p>
+<p>注意：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Similarity 高
+≠
+最终答案一定可信</code></pre></div>
+<p>Similarity 只决定是否值得复用这个 Candidate。</p>
+<p>最终可信度仍然由 Confidence Gate 判断。</p>
+<hr>
+<h2 id="5-metadata-filter-必须在相似度搜索之前参与约束" data-section="SECTION 05">5. Metadata Filter 必须在相似度搜索之前参与约束</h2>
+<p>不能只根据 Query Embedding 相似度命中缓存。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Workspace A：
+退款自动处理
+
+Workspace B：
+退款需要人工审核</code></pre></div>
+<p>两个用户都问：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>退款怎么处理？</code></pre></div>
+<p>Embedding 几乎完全一致。</p>
+<p>如果 Semantic Cache 只看相似度，就可能发生跨 Workspace 错误命中。</p>
+<p>因此 Semantic Cache 至少应该考虑：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>workspace_id / tenant_id
+knowledge_version
+ACL / permission_scope
+language
+业务域（必要时）</code></pre></div>
+<p>推荐：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query
+ ↓
+workspace_id = product-a
+AND
+knowledge_version = 1.5
+AND
+ACL = current_user_scope
+ ↓
+Vector Search
+ ↓
+Similarity</code></pre></div>
+<p>核心原则：</p>
+<blockquote><p>Metadata 是硬过滤条件，Similarity 是软匹配条件。</p></blockquote>
+<hr>
+<h2 id="6-cache-hit-后为什么仍然需要经过-confidence-gate" data-section="SECTION 06">6. Cache Hit 后为什么仍然需要经过 Confidence Gate</h2>
+<p>Semantic Similarity 解决的是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>“这两个问题像不像？”</code></pre></div>
+<p>但 Confidence Gate 解决的是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>“这个答案现在还能不能可信地回答当前问题？”</code></pre></div>
+<p>两者不是同一个问题。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>历史 Query：
+退款多久到账？
+
+Cached Answer：
+退款通常 3 个工作日到账。</code></pre></div>
+<p>当前 Query：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>退款现在一般多久到账？</code></pre></div>
+<p>Semantic Cache 可能正确命中。</p>
+<p>但如果知识库已经发生变化：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>旧版本：3 个工作日
+新版本：1 个工作日</code></pre></div>
+<p>缓存答案已经失效。</p>
+<p>因此缓存命中并不意味着可以直接绕过最终质量控制。</p>
+<hr>
+<h2 id="7-answer-cache-不应该只缓存-answer" data-section="SECTION 07">7. Answer Cache 不应该只缓存 Answer</h2>
+<p>如果 Confidence Gate 只拿到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Question
++
+Cached Answer</code></pre></div>
+<p>它实际上很难判断 Answer 是否有事实依据。</p>
+<p>因此 Answer Cache 最好同时保存生成答案时使用的 Evidence 和 Citation。</p>
+<p>推荐 Cache Entry：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  &quot;normalized_query&quot;: &quot;退款一般多久到账&quot;,
+  &quot;query_embedding&quot;: &quot;...&quot;,
+  &quot;answer&quot;: &quot;退款通常会在 3 个工作日内到账。&quot;,
+  &quot;evidence&quot;: [
+    &quot;退款将在审核完成后的 3 个工作日内原路退回。&quot;
+  ],
+  &quot;citations&quot;: [
+    &quot;doc_123#chunk_4&quot;
+  ],
+  &quot;workspace_id&quot;: &quot;product-a&quot;,
+  &quot;knowledge_version&quot;: &quot;1.5&quot;,
+  &quot;permission_scope&quot;: &quot;internal&quot;,
+  &quot;created_at&quot;: 1790123456,
+  &quot;model_version&quot;: &quot;model-x&quot;,
+  &quot;prompt_version&quot;: &quot;qa-v3&quot;
+}</code></pre></div>
+<p>Cache Hit 后：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Current Query
+      +
+Cached Answer
+      +
+Cached Evidence
+      +
+Citation
+      +
+Knowledge Version
+      +
+Cache Similarity
+      ↓
+Confidence Gate</code></pre></div>
+<p>这样 Gate 才拥有足够的信息进行判断。</p>
+<hr>
+<h2 id="8-knowledge-version-与缓存失效" data-section="SECTION 08">8. Knowledge Version 与缓存失效</h2>
+<p>假设：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>v1.0：
+退款需要人工审核</code></pre></div>
+<p>产生缓存：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Q：退款需要审核吗？
+A：需要人工审核。</code></pre></div>
+<p>后来 PRD 更新：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>v1.5：
+退款已经支持自动退款。</code></pre></div>
+<p>如果 Semantic Cache 继续搜索 v1.0 的历史 Query，就可能产生错误命中。</p>
+<p>因此 Cache 必须和 Knowledge Version 绑定。</p>
+<p>可以使用 Namespace：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>qa:{workspace_id}:{knowledge_version}:{query_hash}</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>qa:product-a:v1.0:xxx
+qa:product-a:v1.5:xxx</code></pre></div>
+<p>Semantic Cache 同样需要：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>FILTER
+workspace_id = product-a
+AND
+knowledge_version = 1.5</code></pre></div>
+<p>这样知识版本升级后，旧缓存不会参与当前版本检索。</p>
+<p>旧 Cache 可以异步清理，不需要在知识更新时同步执行大规模删除。</p>
+<hr>
+<h2 id="9-cache-hit-与-cache-miss-的完整流程" data-section="SECTION 09">9. Cache Hit 与 Cache Miss 的完整流程</h2>
+<h3 id="cache-hit">Cache Hit</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query
+ ↓
+Normalize
+ ↓
+Exact Cache Miss
+ ↓
+Embedding
+ ↓
+Semantic Cache Search
+ ↓
+Metadata Filter
+ ↓
+Similarity &gt;= Threshold
+ ↓
+Cached Answer + Evidence
+ ↓
+Confidence Gate
+ ↓
+PASS
+ ↓
+Return</code></pre></div>
+<p>这里直接跳过：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>BM25
+Dense Retrieval
+RRF
+Reranker
+Context Builder
+LLM Generation</code></pre></div>
+<p>因此 Answer Cache 的收益并不仅仅是省掉一次向量检索，而是可以省掉后面的整个 RAG + Generation Pipeline。</p>
+<hr>
+<h3 id="cache-hit-但-gate-fail">Cache Hit 但 Gate Fail</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Semantic Cache Hit
+ ↓
+Cached Candidate
+ ↓
+Confidence Gate
+ ↓
+FAIL
+ ↓
+完整 RAG Retrieval
+ ↓
+Generation
+ ↓
+Confidence Gate
+ ↓
+PASS
+ ↓
+更新 Cache
+ ↓
+Return</code></pre></div>
+<p>也就是说：</p>
+<blockquote><p>Cache Hit 只是 Candidate Hit，不代表最终 Response Hit。</p></blockquote>
+<hr>
+<h3 id="cache-miss">Cache Miss</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query
+ ↓
+Semantic Cache Miss
+ ↓
+BM25 + Dense
+ ↓
+RRF
+ ↓
+Reranker
+ ↓
+Context Builder
+ ↓
+LLM Generation
+ ↓
+Confidence Gate
+ ↓
+PASS
+ ↓
+Write Answer Cache
+ ↓
+Return</code></pre></div>
+<hr>
+<h2 id="10-exact-cache-与-semantic-cache" data-section="SECTION 10">10. Exact Cache 与 Semantic Cache</h2>
+<p>推荐两级缓存：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query
+ ↓
+Exact Cache
+ ↓ MISS
+Semantic Cache
+ ↓ MISS
+RAG</code></pre></div>
+<h3 id="exact-cache">Exact Cache</h3>
+<p>通过标准化 Query + Hash：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>normalize(query)
+ ↓
+hash
+ ↓
+Redis GET</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>qa:product-a:v1.5:a8f93c...</code></pre></div>
+<p>优势：</p>
+<ul><li>O(1) 查询。</li><li>延迟极低。</li><li>几乎不存在 Semantic False Hit。</li><li>实现简单。</li></ul>
+<p>缺点：</p>
+<ul><li>&quot;退款多久到账&quot;和&quot;退款一般几天到账&quot;无法直接共享缓存。</li></ul>
+<hr>
+<h3 id="semantic-cache">Semantic Cache</h3>
+<p>通过：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query Embedding
+ ↓
+Redis Vector Search
+ ↓
+Similarity Threshold</code></pre></div>
+<p>解决语义相同但表达不同的问题。</p>
+<p>优势：</p>
+<ul><li>Cache Hit Rate 更高。</li><li>可以跳过完整 RAG + Generation。</li></ul>
+<p>缺点：</p>
+<ul><li>存在 False Hit。</li><li>需要 Embedding 和 ANN Search。</li><li>Threshold 需要通过 Eval 校准。</li></ul>
+<p>因此推荐：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Exact Cache
+    ↓ MISS
+Semantic Cache
+    ↓ MISS
+RAG</code></pre></div>
+<hr>
+<h2 id="11-similarity-threshold-如何确定" data-section="SECTION 11">11. Similarity Threshold 如何确定</h2>
+<p>不要直接拍脑袋设置：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>threshold = 0.9</code></pre></div>
+<p>应该建立 Cache Eval Dataset：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query A：
+退款多久到账？
+
+Query B：
+退款一般几天到账？
+
+should_hit = true</code></pre></div>
+<p>以及：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query A：
+退款多久到账？
+
+Query B：
+退款不到账怎么办？
+
+should_hit = false</code></pre></div>
+<p>测试不同 Threshold：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Threshold    Precision    Recall
+
+0.80           82%         95%
+0.85           89%         91%
+0.90           96%         84%
+0.93           98%         72%</code></pre></div>
+<p>Semantic Cache 通常应该：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Precision &gt; Recall</code></pre></div>
+<p>因为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>False Negative
+→ Cache Miss
+→ 多执行一次 RAG
+→ 增加延迟和成本</code></pre></div>
+<p>而：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>False Positive
+→ 错误 Cache Hit
+→ 可能直接产生错误 Candidate</code></pre></div>
+<p>因此宁可少命中，也不要大量错误命中。</p>
+<hr>
+<h2 id="12-为什么统一-confidence-gate-更适合扩展" data-section="SECTION 12">12. 为什么统一 Confidence Gate 更适合扩展</h2>
+<p>未来系统可能不仅有 RAG：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>             Candidate Sources
+
+      ┌──────────┬──────────┬─────────┐
+      ↓          ↓          ↓         ↓
+    Cache       RAG       SQL/API    MCP
+      │          │          │         │
+      └──────────┴────┬─────┴─────────┘
+                      ↓
+              Unified Candidate
+                      ↓
+             Confidence Gate
+                      ↓
+                   Response</code></pre></div>
+<p>这时每个数据源都不需要重新实现自己的最终质量判断。</p>
+<p>所有上游组件只需要负责：</p>
+<blockquote><p>尽可能高效地产生高质量 Candidate。</p></blockquote>
+<p>统一 Gate 负责：</p>
+<blockquote><p>Candidate 是否满足最终交付标准。</p></blockquote>
+<p>因此可以把系统职责抽象为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Candidate Producer
+        +
+Candidate Validator</code></pre></div>
+<p>其中：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Candidate Producer
+├── Exact Cache
+├── Semantic Cache
+├── RAG
+├── SQL
+├── API
+├── MCP
+└── Web Search
+
+Candidate Validator
+└── Unified Confidence Gate</code></pre></div>
+<p>这是比&quot;每个链路自己维护一个 Judge&quot;更容易维护和扩展的架构。</p>
+<hr>
+<h2 id="13-延迟收益应该怎么理解" data-section="SECTION 13">13. 延迟收益应该怎么理解</h2>
+<p>如果没有缓存：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Embedding
+ ↓
+BM25 + Dense
+ ↓
+RRF
+ ↓
+Reranker
+ ↓
+Context Builder
+ ↓
+LLM Generation
+ ↓
+Confidence Gate</code></pre></div>
+<p>Semantic Answer Cache Hit：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Embedding
+ ↓
+Redis Vector Search
+ ↓
+Cached Answer + Evidence
+ ↓
+Confidence Gate</code></pre></div>
+<p>两条链路都经过 Confidence Gate，因此 Gate 不属于 Cache 的额外开销。</p>
+<p>Cache 真正节省的是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>BM25 + Dense Retrieval
+RRF
+Reranker
+Context Builder
+LLM Generation</code></pre></div>
+<p>尤其最终 LLM Generation 往往是延迟和成本的重要来源，因此 Answer Cache 的收益不仅是 Retrieval Cache。</p>
+<hr>
+<h2 id="14-最终架构原则" data-section="SECTION 14">14. 最终架构原则</h2>
+<p>整个设计可以总结为四句话：</p>
+<h3 id="1-cache-负责候选复用-不负责最终事实判断">1. Cache 负责候选复用，不负责最终事实判断</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Semantic Similarity
+→ Candidate Selection</code></pre></div>
+<p>而不是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Semantic Similarity
+→ Final Truth</code></pre></div>
+<h3 id="2-所有-candidate-统一经过-confidence-gate">2. 所有 Candidate 统一经过 Confidence Gate</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Cache
+RAG
+Tool
+API
+ ↓
+Unified Confidence Gate</code></pre></div>
+<p>避免多套 Judge。</p>
+<h3 id="3-answer-cache-必须带-evidence">3. Answer Cache 必须带 Evidence</h3>
+<p>不要只缓存：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query → Answer</code></pre></div>
+<p>而应该：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Query
+→ Answer
+→ Evidence
+→ Citation
+→ Knowledge Version
+→ ACL</code></pre></div>
+<p>让 Gate 有足够的信息判断答案可信度。</p>
+<h3 id="4-cache-hit-是-candidate-hit-不等于-response-hit">4. Cache Hit 是 Candidate Hit，不等于 Response Hit</h3>
+<p>完整状态应该理解为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Cache Candidate Hit
+        ↓
+Confidence Gate
+   /           \
+PASS           FAIL
+ ↓              ↓
+Return          RAG</code></pre></div>
+<p>因此：</p>
+<blockquote><p><strong>Cache / RAG / Tool 是 Candidate Producer，Confidence Gate 是统一的 Candidate Validator。</strong></p></blockquote>
+<p>这也是整个架构最核心的职责边界。</p></article>
+  </main>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+  <footer>AI 问答系统中的 Redis Answer Cache 与统一可信度门禁设计</footer>
+  <script src="../assets/answer-pages.js"></script>
+</body>
+</html>

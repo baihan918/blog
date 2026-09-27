@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="结合第9周 Agent Notebook 的交互式学习页：理解文档解析、LlamaParse、DeepDoc、MinerU、本地混合 RAG、联网检索和手写 Agent 工作流。">
+  <title>Agent 文档解析与工作流 · 从 PDF 到有证据的回答</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f2e9;
+      --paper: #fffdf8;
+      --paper-strong: #ffffff;
+      --ink: #17202f;
+      --muted: #687182;
+      --line: #dedbd1;
+      --line-soft: #ebe8df;
+      --blue: #3776ab;
+      --blue-deep: #24557d;
+      --blue-soft: #e7f2fb;
+      --yellow: #efbd16;
+      --yellow-deep: #745c00;
+      --yellow-soft: #fff5c7;
+      --mint: #2d8a73;
+      --mint-soft: #e7f5ef;
+      --purple: #8260b3;
+      --purple-soft: #f1ebf8;
+      --coral: #e56b4e;
+      --coral-soft: #fff0eb;
+      --code: #18202c;
+      --code-ink: #e8eef7;
+      --shadow: 0 22px 60px rgba(51, 46, 34, .10);
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page: #121720;
+      --paper: #19212c;
+      --paper-strong: #1f2936;
+      --ink: #edf2f7;
+      --muted: #a8b2c1;
+      --line: #344151;
+      --line-soft: #2b3645;
+      --blue-soft: #172d42;
+      --blue-deep: #78b9ec;
+      --yellow-soft: #3c3517;
+      --yellow-deep: #f6d654;
+      --mint-soft: #17352f;
+      --purple-soft: #2e2540;
+      --coral-soft: #3d2521;
+      --code: #0d1118;
+      --code-ink: #e9eef7;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 7% 2%, color-mix(in srgb, var(--blue) 14%, transparent), transparent 29rem),
+        radial-gradient(circle at 94% 13%, color-mix(in srgb, var(--yellow) 18%, transparent), transparent 27rem),
+        var(--page);
+      font-family: var(--sans);
+      line-height: 1.72;
+    }
+    button, input, select { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    code { font-family: var(--mono); }
+    ::selection { background: color-mix(in srgb, var(--blue) 23%, transparent); }
+    .skip-link { position: fixed; top: 8px; left: 8px; z-index: 200; transform: translateY(-160%); padding: 9px 13px; color: var(--paper); background: var(--ink); border-radius: 10px; }
+    .skip-link:focus { transform: translateY(0); }
+    .progress-track { position: fixed; inset: 0 0 auto; z-index: 110; height: 4px; }
+    .progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple), var(--yellow)); }
+    .topbar {
+      position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between;
+      min-height: 68px; padding: 10px clamp(16px, 4vw, 42px); border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+      background: color-mix(in srgb, var(--page) 84%, transparent); backdrop-filter: blur(5px);
+    }
+    .brand, .top-actions { display: flex; align-items: center; gap: 11px; }
+    .brand { min-width: 0; font-weight: 850; }
+    .brand span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 auto; border-radius: 13px; color: #fff; background: linear-gradient(135deg, var(--blue), var(--purple)); box-shadow: 0 8px 20px rgba(55, 118, 171, .2); font: 800 9px/1.05 var(--mono); }
+    .icon-button, .button { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 11px; color: var(--ink); background: var(--paper); text-decoration: none; cursor: pointer; transition: transform 140ms ease, border-color 140ms ease, background 140ms ease; }
+    .icon-button { width: 40px; padding: 0; }
+    .icon-button:hover, .button:hover { border-color: var(--blue); transform: translateY(-1px); }
+    .button.primary { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .hero { position: relative; max-width: 1280px; margin: 0 auto; padding: clamp(60px, 8vw, 108px) clamp(20px, 5vw, 70px) 56px; overflow: hidden; }
+    .hero::after { content: "AGENT"; position: absolute; right: -1%; top: 10%; color: color-mix(in srgb, var(--blue) 7%, transparent); font: 900 clamp(86px, 17vw, 220px)/1 Georgia, serif; transform: rotate(-7deg); pointer-events: none; }
+    .eyebrow { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; color: var(--blue-deep); font: 800 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 28px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--yellow)); }
+    h1 { position: relative; z-index: 1; max-width: 990px; margin: 20px 0 0; font-size: clamp(38px, 7vw, 76px); line-height: 1.04; letter-spacing: -.045em; }
+    h1 span { color: var(--blue); }
+    .hero-copy { position: relative; z-index: 1; max-width: 860px; margin: 25px 0 0; color: var(--muted); font-size: clamp(16px, 2vw, 20px); }
+    .hero-copy strong { color: var(--ink); }
+    .hero-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .hero-facts { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 180px)); gap: 12px; margin-top: 34px; }
+    .fact { padding: 15px 17px; border: 1px solid var(--line); border-radius: 15px; background: color-mix(in srgb, var(--paper) 92%, transparent); }
+    .fact b { display: block; color: var(--blue); font: 900 23px/1 var(--mono); }
+    .fact:nth-child(2) b { color: var(--purple); } .fact:nth-child(3) b { color: var(--mint); } .fact:nth-child(4) b { color: var(--coral); }
+    .fact span { display: block; margin-top: 7px; color: var(--muted); font-size: 12px; }
+    .truth-strip { max-width: 1240px; margin: 0 auto; padding: 0 22px 28px; }
+    .truth-grid { display: grid; grid-template-columns: repeat(3, 1fr); overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); box-shadow: var(--shadow); }
+    .truth { padding: 20px 22px; border-right: 1px solid var(--line-soft); }
+    .truth:last-child { border-right: 0; } .truth b, .truth span { display: block; }
+    .truth b { color: var(--blue-deep); } .truth:nth-child(2) b { color: var(--purple); } .truth:nth-child(3) b { color: var(--mint); }
+    .truth span { margin-top: 5px; color: var(--muted); font-size: 13px; }
+    .layout { display: grid; grid-template-columns: 214px minmax(0, 1fr); gap: clamp(28px, 5vw, 70px); max-width: 1240px; margin: 0 auto; padding: 62px 22px 100px; }
+    .toc { position: sticky; top: 88px; max-height: calc(100vh - 110px); padding: 17px; overflow-y: auto; border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--paper) 93%, transparent); box-shadow: 0 12px 32px rgba(45, 40, 28, .06); }
+    .toc-title { margin: 0 0 10px; color: var(--muted); font: 800 11px/1 var(--mono); letter-spacing: .1em; }
+    .toc a { display: block; margin: 2px 0; padding: 7px 9px; border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 12px; line-height: 1.4; }
+    .toc a:hover, .toc a.active { color: var(--blue-deep); background: var(--blue-soft); }
+    .toc-status { margin-top: 14px; padding: 11px; border-radius: 11px; color: var(--mint); background: var(--mint-soft); font-size: 11px; }
+    .content { min-width: 0; }
+    .section { margin-top: 88px; scroll-margin-top: 94px; }
+    .section:first-child { margin-top: 0; }
+    .section-kicker { color: var(--blue-deep); font: 800 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+    h2 { margin: 12px 0 9px; font-size: clamp(27px, 4vw, 43px); line-height: 1.15; letter-spacing: -.028em; }
+    h3 { margin: 0; font-size: 18px; line-height: 1.35; }
+    h4 { margin: 0; font-size: 14px; }
+    .section-lead { max-width: 850px; margin: 0 0 26px; color: var(--muted); }
+    .card, .concept, .code-card, .pipeline-lab, .selector-lab, .router-lab, .quiz-card, .compare-wrap { border: 1px solid var(--line); border-radius: 19px; background: var(--paper); box-shadow: 0 12px 30px rgba(45, 40, 28, .055); }
+    .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+    .three-col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .concept { padding: 21px; }
+    .concept p { margin: 9px 0 0; color: var(--muted); font-size: 13px; }
+    .concept ul { margin: 12px 0 0; padding-left: 19px; color: var(--muted); font-size: 13px; }
+    .concept li + li { margin-top: 6px; }
+    .concept .icon { display: grid; place-items: center; width: 38px; height: 38px; margin-bottom: 13px; border-radius: 12px; background: var(--blue-soft); font-size: 20px; }
+    .plain-box, .insight, .warning { margin-top: 16px; padding: 18px 20px; border-radius: 16px; font-size: 13px; }
+    .plain-box { border: 1px solid color-mix(in srgb, var(--yellow) 44%, var(--line)); background: linear-gradient(105deg, var(--yellow-soft), var(--paper)); }
+    .plain-box strong { color: var(--yellow-deep); }
+    .insight { border: 1px solid color-mix(in srgb, var(--mint) 34%, var(--line)); background: var(--mint-soft); }
+    .insight strong { color: var(--mint); }
+    .warning { border: 1px solid color-mix(in srgb, var(--coral) 34%, var(--line)); background: var(--coral-soft); }
+    .warning strong { color: var(--coral); }
+    .code-card { margin-top: 16px; overflow: hidden; border-color: #303a48; background: var(--code); }
+    .code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #303a48; color: #bfc9d8; background: var(--code); font: 700 11px/1 var(--mono); }
+    pre { margin: 0; padding: 18px; overflow-x: auto; color: var(--code-ink); background: var(--code); font: 12px/1.72 var(--mono); tab-size: 4; }
+    .cm { color: #8996a8; } .kw { color: #f08d81; } .fn { color: #82c7f3; } .st { color: #b7dc8a; } .num { color: #d8b5ff; }
+    .pipeline-lab, .selector-lab, .router-lab { padding: 20px; }
+    .pipeline-steps { display: grid; grid-template-columns: repeat(7, minmax(88px, 1fr)); gap: 8px; }
+    .pipeline-button { position: relative; min-height: 104px; padding: 13px 9px; border: 1px solid var(--line); border-radius: 14px; color: var(--muted); background: var(--paper-strong); cursor: pointer; text-align: left; }
+    .pipeline-button::after { content: "→"; position: absolute; right: -9px; top: 38px; z-index: 2; color: var(--muted); font-weight: 900; }
+    .pipeline-button:last-child::after { display: none; }
+    .pipeline-button b, .pipeline-button small { display: block; }
+    .pipeline-button b { color: var(--ink); font-size: 12px; }
+    .pipeline-button small { margin-top: 5px; font: 700 9px/1.4 var(--mono); }
+    .pipeline-button.active { color: var(--blue-deep); border-color: var(--blue); background: var(--blue-soft); }
+    .pipeline-button.parse { border-top: 4px solid var(--yellow); } .pipeline-button.retrieve { border-top: 4px solid var(--mint); } .pipeline-button.agent { border-top: 4px solid var(--purple); }
+    .pipeline-reading { min-height: 116px; margin-top: 16px; padding: 17px 19px; border-radius: 14px; background: var(--blue-soft); }
+    .pipeline-reading b { color: var(--blue-deep); }
+    .pipeline-reading p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    .pipeline-reading code { color: var(--blue-deep); }
+    .stage-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; color: var(--muted); font-size: 11px; }
+    .dot { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 50%; }
+    .dot.parse { background: var(--yellow); } .dot.retrieve { background: var(--mint); } .dot.agent { background: var(--purple); }
+    .analogy { display: grid; grid-template-columns: 92px 1fr; gap: 17px; align-items: center; margin-top: 16px; padding: 20px; border: 1px dashed color-mix(in srgb, var(--blue) 45%, var(--line)); border-radius: 17px; background: var(--blue-soft); }
+    .analogy-icon { display: grid; place-items: center; width: 78px; height: 78px; border-radius: 24px; background: var(--paper); font-size: 38px; box-shadow: 0 10px 26px rgba(55, 118, 171, .12); }
+    .analogy h3 { color: var(--blue-deep); }
+    .analogy p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    .layers { display: grid; gap: 9px; margin-top: 18px; }
+    .layer { display: grid; grid-template-columns: 120px 1fr auto; gap: 14px; align-items: center; padding: 15px 17px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+    .layer b { color: var(--blue-deep); font-size: 13px; }
+    .layer p { margin: 0; color: var(--muted); font-size: 12px; }
+    .layer span { padding: 4px 8px; border-radius: 8px; color: var(--muted); background: var(--blue-soft); font: 750 10px/1 var(--mono); }
+    .compare-wrap { margin-top: 18px; overflow-x: auto; }
+    .compare-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 12px; }
+    .compare-table th, .compare-table td { padding: 14px 15px; border-bottom: 1px solid var(--line-soft); vertical-align: top; text-align: left; }
+    .compare-table th { color: var(--blue-deep); background: var(--blue-soft); font-size: 11px; }
+    .compare-table td:first-child { font-weight: 850; }
+    .compare-table tr:last-child td { border-bottom: 0; }
+    .parser-card { position: relative; padding: 22px; overflow: hidden; }
+    .parser-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: var(--blue); }
+    .parser-card.deepdoc::before { background: var(--purple); } .parser-card.mineru::before { background: var(--mint); }
+    .parser-card .label { display: inline-block; margin-bottom: 12px; padding: 5px 8px; border-radius: 8px; color: var(--blue-deep); background: var(--blue-soft); font: 800 10px/1 var(--mono); }
+    .parser-card.deepdoc .label { color: var(--purple); background: var(--purple-soft); } .parser-card.mineru .label { color: var(--mint); background: var(--mint-soft); }
+    .parser-card p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+    .parser-card a { color: var(--blue-deep); font-size: 11px; font-weight: 800; }
+    .selector-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+    .field label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 800; }
+    .field select, .router-input { width: 100%; min-height: 43px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 11px; color: var(--ink); background: var(--paper-strong); outline: none; }
+    .field select:focus, .router-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 14%, transparent); }
+    .recommendation { margin-top: 17px; padding: 18px; border-radius: 15px; background: var(--mint-soft); }
+    .recommendation b { color: var(--mint); }
+    .recommendation p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    .route-controls { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+    .presets { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+    .preset-button { min-height: 31px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); background: var(--paper-strong); cursor: pointer; font-size: 11px; }
+    .preset-button:hover { color: var(--blue-deep); border-color: var(--blue); background: var(--blue-soft); }
+    .route-output { display: grid; grid-template-columns: 150px 1fr; gap: 15px; align-items: start; margin-top: 17px; padding: 18px; border-radius: 15px; background: var(--purple-soft); }
+    .route-badge { display: inline-flex; justify-content: center; padding: 8px 10px; border-radius: 10px; color: #fff; background: var(--purple); font-weight: 850; font-size: 12px; }
+    .route-output p { margin: 0; color: var(--muted); font-size: 13px; }
+    .flow-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
+    .flow-card { padding: 20px; border: 1px solid var(--line); border-radius: 17px; background: var(--paper); }
+    .flow-card ol { margin: 13px 0 0; padding-left: 22px; color: var(--muted); font-size: 12px; }
+    .flow-card li + li { margin-top: 8px; }
+    .flow-card.false { border-top: 4px solid var(--purple); } .flow-card.true { border-top: 4px solid var(--mint); }
+    .issue-list { display: grid; gap: 10px; margin-top: 18px; }
+    .issue { display: grid; grid-template-columns: 76px 1fr; gap: 14px; align-items: start; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+    .severity { display: inline-flex; justify-content: center; padding: 5px 8px; border-radius: 8px; color: var(--coral); background: var(--coral-soft); font: 800 10px/1 var(--mono); }
+    .severity.medium { color: var(--yellow-deep); background: var(--yellow-soft); }
+    .issue h3 { font-size: 14px; }
+    .issue p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+    .production-flow { display: grid; grid-template-columns: repeat(5, minmax(110px, 1fr)); gap: 10px; margin-top: 18px; }
+    .prod-step { position: relative; padding: 17px 13px; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); }
+    .prod-step::after { content: "→"; position: absolute; right: -9px; top: 28px; z-index: 2; color: var(--muted); font-weight: 900; }
+    .prod-step:last-child::after { display: none; }
+    .prod-step b { display: block; color: var(--blue-deep); font-size: 12px; }
+    .prod-step span { display: block; margin-top: 6px; color: var(--muted); font-size: 10px; }
+    .quiz-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .quiz-card { padding: 19px; }
+    .quiz-card h3 { font-size: 14px; }
+    .quiz-options { display: grid; gap: 7px; margin-top: 13px; }
+    .quiz-option { padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: var(--paper-strong); cursor: pointer; text-align: left; font-size: 12px; }
+    .quiz-option:hover { border-color: var(--blue); }
+    .quiz-option.correct { color: var(--mint); border-color: var(--mint); background: var(--mint-soft); }
+    .quiz-option.wrong { color: var(--coral); border-color: var(--coral); background: var(--coral-soft); }
+    .quiz-explain { display: none; margin-top: 10px; color: var(--muted); font-size: 11px; }
+    .glossary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+    .glossary div { padding: 15px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper); }
+    .glossary dt { color: var(--blue-deep); font: 850 12px/1.3 var(--mono); }
+    .glossary dd { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
+    footer { padding: 34px 20px 58px; color: var(--muted); text-align: center; font-size: 12px; }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; } .toc { display: none; }
+      .pipeline-steps { grid-template-columns: repeat(4, 1fr); } .pipeline-button:nth-child(4)::after { display: none; }
+      .production-flow { grid-template-columns: repeat(3, 1fr); } .prod-step:nth-child(3)::after { display: none; }
+      .three-col { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .hero-facts { grid-template-columns: repeat(2, 1fr); }
+      .truth-grid, .two-col, .selector-grid, .flow-compare, .quiz-grid, .glossary { grid-template-columns: 1fr; }
+      .truth { border-right: 0; border-bottom: 1px solid var(--line-soft); } .truth:last-child { border-bottom: 0; }
+      .pipeline-steps { grid-template-columns: repeat(2, 1fr); } .pipeline-button::after { display: none; }
+      .analogy { grid-template-columns: 1fr; } .layer { grid-template-columns: 1fr; gap: 6px; }
+      .route-controls, .route-output { grid-template-columns: 1fr; }
+      .production-flow { grid-template-columns: 1fr; } .prod-step::after { display: none; }
+      .issue { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">DOC<br>AGENT</div><span>Agent 文档解析与工作流</span></div>
+    <div class="top-actions">
+      <button class="icon-button" id="themeButton" type="button" aria-label="切换深浅主题" title="切换深浅主题">◐</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">Week 09 · Source-driven Learning</div>
+    <h1>从一份 PDF，走到一个<br><span>会查资料的销售 Agent</span></h1>
+    <p class="hero-copy">这不是抽象的 Agent 概念课。我们沿着项目真实代码，拆开<strong>文档解析、本地混合检索、联网检索、规划、执行、记忆与回答</strong>，并分清教学 Demo 和生产系统之间的距离。</p>
+    <div class="hero-actions">
+      <a class="button primary" href="#project-map">从项目主链路开始</a>
+      <a class="button" href="#parser-choice">先看解析器怎么选</a>
+    </div>
+    <div class="hero-facts">
+      <div class="fact"><b>58</b><span>项目实际写入的文档块</span></div>
+      <div class="fact"><b>2</b><span>本地检索与网络检索工具</span></div>
+      <div class="fact"><b>3</b><span>规划、执行、回答阶段</span></div>
+      <div class="fact"><b>0</b><span>标准 Function Calling 调用</span></div>
+    </div>
+  </section>
+
+  <section class="truth-strip" aria-label="阅读前的三个结论">
+    <div class="truth-grid">
+      <div class="truth"><b>解析 ≠ 切块</b><span>解析先恢复文档内容与结构，切块才决定检索时拿多大的知识单元。</span></div>
+      <div class="truth"><b>RAG ≠ Agent</b><span>RAG 负责找证据；Agent 决定何时找、找哪里、接下来做什么。</span></div>
+      <div class="truth"><b>这个项目是手写工作流</b><span>模型输出 JSON 计划，Python 用 if/else 真正执行工具。</span></div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <aside>
+      <nav class="toc" aria-label="页面目录">
+        <p class="toc-title">LEARNING PATH</p>
+        <a href="#mental-model">01 · 先建立心智模型</a>
+        <a href="#project-map">02 · 项目真实主链路</a>
+        <a href="#parsing">03 · 文档解析是什么</a>
+        <a href="#parser-choice">04 · 三种解析器对比</a>
+        <a href="#rag">05 · 本地与联网 RAG</a>
+        <a href="#agent">06 · Agent 如何调工具</a>
+        <a href="#problems">07 · 项目问题校准</a>
+        <a href="#production">08 · 生产项目怎么做</a>
+        <a href="#quiz">09 · 自测与术语表</a>
+        <div class="toc-status" id="tocStatus">已完成自测 0 / 4</div>
+      </nav>
+    </aside>
+
+    <main class="content" id="main">
+      <section class="section" id="mental-model">
+        <div class="section-kicker">01 · Mental Model</div>
+        <h2>把整个系统想成一家“研究型餐厅”</h2>
+        <p class="section-lead">一个模型并不会因为“很聪明”就自动拥有公司文档、实时新闻和执行权限。真实系统要把不同职责拆开，再用一条工作流连接起来。</p>
+        <div class="three-col">
+          <article class="concept"><div class="icon">📦</div><h3>解析器是验货员</h3><p>把 PDF 包装拆开，识别文字、标题、表格和图片，尽量恢复成机器能理解的原材料。</p></article>
+          <article class="concept"><div class="icon">🗂️</div><h3>RAG 是资料管理员</h3><p>收到问题后，从仓库里找最相关的几份材料。它负责“找”，不负责决定整个任务怎么做。</p></article>
+          <article class="concept"><div class="icon">🧑‍🍳</div><h3>Agent 是值班经理</h3><p>理解顾客需求，决定查内部菜单还是外部市场，安排动作，最后组织成完整答复。</p></article>
+        </div>
+        <div class="analogy">
+          <div class="analogy-icon">📚</div>
+          <div><h3>另一个更准确的类比：修复古书</h3><p>PDF 不是干净的字符串，而像一本装订复杂的书。普通提取器只“抄下看见的字”；智能解析器还要判断先读左栏还是右栏、哪些格子属于同一张表、公式上下标是什么。解析完成后，切块才像把书编成一张张索引卡。</p></div>
+        </div>
+      </section>
+
+      <section class="section" id="project-map">
+        <div class="section-kicker">02 · Project Map</div>
+        <h2>点一遍项目真实主链路</h2>
+        <p class="section-lead">点击每一步，观察输入、输出和真正执行者。蓝黄色页面风格沿用课程现有学习页，但内容严格对应第 9 周 Notebook。</p>
+        <div class="pipeline-lab">
+          <div class="pipeline-steps" id="pipelineSteps">
+            <button class="pipeline-button parse active" data-step="parse" type="button"><b>① 解析 PDF</b><small>LlamaParse</small></button>
+            <button class="pipeline-button parse" data-step="chunk" type="button"><b>② 切成 58 块</b><small>chunk_text()</small></button>
+            <button class="pipeline-button retrieve" data-step="embed" type="button"><b>③ 双路向量化</b><small>BGE-M3</small></button>
+            <button class="pipeline-button retrieve" data-step="store" type="button"><b>④ 写入数据库</b><small>Milvus Lite</small></button>
+            <button class="pipeline-button agent" data-step="plan" type="button"><b>⑤ 规划工具</b><small>Qwen Plus</small></button>
+            <button class="pipeline-button agent" data-step="act" type="button"><b>⑥ 执行动作</b><small>Python Router</small></button>
+            <button class="pipeline-button agent" data-step="answer" type="button"><b>⑦ 汇总回答</b><small>DeepSeek-R1</small></button>
+          </div>
+          <div class="pipeline-reading" id="pipelineReading" aria-live="polite"></div>
+          <div class="stage-legend"><span><i class="dot parse"></i>数据准备</span><span><i class="dot retrieve"></i>知识检索</span><span><i class="dot agent"></i>Agent 工作流</span></div>
+        </div>
+        <div class="plain-box"><strong>关键观察：</strong>Notebook 里出现了 LlamaParse、LlamaIndex、Milvus、BGE、Chroma、Qwen、GPT-4o、DeepSeek-R1，但它们不是一个大黑盒。每个组件只负责链路中的一段。</div>
+      </section>
+
+      <section class="section" id="parsing">
+        <div class="section-kicker">03 · Document Parsing</div>
+        <h2>文档解析到底在“解析”什么？</h2>
+        <p class="section-lead">同一页 PDF，在人眼里是一篇文章；在程序眼里可能只是一堆散落在坐标系中的字符、线条和图片。</p>
+        <div class="layers">
+          <div class="layer"><b>第 1 层：文字</b><p>识别“ES9”“150 kWh”等字符；扫描件还需要 OCR。</p><span>TEXT / OCR</span></div>
+          <div class="layer"><b>第 2 层：版面</b><p>判断标题、正文、页眉页脚、左右栏，以及正确阅读顺序。</p><span>LAYOUT</span></div>
+          <div class="layer"><b>第 3 层：结构</b><p>恢复表格行列、列表层级、图片标题、公式与章节关系。</p><span>STRUCTURE</span></div>
+          <div class="layer"><b>第 4 层：语义</b><p>根据业务需要输出 Markdown、JSON 或字段对象，供切块与检索使用。</p><span>SEMANTICS</span></div>
+        </div>
+        <div class="two-col">
+          <article class="concept"><h3>普通文本 PDF</h3><p>如果文件自带干净文本层，PyMuPDF、pdfplumber 往往更快、更便宜，也更容易私有化。</p></article>
+          <article class="concept"><h3>复杂或扫描 PDF</h3><p>多栏、扫描、复杂表格、公式和图文混排需要 OCR、布局识别或多模态模型，才是 LlamaParse、DeepDoc、MinerU 的主场。</p></article>
+        </div>
+        <div class="code-card">
+          <div class="code-head"><span>Notebook：把 .pdf 路由给 LlamaParse</span><span>Reader Adapter</span></div>
+          <pre><span class="kw">parser</span> = <span class="fn">LlamaParse</span>(
+    api_key=os.environ[<span class="st">"LLAMA_CLOUD_API_KEY"</span>],
+    result_type=<span class="st">"markdown"</span>,
+    language=<span class="st">"ch_sim"</span>,
+)
+
+file_extractor = {<span class="st">".pdf"</span>: parser}
+documents = <span class="fn">SimpleDirectoryReader</span>(
+    <span class="st">"./data"</span>, file_extractor=file_extractor
+).<span class="fn">load_data</span>()</pre>
+        </div>
+        <div class="insight"><strong>边界：</strong><code>SimpleDirectoryReader</code> 是文件发现和解析器调度层；<code>LlamaParse</code> 才是真正处理 PDF 的服务；返回的 <code>Document</code> 是 LlamaIndex 对结果的统一封装。</div>
+      </section>
+
+      <section class="section" id="parser-choice">
+        <div class="section-kicker">04 · Parser Choice</div>
+        <h2>LlamaParse、DeepDoc、MinerU 怎么选</h2>
+        <p class="section-lead">先看产品形态，再谈准确率。没有脱离文档样本的“绝对最好”，同一个工具在合同、论文、发票和扫描手册上的表现可能完全不同。</p>
+        <div class="three-col">
+          <article class="concept parser-card"><span class="label">CLOUD SERVICE</span><h3>LlamaParse</h3><p>像“把文件交给外部专业翻译社”：几行 API 就能得到结构化结果，运维最少，但有费用、网络和数据出域问题。</p><p><a href="https://github.com/run-llama/llama_index">官方资料 ↗</a></p></article>
+          <article class="concept parser-card deepdoc"><span class="label">RAGFLOW MODULE</span><h3>DeepDoc</h3><p>像“RAGFlow 仓库里的验货车间”：OCR、布局和表格结果直接服务后面的知识库与检索，但单独拿出来用不是最轻巧的路线。</p><p><a href="https://github.com/infiniflow/ragflow/blob/main/deepdoc/README.md">官方资料 ↗</a></p></article>
+          <article class="concept parser-card mineru"><span class="label">LOCAL ENGINE</span><h3>MinerU</h3><p>像“自己买机器建解析工厂”：可本地、可批量、输出丰富，对论文公式和复杂版面友好，但模型、硬件和升级要自己负责。</p><p><a href="https://github.com/opendatalab/MinerU">官方资料 ↗</a></p></article>
+        </div>
+        <div class="compare-wrap">
+          <table class="compare-table">
+            <thead><tr><th>维度</th><th>LlamaParse</th><th>DeepDoc</th><th>MinerU</th></tr></thead>
+            <tbody>
+              <tr><td>产品形态</td><td>托管解析平台/API</td><td>RAGFlow 内置文档理解模块</td><td>独立解析引擎，也提供在线 API</td></tr>
+              <tr><td>主要路线</td><td>Agentic OCR / 多模态解析</td><td>OCR + 版面识别 + 表格结构识别</td><td>Pipeline、VLM、Hybrid 多后端</td></tr>
+              <tr><td>部署</td><td>默认云端，接入最省事</td><td>随 RAGFlow 私有化，整体较重</td><td>本地 CLI/API/WebUI 或官方 API</td></tr>
+              <tr><td>典型输出</td><td>Markdown、文本、JSON、布局</td><td>带页码坐标的文本块、表格、图片</td><td>Markdown、JSON、HTML、LaTeX、图片</td></tr>
+              <tr><td>最适合</td><td>快速验证、低运维</td><td>已经采用 RAGFlow</td><td>私有化解析中台、批量复杂文档</td></tr>
+              <tr><td>主要代价</td><td>费用、延迟、数据外传</td><td>部署复杂、与 RAGFlow 耦合</td><td>模型与算力、版本和许可证评估</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="selector-lab">
+          <h3>解析器选型器</h3>
+          <p class="section-lead">选择你的约束，看看更合理的起点。它是工程决策提示，不代替真实样本评测。</p>
+          <div class="selector-grid">
+            <div class="field"><label for="privacySelect">文档能否上传外部服务？</label><select id="privacySelect"><option value="no">不能，必须私有化</option><option value="yes">可以</option></select></div>
+            <div class="field"><label for="stackSelect">现有技术栈</label><select id="stackSelect"><option value="custom">自研 RAG / 尚未选型</option><option value="ragflow">已经使用 RAGFlow</option><option value="llama">已经使用 LlamaIndex</option></select></div>
+            <div class="field"><label for="docSelect">主要文档类型</label><select id="docSelect"><option value="normal">普通文本 PDF / Office</option><option value="science">论文、公式、复杂多栏</option><option value="scan">扫描件、复杂表格</option></select></div>
+            <div class="field"><label for="opsSelect">团队更在意什么？</label><select id="opsSelect"><option value="control">数据与解析过程可控</option><option value="speed">最快上线、少运维</option></select></div>
+          </div>
+          <div class="recommendation" id="recommendation" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="section" id="rag">
+        <div class="section-kicker">05 · Retrieval</div>
+        <h2>项目里其实有两套 RAG</h2>
+        <p class="section-lead">两条链路解决的是不同的新鲜度问题：内部产品手册稳定且可信，市场信息实时变化，需要联网补充。</p>
+        <div class="two-col">
+          <article class="concept">
+            <h3>本地 RAG：查 ES9 产品手册</h3>
+            <ul><li>58 个约 300 字的 chunk</li><li>BGE-M3 同时生成 dense 与 sparse 向量</li><li>Milvus Lite 保存两类向量</li><li>WeightedRanker：dense 1.0、sparse 0.7</li><li>GPT-4o 根据前 10 条片段生成局部答案</li></ul>
+          </article>
+          <article class="concept">
+            <h3>联网 RAG：查竞品和实时信息</h3>
+            <ul><li>Serper 查询 Google 搜索结果</li><li>多个线程并行抓取网页正文</li><li>按 1000 字切块</li><li>MiniLM + Chroma 返回前 20 条</li><li>GPT-4o 生成带引用的联网回答</li></ul>
+          </article>
+        </div>
+        <div class="analogy">
+          <div class="analogy-icon">🔎</div>
+          <div><h3>Dense + Sparse 像“按意思找”再加“按原词找”</h3><p>用户问“以人为本的座舱”，dense 检索能找到“舒适、人体工程学、沉浸体验”等语义接近内容；sparse 检索擅长命中“座舱”“ES9”等明确词。混合检索把两种证据合并，减少只懂意思却漏掉专有名词的问题。</p></div>
+        </div>
+        <div class="warning"><strong>别忽略证据边界：</strong>项目的 Prompt 允许“没有相关内容时按自己的知识回答”，这会让带引用的 RAG 回答混入无引用知识。严肃业务应明确区分“证据支持”“模型推测”和“没有答案”。</div>
+      </section>
+
+      <section class="section" id="agent">
+        <div class="section-kicker">06 · Agent Workflow</div>
+        <h2>Agent 是怎么决定调用哪个工具的？</h2>
+        <p class="section-lead">项目让 Qwen Plus 输出 JSON 计划，再由 Python 展平动作并通过中文工具名分发。这是一种合理的教学骨架，但不是标准 Function Calling。</p>
+        <div class="router-lab">
+          <h3>试试项目的路由规则</h3>
+          <div class="route-controls">
+            <input class="router-input" id="routerInput" value="星辰电动 ES9 和华为汽车相比有什么优劣势？" aria-label="输入汽车销售问题">
+            <button class="button primary" id="routeButton" type="button">生成计划</button>
+          </div>
+          <div class="presets">
+            <button class="preset-button" type="button">ES9 的续航是多少？</button>
+            <button class="preset-button" type="button">最近新能源汽车市场有什么新闻？</button>
+            <button class="preset-button" type="button">你好</button>
+          </div>
+          <div class="route-output" id="routeOutput" aria-live="polite"></div>
+        </div>
+        <div class="flow-compare">
+          <article class="flow-card false"><h3>本项目：手写 JSON 路由</h3><ol><li>模型输出普通 JSON 文本</li><li><code>json.loads()</code> 解析计划</li><li>Python 根据 <code>action_name</code> 调函数</li><li>结果加入普通列表 <code>memory_global</code></li><li>再次请求模型生成最终答案</li></ol></article>
+          <article class="flow-card true"><h3>标准 Function Calling</h3><ol><li>应用把工具 Schema 放进 <code>tools</code></li><li>模型返回结构化 <code>tool_calls</code></li><li>应用执行对应函数</li><li>追加匹配 <code>tool_call_id</code> 的 <code>role=tool</code> 消息</li><li>再次调用模型获得最终回答</li></ol></article>
+        </div>
+        <div class="plain-box"><strong>“3 个 Agent”更准确的说法：</strong>这是三个角色阶段——Planner、Action/Executor、Answer。Action 本身主要是确定性的 Python 调度，并不是另一个会自主推理的智能体。</div>
+      </section>
+
+      <section class="section" id="problems">
+        <div class="section-kicker">07 · Reality Check</div>
+        <h2>从教学 Demo 到可靠工程，还差什么</h2>
+        <p class="section-lead">读代码不能只看“它想表达什么”，还要看从干净环境重启后是否真的按这个流程运行。</p>
+        <div class="issue-list">
+          <article class="issue"><span class="severity">安全</span><div><h3>API Key 被直接写进 Notebook</h3><p>密钥应立即轮换，并统一改为环境变量或密钥管理服务。Notebook 输出、检查点和分享文件也要做 secret scan。</p></div></article>
+          <article class="issue"><span class="severity">逻辑</span><div><h3>第一条执行结果被丢弃</h3><p><code>memory_global.extend(memory_new[1:])</code> 会跳过第一条结果，更合理的是保留全部结果，或显式说明为什么过滤。</p></div></article>
+          <article class="issue"><span class="severity">逻辑</span><div><h3>反思阶段重复执行旧 actions</h3><p><code>reflection()</code> 生成了新动作，但代码再次调用 <code>process_actions(actions)</code>，没有真正消费反思结果。</p></div></article>
+          <article class="issue"><span class="severity medium">状态</span><div><h3>Notebook 依赖隐藏的 Kernel 状态</h3><p><code>agent_plan()</code> 引用了源码中未定义的 <code>memory</code>；历史输出还出现同步函数被当作 coroutine 的警告。应执行 Restart &amp; Run All 验证。</p></div></article>
+          <article class="issue"><span class="severity medium">工程</span><div><h3>README、文件名和依赖清单不一致</h3><p>README 安装 <code>requirements.txt</code>，实际是 <code>requirement.txt</code>，而且没有列全 Milvus、MinerU/BGE、Chroma、LlamaParse 等依赖。</p></div></article>
+          <article class="issue"><span class="severity medium">质量</span><div><h3>异常被静默吞掉，引用也没有验证</h3><p>工具失败后只继续下一轮，会让最终模型在缺失证据时自信回答。生产系统应该保留错误类型、重试状态和来源可追溯信息。</p></div></article>
+        </div>
+      </section>
+
+      <section class="section" id="production">
+        <div class="section-kicker">08 · Production Shape</div>
+        <h2>真实项目推荐做成可替换流水线</h2>
+        <p class="section-lead">成熟方案不是“所有 PDF 固定走某个最强解析器”，而是先识别复杂度，再路由、缓存、评测和降级。</p>
+        <div class="production-flow">
+          <div class="prod-step"><b>① 文件识别</b><span>格式、扫描件、页数、语言、敏感级别</span></div>
+          <div class="prod-step"><b>② 解析路由</b><span>PyMuPDF / MinerU / DeepDoc / 云服务</span></div>
+          <div class="prod-step"><b>③ 统一结构</b><span>文本、标题、表格、图片、页码、坐标</span></div>
+          <div class="prod-step"><b>④ 质量闸门</b><span>空页率、乱码率、表格和阅读顺序抽检</span></div>
+          <div class="prod-step"><b>⑤ 切块入库</b><span>按章节和语义切块，Embedding 后持久化</span></div>
+        </div>
+        <div class="code-card">
+          <div class="code-head"><span>生产思路：路由 + 缓存 + 降级</span><span>pseudo_python.py</span></div>
+          <pre><span class="kw">def</span> <span class="fn">parse_document</span>(file, policy):
+    cached = cache.<span class="fn">get</span>(file.sha256, parser_version)
+    <span class="kw">if</span> cached:
+        <span class="kw">return</span> cached
+
+    <span class="kw">if</span> policy.must_stay_private:
+        parser = mineru <span class="kw">if</span> file.is_complex <span class="kw">else</span> pymupdf
+    <span class="kw">elif</span> file.is_complex:
+        parser = llama_parse
+    <span class="kw">else</span>:
+        parser = pymupdf
+
+    result = parser.<span class="fn">parse</span>(file)
+    quality.<span class="fn">assert_acceptable</span>(result)
+    cache.<span class="fn">save</span>(file.sha256, parser_version, result)
+    <span class="kw">return</span> result</pre>
+        </div>
+        <div class="insight"><strong>评测方法：</strong>拿 30～100 份真实业务文件建立黄金样本，分别统计标题层级、阅读顺序、表格、公式、页码坐标、耗时和成本。不要只看厂商演示文件。</div>
+      </section>
+
+      <section class="section" id="quiz">
+        <div class="section-kicker">09 · Check Yourself</div>
+        <h2>用 4 道题检查是否真的理解</h2>
+        <div class="quiz-grid" id="quizGrid"></div>
+
+        <h2 style="margin-top: 48px">最小术语表</h2>
+        <dl class="glossary">
+          <div><dt>Parser</dt><dd>把文件恢复为文本、布局和结构数据的组件，不负责检索答案。</dd></div>
+          <div><dt>OCR</dt><dd>从页面图片识别字符；有文本层的 PDF 不一定需要 OCR。</dd></div>
+          <div><dt>Chunk</dt><dd>为了检索而构造的知识单元。解析结果可以再次按章节和语义切块。</dd></div>
+          <div><dt>Dense Retrieval</dt><dd>用向量语义相似度找内容，擅长“意思相近但用词不同”。</dd></div>
+          <div><dt>Sparse Retrieval</dt><dd>根据词项权重匹配内容，擅长专有名词、型号和精确关键词。</dd></div>
+          <div><dt>Hybrid Search</dt><dd>融合 dense 与 sparse 结果，兼顾语义理解和关键词命中。</dd></div>
+          <div><dt>Planner</dt><dd>把用户目标拆成动作计划；计划仍需应用程序校验与执行。</dd></div>
+          <div><dt>Memory</dt><dd>项目中只是存工具结果的 Python 列表，不等于长期记忆系统。</dd></div>
+        </dl>
+        <div class="plain-box"><strong>一句话总结：</strong>这个项目先把产品 PDF 解析并做成可检索知识库，再让规划模型决定查本地还是查网络，Python 执行工具，最后由回答模型整合证据。理解每个边界，比记住某个框架 API 更重要。</div>
+      </section>
+    </main>
+  </div>
+
+  <footer>基于「第9周-Agent / RAG(Milvus+BGE).ipynb」整理 · 页面不包含任何真实 API Key</footer>
+
+  <script>
+    const pipelineData = {
+      parse: { title: "① 解析 PDF：恢复内容和结构", body: "LlamaParse 读取 data 目录中的 ES9 产品手册，返回 Markdown 形式的 LlamaIndex Document。真正处理文档的是云端解析服务；SimpleDirectoryReader 负责发现文件并选择解析器。", io: "PDF → Document[]" },
+      chunk: { title: "② 切块：为检索制作知识卡片", body: "chunk_text() 按行累积文本，目标上限约 300 字，并尝试保持 Markdown 表格完整。Notebook 最终产生 58 个块。解析解决“文档是什么”，切块解决“用多大单位检索”。", io: "Document.text → 58 chunks" },
+      embed: { title: "③ 双路向量化：意思和关键词都要", body: "BGE-M3 一次生成 dense 与 sparse 表示。dense 捕捉语义，sparse 强调词项；两条路并不是重复，而是互补。", io: "chunk → dense vector + sparse vector" },
+      store: { title: "④ Milvus Lite：保存并搜索两类向量", body: "项目在 milvus.db 中创建 hybrid_demo 集合，保存原文、稠密向量和稀疏向量。查询时用 WeightedRanker 合并两路结果。", io: "58 entities → milvus.db" },
+      plan: { title: "⑤ 规划：决定查内部还是外部", body: "Qwen Plus 根据提示词生成 JSON：ES9 参数优先本地检索；竞品、新闻和实时价格使用网络搜索；问候则不需要工具。", io: "user_query → JSON actions" },
+      act: { title: "⑥ 执行：模型没有亲自运行 Python", body: "adjust_format() 展平动作，process_actions() 用 if/elif 调用 rag() 或 web_search_answer()。搜索和函数执行发生在应用程序中，不发生在模型内部。", io: "actions → tool results → memory_global" },
+      answer: { title: "⑦ 回答：把证据组织成销售话术", body: "DeepSeek-R1 接收用户问题与 memory_global，流式生成最终回答。Notebook 还尝试展示 reasoning_content，但最终回答是否可靠仍取决于前面证据是否完整。", io: "evidence + query → final answer" }
+    };
+
+    const pipelineReading = document.getElementById("pipelineReading");
+    function showPipelineStep(key) {
+      const item = pipelineData[key];
+      pipelineReading.innerHTML = `<b>${item.title}</b><p>${item.body}</p><p><code>${item.io}</code></p>`;
+      document.querySelectorAll(".pipeline-button").forEach(button => button.classList.toggle("active", button.dataset.step === key));
+    }
+    document.getElementById("pipelineSteps").addEventListener("click", event => {
+      const button = event.target.closest(".pipeline-button");
+      if (button) showPipelineStep(button.dataset.step);
+    });
+    showPipelineStep("parse");
+
+    const selectorIds = ["privacySelect", "stackSelect", "docSelect", "opsSelect"];
+    function updateRecommendation() {
+      const privacy = document.getElementById("privacySelect").value;
+      const stack = document.getElementById("stackSelect").value;
+      const doc = document.getElementById("docSelect").value;
+      const ops = document.getElementById("opsSelect").value;
+      let name = "PyMuPDF + 复杂文档降级策略";
+      let reason = "普通文本 PDF 优先使用轻量本地解析器；只有质量检测不通过时，再升级到更重的解析方案。";
+      if (stack === "ragflow") {
+        name = "DeepDoc";
+        reason = "既然检索和知识库已经在 RAGFlow 内，直接复用其文档理解链路能减少重复建设。";
+      } else if (privacy === "no" && (doc === "science" || doc === "scan")) {
+        name = "MinerU 本地部署";
+        reason = "文档不能出域，又包含复杂版面或扫描内容，适合用可本地运行的完整解析引擎。";
+      } else if (privacy === "yes" && (ops === "speed" || stack === "llama")) {
+        name = "LlamaParse";
+        reason = "允许上传且更重视接入速度，托管解析服务能减少模型部署和运维工作。";
+      } else if (doc === "science") {
+        name = "MinerU";
+        reason = "论文、公式和多栏内容需要结构恢复，可先用 MinerU 做样本评测。";
+      }
+      document.getElementById("recommendation").innerHTML = `<b>建议起点：${name}</b><p>${reason} 上线前仍需用真实文件比较准确率、耗时和成本。</p>`;
+    }
+    selectorIds.forEach(id => document.getElementById(id).addEventListener("change", updateRecommendation));
+    updateRecommendation();
+
+    const routerInput = document.getElementById("routerInput");
+    function routeQuery() {
+      const query = routerInput.value.trim();
+      let route = "无需工具";
+      let color = "var(--muted)";
+      let reason = "这是日常对话，规划器可以直接返回 None，再由回答模型回应。";
+      const local = /ES9|星辰|续航|座舱|配置|电池|价格|售后|参数/i.test(query);
+      const web = /华为|特斯拉|小米|竞品|新闻|最近|最新|市场|实时|对比|相比/i.test(query);
+      if (local && web) {
+        route = "本地 + 网络"; color = "var(--purple)";
+        reason = "先从 ES9 手册取内部事实，再从网络补充竞品或实时信息，最后合并证据。";
+      } else if (local) {
+        route = "本地文档搜索"; color = "var(--mint)";
+        reason = "问题明确涉及 ES9 的参数、功能或服务，优先查询本地产品手册。";
+      } else if (web) {
+        route = "网络搜索"; color = "var(--purple)";
+        reason = "问题涉及竞品、市场或时效性信息，本地手册无法提供足够的新鲜度。";
+      }
+      const badge = document.querySelector(".route-badge");
+      document.getElementById("routeOutput").innerHTML = `<span class="route-badge" style="background:${color}">${route}</span><p>${reason}</p>`;
+    }
+    document.getElementById("routeButton").addEventListener("click", routeQuery);
+    document.querySelectorAll(".preset-button").forEach(button => button.addEventListener("click", () => { routerInput.value = button.textContent; routeQuery(); }));
+    routerInput.addEventListener("keydown", event => { if (event.key === "Enter") routeQuery(); });
+    routeQuery();
+
+    const quizzes = [
+      { q: "解析和切块的正确关系是？", a: ["解析就是按 300 字切块", "先恢复内容结构，再为检索切块", "切块完成后才做 OCR"], correct: 1, why: "解析关注文件内容和结构；切块关注后续检索粒度。" },
+      { q: "这个项目是谁真正执行 rag()？", a: ["Qwen 模型内部", "DeepSeek-R1 内部", "Notebook 中的 Python 调度器"], correct: 2, why: "模型只产出计划，应用程序根据 action_name 调用函数。" },
+      { q: "敏感 PDF 必须留在内网，又有复杂公式，优先评测？", a: ["MinerU 本地部署", "固定上传 LlamaParse", "只用字符串 split"], correct: 0, why: "本地 MinerU 更符合数据不出域和复杂结构解析需求。" },
+      { q: "为什么混合 dense 和 sparse 检索？", a: ["为了调用两次 LLM", "兼顾语义和精确词项", "因为 Milvus 不能单独搜索"], correct: 1, why: "dense 擅长语义近似，sparse 擅长关键词和专有名词。" }
+    ];
+    const answered = new Set();
+    const quizGrid = document.getElementById("quizGrid");
+    quizGrid.innerHTML = quizzes.map((quiz, index) => `<article class="quiz-card" data-quiz="${index}"><h3>${index + 1}. ${quiz.q}</h3><div class="quiz-options">${quiz.a.map((answer, answerIndex) => `<button class="quiz-option" type="button" data-answer="${answerIndex}">${answer}</button>`).join("")}</div><div class="quiz-explain">${quiz.why}</div></article>`).join("");
+    quizGrid.addEventListener("click", event => {
+      const option = event.target.closest(".quiz-option");
+      if (!option) return;
+      const card = option.closest(".quiz-card");
+      const index = Number(card.dataset.quiz);
+      card.querySelectorAll(".quiz-option").forEach((button, answerIndex) => {
+        button.disabled = true;
+        if (answerIndex === quizzes[index].correct) button.classList.add("correct");
+      });
+      if (Number(option.dataset.answer) !== quizzes[index].correct) option.classList.add("wrong");
+      card.querySelector(".quiz-explain").style.display = "block";
+      answered.add(index);
+      document.getElementById("tocStatus").textContent = `已完成自测 ${answered.size} / ${quizzes.length}`;
+    });
+
+    const themeButton = document.getElementById("themeButton");
+    const savedTheme = localStorage.getItem("agent-learning-theme");
+    if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+    themeButton.addEventListener("click", () => {
+      const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem("agent-learning-theme", next);
+    });
+
+    const progressBar = document.getElementById("progressBar");
+    function updateProgress() {
+      const total = document.documentElement.scrollHeight - innerHeight;
+      progressBar.style.width = `${total > 0 ? scrollY / total * 100 : 0}%`;
+    }
+    addEventListener("scroll", updateProgress, { passive: true });
+    updateProgress();
+
+    const tocLinks = [...document.querySelectorAll(".toc a")];
+    const sections = [...document.querySelectorAll("main .section")];
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      tocLinks.forEach(link => link.classList.toggle("active", link.getAttribute("href") === `#${visible.target.id}`));
+    }, { rootMargin: "-20% 0px -68%", threshold: [0, .2, .5] });
+    sections.forEach(section => observer.observe(section));
+  </script>
+</body>
+</html>

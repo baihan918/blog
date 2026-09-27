@@ -1,0 +1,373 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - text: FAIL
+        - text: SAFE
+      - generic [ref=e6]: Agent 失败恢复手册
+    - generic [ref=e7]:
+      - link "快速判断" [ref=e8] [cursor=pointer]:
+        - /url: "#decision"
+      - button "切换深浅主题" [ref=e9] [cursor=pointer]: ◐
+  - generic [ref=e10]:
+    - generic [ref=e11]: Agent Reliability · Retry · Replan · Handoff
+    - heading "检测到失败后， 怎么把 Agent 拉出来？" [level=1] [ref=e12]:
+      - text: 检测到失败后，
+      - text: 怎么把 Agent 拉出来？
+    - paragraph [ref=e13]:
+      - text: 不要一失败就换模型，也不要无限原地重试。可靠系统先确认
+      - strong [ref=e14]: 发生了什么、是否产生副作用、还能不能安全重试
+      - text: ，再决定重试、降级、重规划或交给人。
+    - generic [ref=e15]:
+      - link "进入故障决策器" [ref=e16] [cursor=pointer]:
+        - /url: "#decision"
+      - link "看完整流程" [ref=e17] [cursor=pointer]:
+        - /url: "#full-flow"
+    - text: RECOVER
+  - region "结论" [ref=e18]:
+    - generic [ref=e19]:
+      - generic "原方案百分之八十正确" [ref=e20]: 80% 正确
+      - generic [ref=e21]:
+        - heading "原图方向正确，但缺了四个生产级护栏" [level=2] [ref=e22]
+        - paragraph [ref=e23]:
+          - text: 核心顺序“有限重试 → 换路 → Replan → Handoff”可以保留；需要补上
+          - strong [ref=e24]: 幂等性、副作用确认、检查点恢复、可观测性
+          - text: ，并把固定顺序改成按错误性质决策。
+  - main [ref=e25]:
+    - navigation "章节目录" [ref=e26]:
+      - paragraph [ref=e27]: 10 CHAPTERS
+      - link "01 故障决策器" [ref=e28] [cursor=pointer]:
+        - /url: "#decision"
+      - link "02 原图三步法" [ref=e29] [cursor=pointer]:
+        - /url: "#baseline"
+      - link "03 错误分类" [ref=e30] [cursor=pointer]:
+        - /url: "#classify"
+      - link "04 幂等与副作用" [ref=e31] [cursor=pointer]:
+        - /url: "#side-effect"
+      - link "05 有限重试" [ref=e32] [cursor=pointer]:
+        - /url: "#retry"
+      - link "06 降级与换路" [ref=e33] [cursor=pointer]:
+        - /url: "#fallback"
+      - link "07 Replan" [ref=e34] [cursor=pointer]:
+        - /url: "#replan"
+      - link "08 Handoff" [ref=e35] [cursor=pointer]:
+        - /url: "#handoff"
+      - link "09 检查点与观测" [ref=e36] [cursor=pointer]:
+        - /url: "#observability"
+      - link "10 完整落地" [ref=e37] [cursor=pointer]:
+        - /url: "#full-flow"
+    - article [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e40]: 01 · TRY IT
+        - heading "先选故障，再决定动作" [level=2] [ref=e41]
+        - paragraph [ref=e42]: 点击一种典型故障。重点不是记住状态码，而是判断：环境会不会自行恢复？改变参数有没有用？上一次调用是否可能已经生效？
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e45]:
+              - heading "故障决策器" [level=3] [ref=e46]
+              - paragraph [ref=e47]: 同一个“执行失败”，正确处理可能完全相反。
+            - generic [ref=e48]: CLICK TO INSPECT
+          - generic [ref=e49]:
+            - button "临时错误 超时 / 429" [ref=e50] [cursor=pointer]:
+              - generic [ref=e51]: 临时错误
+              - text: 超时 / 429
+            - button "参数错误 字段 / 格式" [ref=e52] [cursor=pointer]:
+              - generic [ref=e53]: 参数错误
+              - text: 字段 / 格式
+            - button "权限不足 401 / 403" [ref=e54] [cursor=pointer]:
+              - generic [ref=e55]: 权限不足
+              - text: 401 / 403
+            - button "结果未知 写操作超时" [ref=e56] [cursor=pointer]:
+              - generic [ref=e57]: 结果未知
+              - text: 写操作超时
+            - button "能力不匹配 工具不支持" [ref=e58] [cursor=pointer]:
+              - generic [ref=e59]: 能力不匹配
+              - text: 工具不支持
+            - button "计划失效 前提已变化" [ref=e60] [cursor=pointer]:
+              - generic [ref=e61]: 计划失效
+              - text: 前提已变化
+          - generic [ref=e62]:
+            - generic [ref=e63]: 有限重试
+            - generic [ref=e64]:
+              - heading "先退避，再带抖动重试" [level=3] [ref=e65]
+              - paragraph [ref=e66]: 确认没有未知副作用后，遵循 Retry-After 或指数退避；达到次数、耗时或成本预算后停止。
+      - generic [ref=e67]:
+        - generic [ref=e68]: 02 · THE ORIGINAL IDEA
+        - heading "原图的三步法，骨架是对的" [level=2] [ref=e69]
+        - paragraph [ref=e70]: 截图中的内容可以整理成下面三层。它们不是固定流水线，而是三种逐步扩大修改范围的恢复手段。
+        - generic [ref=e71]:
+          - generic [ref=e72]:
+            - generic [ref=e73]: ↻
+            - heading "第一步：重试" [level=3] [ref=e74]
+            - paragraph [ref=e75]: 工具返回结构化错误。网络抖动、超时、限流等临时错误，在预算内指数退避，并加入随机抖动，避免同一时刻集中重试。
+          - generic [ref=e76]:
+            - generic [ref=e77]: ⇄
+            - heading "第二步：换路" [level=3] [ref=e78]
+            - paragraph [ref=e79]: 改变参数、切换工具或降级目标。系统要说清上次为什么失败，以及新旧动作有什么实质差异。
+          - generic [ref=e80]:
+            - generic [ref=e81]: ⌘
+            - heading "第三步：Replan" [level=3] [ref=e82]
+            - paragraph [ref=e83]: 参数和工具都无法推进时，从最近检查点恢复，把目标、已完成结果、阻塞和无效路径交给 Planner，生成新版计划。
+        - generic [ref=e84]:
+          - strong [ref=e85]: 关键修正：
+          - text: 一旦发现计划前提已经失效，应立即 Replan；权限不足、参数错误和资源不存在，也不该先把重试次数消耗完。
+      - generic [ref=e86]:
+        - generic [ref=e87]: 03 · CLASSIFY FIRST
+        - heading "失败不是一种状态，而是一组不同问题" [level=2] [ref=e88]
+        - paragraph [ref=e89]: 工具最好返回机器可读的错误码、错误类型、是否可重试、建议等待时间、调用标识和可能的下一步，而不是只丢出一句自然语言。
+        - table [ref=e91]:
+          - rowgroup [ref=e92]:
+            - row "错误类型 例子 默认策略 为什么" [ref=e93]:
+              - columnheader "错误类型" [ref=e94]
+              - columnheader "例子" [ref=e95]
+              - columnheader "默认策略" [ref=e96]
+              - columnheader "为什么" [ref=e97]
+          - rowgroup [ref=e98]:
+            - row "临时错误 超时、连接中断、429、503 退避 + 抖动 + 有限重试 外部环境可能自行恢复" [ref=e99]:
+              - cell "临时错误" [ref=e100]
+              - cell "超时、连接中断、429、503" [ref=e101]
+              - cell "退避 + 抖动 + 有限重试" [ref=e102]
+              - cell "外部环境可能自行恢复" [ref=e103]
+            - row "参数错误 字段缺失、格式不符 修正参数；必要时询问用户 原样重试不会产生新结果" [ref=e104]:
+              - cell "参数错误" [ref=e105]
+              - cell "字段缺失、格式不符" [ref=e106]
+              - cell "修正参数；必要时询问用户" [ref=e107]
+              - cell "原样重试不会产生新结果" [ref=e108]
+            - row "权限错误 401、403、缺少授权 请求授权或人工接管 换模型通常无法补齐权限" [ref=e109]:
+              - cell "权限错误" [ref=e110]
+              - cell "401、403、缺少授权" [ref=e111]
+              - cell "请求授权或人工接管" [ref=e112]
+              - cell "换模型通常无法补齐权限" [ref=e113]
+            - row "资源错误 文件、订单、工具不存在 重新定位资源或 Replan 原计划依赖已失效" [ref=e114]:
+              - cell "资源错误" [ref=e115]
+              - cell "文件、订单、工具不存在" [ref=e116]
+              - cell "重新定位资源或 Replan" [ref=e117]
+              - cell "原计划依赖已失效" [ref=e118]
+            - row "能力不匹配 工具不支持格式或动作 换工具或降低目标 需要真正不同的执行路径" [ref=e119]:
+              - cell "能力不匹配" [ref=e120]
+              - cell "工具不支持格式或动作" [ref=e121]
+              - cell "换工具或降低目标" [ref=e122]
+              - cell "需要真正不同的执行路径" [ref=e123]
+            - row "语义失败 调用成功，但结果不满足目标 验证反馈 → Replan HTTP 200 不代表任务成功" [ref=e124]:
+              - cell "语义失败" [ref=e125]
+              - cell "调用成功，但结果不满足目标" [ref=e126]
+              - cell "验证反馈 → Replan" [ref=e127]
+              - cell "HTTP 200 不代表任务成功" [ref=e128]
+        - generic [ref=e129]:
+          - generic [ref=e130]:
+            - generic [ref=e131]: structured tool error
+            - button "复制" [ref=e132] [cursor=pointer]
+          - code [ref=e134]: "{ \"ok\": false, \"error_code\": \"RATE_LIMITED\", \"error_type\": \"transient\", \"retryable\": true, \"retry_after_ms\": 2400, \"operation_id\": \"op_8f31\", \"side_effect_state\": \"none\", \"suggested_action\": \"retry_with_backoff\" }"
+      - generic [ref=e135]:
+        - generic [ref=e136]: 04 · THE MOST DANGEROUS GAP
+        - heading "先确认副作用，再谈重试" [level=2] [ref=e137]
+        - paragraph [ref=e138]: 真实系统里最危险的情况不是“明确失败”，而是请求超时后，客户端以为失败，服务端其实已经完成。此时直接重试，可能重复扣款、重复下单或重复发消息。
+        - generic [ref=e139]:
+          - generic [ref=e140]:
+            - generic [ref=e141]: "!"
+            - heading "不确定结果" [level=3] [ref=e142]
+            - paragraph [ref=e143]: 网络在返回前断开，只能证明“没有收到响应”，不能证明“操作没有发生”。先用 operation_id 查询状态。
+          - generic [ref=e144]:
+            - generic [ref=e145]: ✓
+            - heading "幂等执行" [level=3] [ref=e146]
+            - paragraph [ref=e147]: 给有副作用的动作附加 idempotency_key。同一业务意图重复提交时，服务端返回第一次结果，不再重复执行。
+        - generic [ref=e148]:
+          - generic [ref=e149]:
+            - generic [ref=e150]: safe retry with idempotency
+            - button "复制" [ref=e151] [cursor=pointer]
+          - code [ref=e153]: "key = \"send-report:report_123:user_456\" result = send_report(payload, idempotency_key=key) if result.timeout: status = get_operation(result.operation_id) if status == \"completed\": return load_previous_result(key) if status == \"not_started\": return retry_with_same_key()"
+      - generic [ref=e154]:
+        - generic [ref=e155]: 05 · RETRY WITH A BUDGET
+        - heading "重试是一种受控实验，不是循环祈祷" [level=2] [ref=e156]
+        - generic [ref=e157]:
+          - generic [ref=e158]:
+            - generic [ref=e159]: BACKOFF
+            - paragraph [ref=e160]: 等待时间指数增长，并尊重服务端 Retry-After。
+            - generic [ref=e161]: 1s → 2s → 4s
+          - generic [ref=e162]:
+            - generic [ref=e163]: JITTER
+            - paragraph [ref=e164]: 加入随机偏移，避免大量任务同时醒来形成重试风暴。
+            - generic [ref=e165]: ± RANDOM
+          - generic [ref=e166]:
+            - generic [ref=e167]: BUDGET
+            - paragraph [ref=e168]: 同时限制重试次数、总耗时、Token、工具调用次数和真实费用。
+            - generic [ref=e169]: HARD LIMIT
+          - generic [ref=e170]:
+            - generic [ref=e171]: CIRCUIT
+            - paragraph [ref=e172]: 同一工具或服务连续失败时，对该故障域熔断；不要轻易停止所有 Agent。
+            - generic [ref=e173]: FAIL FAST
+        - generic [ref=e174]:
+          - strong [ref=e175]: 不要重试：
+          - text: 确定性的参数错误、权限不足、已确认不存在的资源，以及会突破风险或费用边界的动作。
+      - generic [ref=e176]:
+        - generic [ref=e177]: 06 · CHANGE THE PATH
+        - heading "换路必须产生实质差异" [level=2] [ref=e178]
+        - paragraph [ref=e179]: “再试一次”不叫新策略。每次降级都要说明：上一条路径为什么失败、新路径改变了哪个约束、能力损失是什么。
+        - generic [ref=e180]:
+          - generic [ref=e181]:
+            - generic [ref=e182]: ⚙
+            - heading "改参数" [level=3] [ref=e183]
+            - paragraph [ref=e184]: 缩小时间范围、减少批量大小、修正格式、降低并发度。适合调用边界不匹配。
+          - generic [ref=e185]:
+            - generic [ref=e186]: ⌁
+            - heading "换工具" [level=3] [ref=e187]
+            - paragraph [ref=e188]: 主搜索不可用时切备用数据源；解析器不兼容时切换格式。适合能力或可用性故障。
+          - generic [ref=e189]:
+            - generic [ref=e190]: ◇
+            - heading "降级目标" [level=3] [ref=e191]
+            - paragraph [ref=e192]: 无法完成全量分析时先返回已验证部分，并明确缺口。降级不能伪装成完整成功。
+        - generic [ref=e193]:
+          - strong [ref=e194]: 换模型的边界：
+          - text: 模型输出不稳定、能力不足或上下文不适配时可以换；如果根因是工具故障、权限不足或数据缺失，换模型通常无效。
+      - generic [ref=e195]:
+        - generic [ref=e196]: 07 · REPLAN
+        - heading "不要用更多 Token 重写旧计划" [level=2] [ref=e197]
+        - paragraph [ref=e198]: Replan 的输入不是一句“刚才失败了”。Planner 必须看到可验证的当前状态，并把已经证明无效的路径写成硬约束。
+        - generic [ref=e199]:
+          - generic [ref=e200]:
+            - generic [ref=e201]: ⇥
+            - heading "交给 Planner 的状态" [level=3] [ref=e202]
+            - list [ref=e203]:
+              - listitem [ref=e204]: 原始目标与验收条件
+              - listitem [ref=e205]: 已完成结果及其证据
+              - listitem [ref=e206]: 当前阻塞和错误分类
+              - listitem [ref=e207]: 尝试过的路径与返回结果
+              - listitem [ref=e208]: 剩余预算、权限与时间
+          - generic [ref=e209]:
+            - generic [ref=e210]: v2
+            - heading "新版计划的要求" [level=3] [ref=e211]
+            - list [ref=e212]:
+              - listitem [ref=e213]: 携带 plan_version
+              - listitem [ref=e214]: 复用有效结果，不从头再做
+              - listitem [ref=e215]: 避开已证伪路径
+              - listitem [ref=e216]: 给每一步写成功判定
+              - listitem [ref=e217]: 明确新的停止条件
+      - generic [ref=e218]:
+        - generic [ref=e219]: 08 · HANDOFF
+        - heading "交接不是把失败甩给另一个 Agent" [level=2] [ref=e220]
+        - paragraph [ref=e221]: 多 Agent 场景可以由 Orchestrator 根据职责、权限和全局状态裁决；单 Agent 系统也能由工作流引擎或 supervisor 完成交接。重点是交接契约，而不是角色数量。
+        - table [ref=e223]:
+          - rowgroup [ref=e224]:
+            - row "交接字段 必须写什么 避免什么" [ref=e225]:
+              - columnheader "交接字段" [ref=e226]
+              - columnheader "必须写什么" [ref=e227]
+              - columnheader "避免什么" [ref=e228]
+          - rowgroup [ref=e229]:
+            - row "目标 剩余目标、验收条件、优先级 只说“你继续处理”" [ref=e230]:
+              - cell "目标" [ref=e231]
+              - cell "剩余目标、验收条件、优先级" [ref=e232]
+              - cell "只说“你继续处理”" [ref=e233]
+            - row "当前状态 已完成结果、检查点、相关资源 让接收方从头猜" [ref=e234]:
+              - cell "当前状态" [ref=e235]
+              - cell "已完成结果、检查点、相关资源" [ref=e236]
+              - cell "让接收方从头猜" [ref=e237]
+            - row "失败证据 错误类型、调用 ID、尝试次数 只转发模糊报错" [ref=e238]:
+              - cell "失败证据" [ref=e239]
+              - cell "错误类型、调用 ID、尝试次数" [ref=e240]
+              - cell "只转发模糊报错" [ref=e241]
+            - row "约束 禁止路径、剩余预算、权限范围 重复踩同一个故障" [ref=e242]:
+              - cell "约束" [ref=e243]
+              - cell "禁止路径、剩余预算、权限范围" [ref=e244]
+              - cell "重复踩同一个故障" [ref=e245]
+            - row "接收条件 所需能力、权限与完成回执 两个角色任意互相甩任务" [ref=e246]:
+              - cell "接收条件" [ref=e247]
+              - cell "所需能力、权限与完成回执" [ref=e248]
+              - cell "两个角色任意互相甩任务" [ref=e249]
+      - generic [ref=e250]:
+        - generic [ref=e251]: 09 · RECOVER FROM FACTS
+        - heading "没有检查点与日志，恢复只能靠猜" [level=2] [ref=e252]
+        - generic [ref=e253]:
+          - generic [ref=e254]:
+            - generic [ref=e255]: ▣
+            - heading "检查点" [level=3] [ref=e256]
+            - paragraph [ref=e257]: 保存 plan_version、step_id、输入摘要、已验证结果与外部 operation_id，从最近稳定点恢复。
+          - generic [ref=e258]:
+            - generic [ref=e259]: ◎
+            - heading "可观测性" [level=3] [ref=e260]
+            - paragraph [ref=e261]: 串联 trace_id、tool_call_id、attempt、耗时、Token、成本和最终状态，才能定位失败发生在哪一层。
+          - generic [ref=e262]:
+            - generic [ref=e263]: ⏹
+            - heading "停止条件" [level=3] [ref=e264]
+            - paragraph [ref=e265]: 成功、确定性失败、预算触顶、高风险动作或需要新授权时必须停止，并把控制权交还给用户。
+      - generic [ref=e266]:
+        - generic [ref=e267]: 10 · PRODUCTION FLOW
+        - heading "最终应落成这条恢复链路" [level=2] [ref=e268]
+        - paragraph [ref=e269]: 这条链路保留原图的核心思想，同时把最容易造成生产事故的“副作用不确定”提到了重试之前。
+        - generic "Agent 失败恢复流程" [ref=e270]:
+          - generic [ref=e271]:
+            - generic [ref=e272]: 记录失败
+            - generic [ref=e273]: 结构化错误
+            - text: →
+          - generic [ref=e274]:
+            - generic [ref=e275]: 副作用确认
+            - generic [ref=e276]: 查询操作状态
+            - text: →
+          - generic [ref=e277]:
+            - generic [ref=e278]: 有限重试
+            - generic [ref=e279]: 退避 + 抖动
+            - text: →
+          - generic [ref=e280]:
+            - generic [ref=e281]: 降级换路
+            - generic [ref=e282]: 实质性改变
+            - text: →
+          - generic [ref=e283]:
+            - generic [ref=e284]: Replan
+            - generic [ref=e285]: 从检查点恢复
+            - text: →
+          - generic [ref=e286]:
+            - generic [ref=e287]: Handoff
+            - generic [ref=e288]: 契约式交接
+            - text: →
+          - generic [ref=e289]:
+            - generic [ref=e290]: 人工接管
+            - generic [ref=e291]: 权限 / 风险 / 预算
+        - generic [ref=e292]:
+          - generic [ref=e293]:
+            - generic [ref=e294]: failure controller · pseudo code
+            - button "复制" [ref=e295] [cursor=pointer]
+          - code [ref=e297]: "async function recover(context, error) { const failure = classify(error) await saveCheckpoint(context, failure) if (failure.sideEffectState === \"unknown\") { const state = await queryOperation(failure.operationId) if (state === \"completed\") return reuseResult(state) } if (failure.retryable && context.retryBudget.hasRemaining()) { return retryWithBackoffAndJitter(context) } if (hasMeaningfulFallback(failure, context)) { return runFallback(context, failure) } if (!planStillValid(context, failure)) { return replanFromCheckpoint(context, failure) } if (canHandoff(context, failure)) return handoffWithContract(context) return requestHumanIntervention(context, failure) }"
+        - generic [ref=e298]:
+          - heading "上线前自检" [level=3] [ref=e299]
+          - generic [ref=e300]:
+            - generic [ref=e301] [cursor=pointer]:
+              - checkbox "错误结构化 错误码、类型、retryable、operation_id 齐全" [ref=e302]
+              - generic [ref=e303]:
+                - generic [ref=e304]: 错误结构化
+                - generic [ref=e305]: 错误码、类型、retryable、operation_id 齐全
+            - generic [ref=e306] [cursor=pointer]:
+              - checkbox "副作用可查询 超时后能确认动作是否已经生效" [ref=e307]
+              - generic [ref=e308]:
+                - generic [ref=e309]: 副作用可查询
+                - generic [ref=e310]: 超时后能确认动作是否已经生效
+            - generic [ref=e311] [cursor=pointer]:
+              - checkbox "写操作幂等 同一业务意图复用同一个幂等键" [ref=e312]
+              - generic [ref=e313]:
+                - generic [ref=e314]: 写操作幂等
+                - generic [ref=e315]: 同一业务意图复用同一个幂等键
+            - generic [ref=e316] [cursor=pointer]:
+              - checkbox "重试有预算 次数、耗时、Token、调用和费用均有限制" [ref=e317]
+              - generic [ref=e318]:
+                - generic [ref=e319]: 重试有预算
+                - generic [ref=e320]: 次数、耗时、Token、调用和费用均有限制
+            - generic [ref=e321] [cursor=pointer]:
+              - checkbox "Replan 有版本 保留有效结果，并屏蔽已证伪路径" [ref=e322]
+              - generic [ref=e323]:
+                - generic [ref=e324]: Replan 有版本
+                - generic [ref=e325]: 保留有效结果，并屏蔽已证伪路径
+            - generic [ref=e326] [cursor=pointer]:
+              - checkbox "Handoff 有契约 目标、状态、证据、约束、接收条件完整" [ref=e327]
+              - generic [ref=e328]:
+                - generic [ref=e329]: Handoff 有契约
+                - generic [ref=e330]: 目标、状态、证据、约束、接收条件完整
+            - generic [ref=e331] [cursor=pointer]:
+              - checkbox "全链路可观测 trace、attempt、耗时、成本和状态可追踪" [ref=e332]
+              - generic [ref=e333]:
+                - generic [ref=e334]: 全链路可观测
+                - generic [ref=e335]: trace、attempt、耗时、成本和状态可追踪
+            - generic [ref=e336] [cursor=pointer]:
+              - checkbox "人工出口明确 授权、风险或预算触顶时立即停下" [ref=e337]
+              - generic [ref=e338]:
+                - generic [ref=e339]: 人工出口明确
+                - generic [ref=e340]: 授权、风险或预算触顶时立即停下
+          - generic [ref=e342]: 0 / 8 已确认
+  - contentinfo [ref=e343]: Agent Failure Recovery · 失败不可怕，不确定状态下重复执行才危险

@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="多模态检索交互式学习页：理解 Joint Embedding、Dual Encoder、Late Interaction、Cross-Attention，以及 Recall → Rerank 的生产架构。">
+  <meta name="theme-color" content="#f5f2e9">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233776ab'/%3E%3Ccircle cx='10' cy='11' r='4' fill='%23ffd343'/%3E%3Cpath d='M7 23c4-7 9-8 18-10M19 10l6 3-4 5' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <title>多模态检索 · Joint Embedding 与显式对齐</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f2e9; --paper: #fffdf8; --paper-2: #fff; --ink: #172231; --muted: #667180;
+      --line: #ddd8cc; --line-soft: #ece8df; --blue: #3776ab; --blue-deep: #24557d; --blue-soft: #e7f2fb;
+      --yellow: #efbd16; --yellow-soft: #fff4c2; --mint: #24816c; --mint-soft: #e6f5ef;
+      --purple: #7956a8; --purple-soft: #f0eaf8; --coral: #d85f45; --coral-soft: #fff0eb;
+      --code: #17212c; --code-ink: #ecf2f8; --shadow: 0 18px 54px rgba(40, 45, 51, .09);
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page: #111821; --paper: #19232e; --paper-2: #202b37; --ink: #edf3f8; --muted: #a8b4c0;
+      --line: #354250; --line-soft: #2c3844; --blue: #74b6e7; --blue-deep: #86c5f2; --blue-soft: #1c3448;
+      --yellow: #f2ca45; --yellow-soft: #3e371b; --mint: #6dccaa; --mint-soft: #193a31;
+      --purple: #b79add; --purple-soft: #302641; --coral: #f09580; --coral-soft: #432824;
+      --code: #0c1218; --code-ink: #eaf0f6; --shadow: 0 20px 58px rgba(0, 0, 0, .28);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; color: var(--ink); background: radial-gradient(circle at 8% 0, color-mix(in srgb, var(--blue) 15%, transparent), transparent 29rem), radial-gradient(circle at 94% 13%, color-mix(in srgb, var(--yellow) 17%, transparent), transparent 26rem), var(--page); font-family: var(--sans); line-height: 1.72; }
+    button, input { font: inherit; } button, a { -webkit-tap-highlight-color: transparent; } code { font-family: var(--mono); }
+    ::selection { background: color-mix(in srgb, var(--blue) 25%, transparent); }
+    .skip { position: fixed; z-index: 200; top: 8px; left: 8px; transform: translateY(-160%); padding: 8px 12px; color: var(--paper); background: var(--ink); border-radius: 9px; }
+    .skip:focus { transform: none; }
+    .progress { position: fixed; z-index: 120; inset: 0 0 auto; height: 4px; }
+    .progress > i { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple), var(--yellow)); }
+    .topbar { position: sticky; z-index: 100; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 66px; padding: 9px clamp(16px, 4vw, 44px); border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent); background: color-mix(in srgb, var(--page) 85%, transparent); backdrop-filter: blur(5px); }
+    .brand { display: flex; align-items: center; min-width: 0; gap: 11px; font-weight: 850; }
+    .brand-mark { display: grid; place-items: center; width: 41px; height: 41px; flex: none; border-radius: 13px; color: white; background: linear-gradient(135deg, var(--blue), var(--purple)); box-shadow: 0 8px 20px rgba(55,118,171,.22); font: 800 11px/1 var(--mono); }
+    .brand-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn, .btn, .segment button, .preset { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 11px; color: var(--ink); background: var(--paper); cursor: pointer; transition: transform .15s ease, border-color .15s ease, background .15s ease; }
+    .icon-btn { width: 41px; padding: 0; }
+    .icon-btn:hover, .btn:hover, .segment button:hover, .preset:hover { transform: translateY(-1px); border-color: var(--blue); }
+    .hero { position: relative; max-width: 1260px; margin: 0 auto; padding: clamp(54px, 8vw, 98px) 22px 44px; overflow: hidden; }
+    .hero::after { content: "ALIGN"; position: absolute; z-index: -1; right: 0; top: 10px; color: color-mix(in srgb, var(--blue) 6%, transparent); font: 900 clamp(86px, 18vw, 230px)/1 Georgia, serif; transform: rotate(-5deg); }
+    .eyebrow, .section-kicker { color: var(--blue-deep); font: 800 12px/1 var(--mono); letter-spacing: .11em; text-transform: uppercase; }
+    .eyebrow { display: flex; align-items: center; gap: 9px; }
+    .eyebrow::before { content: ""; width: 28px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--yellow)); }
+    h1 { max-width: 1040px; margin: 20px 0 0; font-size: clamp(38px, 7vw, 76px); line-height: 1.05; letter-spacing: -.045em; }
+    h1 span { color: var(--blue); }
+    .hero-copy { max-width: 850px; margin: 24px 0 0; color: var(--muted); font-size: clamp(17px, 2vw, 20px); }
+    .hero-copy strong { color: var(--ink); }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 27px; }
+    .btn { text-decoration: none; font-weight: 750; }
+    .btn.primary { color: white; border-color: var(--blue); background: var(--blue); }
+    .memory-line { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; max-width: 1216px; margin: 0 auto 34px; padding: 0 22px; }
+    .memory-card { padding: 20px 22px; border: 1px solid var(--line); background: var(--paper); box-shadow: var(--shadow); }
+    .memory-card:first-child { border-radius: 19px 0 0 19px; border-right: 0; }
+    .memory-card:last-child { border-radius: 0 19px 19px 0; border-left: 0; }
+    .memory-card b, .memory-card span { display: block; }
+    .memory-card b { color: var(--blue-deep); font-size: 17px; }
+    .memory-card:last-child b { color: var(--purple); }
+    .memory-card span { margin-top: 4px; color: var(--muted); font-size: 14px; }
+    .memory-vs { display: grid; place-items: center; min-width: 76px; border-block: 1px solid var(--line); color: var(--yellow); background: var(--paper); font: 900 18px/1 var(--mono); }
+    .layout { display: grid; grid-template-columns: 220px minmax(0,1fr); gap: clamp(28px, 5vw, 68px); max-width: 1240px; margin: 0 auto; padding: 45px 22px 100px; }
+    .toc { position: sticky; top: 87px; max-height: calc(100vh - 110px); padding: 17px; overflow-y: auto; border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--paper) 94%, transparent); box-shadow: 0 12px 30px rgba(40,45,51,.05); }
+    .toc-title { margin: 0 0 10px; color: var(--muted); font: 800 11px/1 var(--mono); letter-spacing: .1em; }
+    .toc a { display: block; margin: 2px 0; padding: 7px 9px; border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 13px; line-height: 1.35; }
+    .toc a:hover, .toc a.active { color: var(--blue-deep); background: var(--blue-soft); }
+    .toc-note { margin-top: 14px; padding: 11px; border-radius: 11px; color: var(--mint); background: var(--mint-soft); font-size: 12px; }
+    .content { min-width: 0; }
+    section { margin-top: 86px; scroll-margin-top: 92px; } section:first-child { margin-top: 0; }
+    h2 { margin: 12px 0 10px; font-size: clamp(27px, 4vw, 42px); line-height: 1.16; letter-spacing: -.028em; }
+    h3 { margin: 0; font-size: 18px; line-height: 1.35; }
+    p { margin: 0; } .lead { max-width: 850px; margin: 0 0 24px; color: var(--muted); }
+    .card, .concept, .lab, .answer-card, .quiz { border: 1px solid var(--line); border-radius: 19px; background: var(--paper); box-shadow: 0 12px 30px rgba(40,45,51,.055); }
+    .card, .lab, .answer-card, .quiz { padding: clamp(19px, 3vw, 28px); }
+    .two-col { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+    .three-col { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+    .concept { position: relative; overflow: hidden; padding: 22px; }
+    .concept::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--blue); }
+    .concept.cross::before { background: var(--purple); }
+    .concept.late::before { background: var(--mint); }
+    .concept p, .concept li { color: var(--muted); font-size: 14px; }
+    .concept p { margin-top: 9px; }
+    .concept ul { margin: 12px 0 0; padding-left: 20px; }
+    .plain, .insight, .warning { margin-top: 16px; padding: 17px 19px; border-radius: 15px; font-size: 14px; }
+    .plain { border: 1px solid color-mix(in srgb, var(--yellow) 44%, var(--line)); background: linear-gradient(105deg,var(--yellow-soft),var(--paper)); }
+    .insight { border: 1px solid color-mix(in srgb, var(--mint) 35%, var(--line)); background: var(--mint-soft); }
+    .warning { border: 1px solid color-mix(in srgb, var(--coral) 35%, var(--line)); background: var(--coral-soft); }
+    .plain strong { color: color-mix(in srgb, var(--yellow) 65%, var(--ink)); } .insight strong { color: var(--mint); } .warning strong { color: var(--coral); }
+    .segment { display: inline-flex; flex-wrap: wrap; gap: 7px; margin-bottom: 19px; }
+    .segment button[aria-pressed="true"] { color: white; border-color: var(--blue); background: var(--blue); }
+    .architecture { min-height: 280px; padding: 22px; border-radius: 16px; background: linear-gradient(145deg, color-mix(in srgb,var(--blue-soft) 68%,var(--paper)),var(--paper)); }
+    .arch-title { margin-bottom: 18px; color: var(--blue-deep); font: 800 13px/1 var(--mono); }
+    .encoder-grid { display: grid; grid-template-columns: 1fr 54px 1fr; gap: 12px; align-items: stretch; }
+    .encoder-lane { display: grid; gap: 9px; }
+    .node { padding: 12px 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper-2); text-align: center; font-size: 14px; }
+    .node.accent { color: var(--blue-deep); border-color: color-mix(in srgb,var(--blue) 42%,var(--line)); background: var(--blue-soft); font-weight: 800; }
+    .node.purple { color: var(--purple); border-color: color-mix(in srgb,var(--purple) 42%,var(--line)); background: var(--purple-soft); }
+    .down { color: var(--muted); text-align: center; line-height: 1; }
+    .meet { display: grid; place-items: center; color: var(--yellow); font: 900 20px/1 var(--mono); }
+    .arch-summary { margin-top: 17px; padding: 13px 15px; border-radius: 12px; color: var(--muted); background: var(--paper-2); font-size: 14px; }
+    .arch-summary b { color: var(--ink); }
+    .matrix { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; }
+    table { width: 100%; min-width: 700px; border-collapse: collapse; background: var(--paper); }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: top; }
+    th { color: var(--blue-deep); background: var(--blue-soft); font-size: 13px; }
+    td { font-size: 14px; } tr:last-child td { border-bottom: 0; }
+    .tag { display: inline-block; padding: 3px 8px; border-radius: 999px; color: var(--mint); background: var(--mint-soft); font-size: 12px; font-weight: 800; }
+    .tag.no { color: var(--coral); background: var(--coral-soft); } .tag.mid { color: var(--purple); background: var(--purple-soft); }
+    .scale { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(260px,.9fr); gap: 20px; }
+    .controls { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper-2); }
+    .control + .control { margin-top: 20px; }
+    .control-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 14px; font-weight: 750; }
+    .control output { color: var(--blue-deep); font-family: var(--mono); }
+    input[type="range"] { width: 100%; accent-color: var(--blue); }
+    .presets { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 19px; }
+    .preset { min-height: 33px; padding: 6px 10px; color: var(--muted); font-size: 13px; }
+    .result { display: grid; gap: 11px; align-content: start; }
+    .metric { padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-2); }
+    .metric span, .metric b { display: block; } .metric span { color: var(--muted); font-size: 12px; } .metric b { margin-top: 5px; font: 900 21px/1.2 var(--mono); }
+    .metric.good b { color: var(--mint); } .metric.warn b { color: var(--coral); }
+    .verdict { padding: 16px; border-radius: 14px; color: var(--blue-deep); background: var(--blue-soft); font-size: 14px; }
+    .pipeline { display: flex; align-items: stretch; gap: 8px; padding: 6px 2px 13px; overflow-x: auto; scrollbar-width: thin; }
+    .stage { flex: 0 0 132px; min-height: 112px; padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper-2); }
+    button.stage { color: inherit; text-align: left; cursor: pointer; }
+    button.stage:hover, button.stage[aria-pressed="true"] { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+    .stage small, .stage strong { display: block; } .stage small { color: var(--muted); font: 700 11px/1.3 var(--mono); } .stage strong { margin-top: 7px; line-height: 1.3; }
+    .stage em { display: block; margin-top: 7px; color: var(--muted); font-size: 12px; font-style: normal; line-height: 1.35; }
+    .arrow { display: grid; place-items: center; flex: 0 0 18px; color: var(--muted); }
+    .stage.recall { border-top: 4px solid var(--blue); } .stage.rerank { border-top: 4px solid var(--purple); } .stage.reason { border-top: 4px solid var(--mint); }
+    .stage-detail { min-height: 65px; padding: 14px 16px; border-left: 4px solid var(--blue); border-radius: 10px; color: var(--muted); background: var(--blue-soft); font-size: 14px; }
+    .negative-grid { display: grid; gap: 10px; margin-top: 17px; }
+    .negative { width: 100%; padding: 15px 17px; border: 1px solid var(--line); border-radius: 13px; color: var(--ink); background: var(--paper-2); text-align: left; cursor: pointer; }
+    .negative:hover { border-color: var(--blue); } .negative.chosen { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+    .negative.correct { border-color: var(--mint); background: var(--mint-soft); } .negative.wrong { border-color: var(--coral); background: var(--coral-soft); }
+    .feedback { min-height: 48px; margin-top: 13px; color: var(--muted); font-size: 14px; }
+    .code { margin-top: 16px; overflow: hidden; border: 1px solid #303b48; border-radius: 16px; background: var(--code); }
+    .code-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #303b48; color: #bfc9d8; font: 750 11px/1 var(--mono); }
+    pre { margin: 0; padding: 18px; overflow-x: auto; color: var(--code-ink); font: 13px/1.7 var(--mono); }
+    .cm { color: #8d9bab; } .kw { color: #f28d81; } .fn { color: #83c8f3; } .st { color: #b7dd89; }
+    .answer-card { border-left: 5px solid var(--yellow); }
+    .answer-card p + p { margin-top: 12px; }
+    .answer-card p { color: var(--muted); }
+    .answer-card strong { color: var(--ink); }
+    .quiz { margin-top: 14px; }
+    .quiz-q { font-weight: 800; }
+    .quiz-options { display: grid; gap: 8px; margin-top: 13px; }
+    .quiz-options button { padding: 12px 14px; border: 1px solid var(--line); border-radius: 11px; color: var(--ink); background: var(--paper-2); text-align: left; cursor: pointer; }
+    .quiz-options button:hover { border-color: var(--blue); }
+    .quiz-options button.correct { border-color: var(--mint); background: var(--mint-soft); }
+    .quiz-options button.wrong { border-color: var(--coral); background: var(--coral-soft); }
+    .quiz-feedback { min-height: 25px; margin-top: 10px; color: var(--muted); font-size: 13px; }
+    .checklist { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 18px; }
+    .check { display: flex; gap: 11px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper-2); }
+    .check input { width: 18px; height: 18px; flex: none; accent-color: var(--mint); }
+    .check span { color: var(--muted); font-size: 14px; }
+    .mastery { margin-top: 16px; padding: 14px; border-radius: 12px; color: var(--mint); background: var(--mint-soft); font-weight: 800; }
+    footer { max-width: 1240px; margin: 0 auto; padding: 0 22px 55px; color: var(--muted); font-size: 13px; text-align: center; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .toc { position: relative; top: auto; max-height: none; } .three-col { grid-template-columns: 1fr; } .scale { grid-template-columns: 1fr; } }
+    @media (max-width: 680px) { .brand-text { max-width: 190px; } .memory-line { grid-template-columns: 1fr; } .memory-card:first-child, .memory-card:last-child { border: 1px solid var(--line); border-radius: 17px; } .memory-vs { min-height: 44px; border: 0; background: transparent; } .two-col, .checklist { grid-template-columns: 1fr; } .encoder-grid { grid-template-columns: 1fr; } .meet { min-height: 38px; } .top-actions .btn { display: none; } }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">跳到正文</a>
+  <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">MM</span><span class="brand-text">多模态检索学习地图</span></div>
+    <div class="top-actions"><a class="btn" href="#interview">面试速答</a><button class="icon-btn" id="themeToggle" type="button" aria-label="切换深色模式" title="切换主题">◐</button></div>
+  </header>
+
+  <div class="hero">
+    <div class="eyebrow">Multimodal Retrieval · Recall & Rerank</div>
+    <h1><span>Joint Embedding</span> 与显式对齐，究竟怎么选？</h1>
+    <p class="hero-copy">别把它们当成非此即彼：<strong>独立编码解决海量召回，动态交互解决细粒度判断。</strong>先看两种架构怎样计算，再亲手调整数据规模与 Top-K。</p>
+    <div class="hero-actions"><a class="btn primary" href="#architecture">开始对比</a><a class="btn" href="#production">直接看生产架构</a></div>
+  </div>
+
+  <div class="memory-line" aria-label="一句话记忆">
+    <div class="memory-card"><b>Joint Embedding 找“可能相关”</b><span>独立编码 · 离线预计算 · ANN · 大规模 Recall</span></div>
+    <div class="memory-vs">＋</div>
+    <div class="memory-card"><b>Cross-Attention 找“最相关”</b><span>Query × Document · 动态交互 · 细粒度 Rerank</span></div>
+  </div>
+
+  <div class="layout">
+    <aside class="toc" aria-label="目录">
+      <p class="toc-title">LEARNING PATH</p>
+      <a href="#mental">01 一分钟心智模型</a><a href="#architecture">02 架构拆解</a><a href="#dimensions">03 三个概念维度</a><a href="#tradeoff">04 性能权衡实验</a><a href="#production">05 生产检索链路</a><a href="#negative">06 Hard Negative</a><a href="#constraints">07 实现约束</a><a href="#rag">08 多模态 RAG</a><a href="#interview">09 面试回答</a><a href="#check">10 掌握度自测</a>
+      <div class="toc-note">核心主线：独立编码 → ANN 召回 → Top-K → 显式交互精排</div>
+    </aside>
+
+    <main class="content" id="main">
+      <section id="mental">
+        <div class="section-kicker">01 · Mental Model</div><h2>先记职责，不背术语</h2>
+        <p class="lead">假设知识库有一千万张图片。系统既要在几十毫秒内缩小范围，又要看懂“左边的人穿红衣、手里拿杯子”这种局部关系。</p>
+        <div class="two-col">
+          <article class="concept"><h3>Dual Encoder / Joint Embedding</h3><p>文本与图片分别编码为固定向量，放进同一个可比较空间。在线只编码 Query，然后用余弦相似度和 ANN 搜索。</p><ul><li>Document 可提前离线计算</li><li>适合百万到亿级全库召回</li><li>全局向量可能压掉局部关系</li></ul></article>
+          <article class="concept cross"><h3>Cross Encoder / Cross-Attention</h3><p>保留 Text Token 与 Image Patch，让 Query 针对每个候选进行动态交互并输出匹配分数。</p><ul><li>擅长属性、对象和空间关系</li><li>计算依赖 Query × Document</li><li>适合对有限 Top-K 候选精排</li></ul></article>
+        </div>
+        <div class="plain"><strong>生活类比：</strong>Joint Embedding 像先按“可能是技术书”从整座图书馆筛出 200 本；Cross-Attention 像逐本翻目录，确认哪 10 本真正回答当前问题。</div>
+      </section>
+
+      <section id="architecture">
+        <div class="section-kicker">02 · Architecture</div><h2>切换架构，看信息在哪里相遇</h2>
+        <p class="lead">观察 Query 与 Document 是在编码后才比较，还是从 Token / Patch 层就一起计算。这决定了能否预计算，也决定了表达上限。</p>
+        <div class="lab">
+          <div class="segment" role="group" aria-label="架构选择">
+            <button type="button" data-arch="dual" aria-pressed="true">Dual Encoder</button>
+            <button type="button" data-arch="late" aria-pressed="false">Late Interaction</button>
+            <button type="button" data-arch="cross" aria-pressed="false">Cross Encoder</button>
+          </div>
+          <div class="architecture" id="architectureView" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section id="dimensions">
+        <div class="section-kicker">03 · Concept Dimensions</div><h2>最容易混淆的三个维度</h2>
+        <p class="lead">“用了对比学习”不等于“检索时发生 Cross-Attention”。训练目标、编码结构、推理交互是三个不同问题。</p>
+        <div class="three-col">
+          <article class="concept"><h3>表示空间</h3><p>不同模态是否映射到一个可直接比较的空间？这才是 Joint Embedding 关注的问题。</p></article>
+          <article class="concept late"><h3>训练方式</h3><p>Contrastive Learning 让正样本更近、负样本更远。它是一种训练目标，不规定推理结构。</p></article>
+          <article class="concept cross"><h3>推理交互</h3><p>Query 与 Document 能否独立编码？是否必须成对进入模型？这决定 ANN 可用性与在线成本。</p></article>
+        </div>
+        <div class="matrix" style="margin-top:16px">
+          <table><thead><tr><th>类型</th><th>典型思路</th><th>独立编码</th><th>预计算 Document</th><th>ANN</th><th>细粒度能力</th></tr></thead>
+          <tbody><tr><td><b>Dual Encoder</b></td><td>CLIP / Joint Embedding</td><td><span class="tag">是</span></td><td>是</td><td>支持</td><td>中</td></tr>
+          <tr><td><b>Late Interaction</b></td><td>ColBERT 类 Token 级匹配</td><td><span class="tag mid">基本独立</span></td><td>可预计算 Token 表示</td><td>部分支持</td><td>较强</td></tr>
+          <tr><td><b>Cross Encoder</b></td><td>Cross-Attention</td><td><span class="tag no">否</span></td><td>不能得到最终匹配分</td><td>不适合</td><td>强</td></tr></tbody></table>
+        </div>
+        <div class="insight"><strong>面试加分点：</strong>CLIP 可以用 Contrastive Loss 训练 Joint Embedding，但推理阶段依然独立编码。Contrastive Alignment 与 Cross-Attention 不是同一个分类维度。</div>
+      </section>
+
+      <section id="tradeoff">
+        <div class="section-kicker">04 · Trade-off Lab</div><h2>为什么全库不能直接 Cross-Attention？</h2>
+        <p class="lead">拖动知识库规模与精排候选数。这里用简化的相对计算次数展示数量级差异，重点看趋势，而不是某款硬件的绝对毫秒数。</p>
+        <div class="lab scale">
+          <div class="controls">
+            <div class="control"><div class="control-head"><label for="docs">知识库 Document 数</label><output id="docsOut">10,000,000</output></div><input id="docs" type="range" min="3" max="8" step="1" value="7"></div>
+            <div class="control"><div class="control-head"><label for="topk">进入 Reranker 的 Top-K</label><output id="topkOut">200</output></div><input id="topk" type="range" min="10" max="1000" step="10" value="200"></div>
+            <div class="presets"><button class="preset" type="button" data-docs="5" data-topk="50">10 万图搜图</button><button class="preset" type="button" data-docs="7" data-topk="200">千万级知识库</button><button class="preset" type="button" data-docs="8" data-topk="500">亿级素材库</button></div>
+          </div>
+          <div class="result" aria-live="polite">
+            <div class="metric warn"><span>Cross-Attention 全库逐对计算</span><b id="fullPairs">10,000,000 对</b></div>
+            <div class="metric good"><span>ANN 后 Cross-Attention 计算</span><b id="rerankPairs">200 对</b></div>
+            <div class="metric"><span>候选缩减倍数</span><b id="reduction">50,000×</b></div>
+            <div class="verdict" id="tradeVerdict">先用 ANN 把 1000 万缩到 200，再做细粒度交互，才是可控的在线链路。</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="production">
+        <div class="section-kicker">05 · Production Pipeline</div><h2>生产系统通常组合使用</h2>
+        <p class="lead">点击任一阶段查看它的输入、职责与核心约束。第一阶段守 Recall，第二阶段守 Precision，最后才把少量高质量证据交给 LLM。</p>
+        <div class="lab">
+          <div class="pipeline" id="pipeline">
+            <button class="stage recall" data-detail="query" aria-pressed="true"><small>INPUT</small><strong>用户 Query</strong><em>文本 / 图片 / 混合</em></button><span class="arrow">→</span>
+            <button class="stage recall" data-detail="encode"><small>STAGE 1</small><strong>Dual Encoder</strong><em>映射到共享空间</em></button><span class="arrow">→</span>
+            <button class="stage recall" data-detail="ann"><small>RECALL</small><strong>Vector DB</strong><em>ANN Top 100~1000</em></button><span class="arrow">→</span>
+            <button class="stage rerank" data-detail="rerank"><small>STAGE 2</small><strong>Cross-Attention</strong><em>Top-K 细粒度精排</em></button><span class="arrow">→</span>
+            <button class="stage rerank" data-detail="topn"><small>PRECISION</small><strong>Top 10~20</strong><em>高质量上下文</em></button><span class="arrow">→</span>
+            <button class="stage reason" data-detail="llm"><small>STAGE 3</small><strong>LLM / Agent</strong><em>回答、推理、决策</em></button>
+          </div>
+          <div class="stage-detail" id="stageDetail">Query 可以是文字、截图或二者组合；目标不是现在就理解全库，而是形成可检索的查询表示。</div>
+        </div>
+        <div class="plain"><strong>职责边界：</strong>Joint Embedding 负责“别漏掉潜在相关结果”；Cross-Attention 负责“候选中谁真的最相关”。一句话就是：<b>Recall → Rerank → Reason</b>。</div>
+      </section>
+
+      <section id="negative">
+        <div class="section-kicker">06 · Hard Negative</div><h2>哪一个负样本最能教会模型？</h2>
+        <p class="lead">训练 Query：“穿红衣服拿咖啡的人”。请选择最有价值的 Hard Negative。</p>
+        <div class="quiz">
+          <div class="negative-grid" id="negativeQuiz">
+            <button class="negative" type="button" data-kind="easy"><b>A. 一辆蓝色汽车</b><br><span>视觉和语义都相差很远</span></button>
+            <button class="negative" type="button" data-kind="hard"><b>B. 穿红衣服拿手机的人</b><br><span>主体、服装相同，只有手中物体不同</span></button>
+            <button class="negative" type="button" data-kind="positive"><b>C. 穿红衣服拿咖啡的人</b><br><span>与 Query 完全匹配</span></button>
+          </div>
+          <div class="feedback" id="negativeFeedback">Hard Negative 应该“很像，但在关键条件上不匹配”。</div>
+        </div>
+        <div class="insight"><strong>为什么重要：</strong>如果负样本全是汽车这类 Easy Negative，模型只要学会粗粒度类别就能过关；加入“咖啡 vs 手机”会迫使它关注决定相关性的细节。</div>
+      </section>
+
+      <section id="constraints">
+        <div class="section-kicker">07 · Engineering Constraints</div><h2>两条链路分别优化什么</h2>
+        <div class="two-col">
+          <article class="concept"><h3>Joint Embedding / Recall</h3><ul><li>Embedding Dimension 与归一化</li><li>Similarity Metric：cosine / dot product</li><li>Contrastive Learning 与温度系数</li><li>Hard Negative Mining</li><li>ANN：HNSW / IVF</li><li>量化、索引内存、Recall@K</li></ul></article>
+          <article class="concept cross"><h3>Cross-Attention / Rerank</h3><ul><li>Text Token 与 Image Patch 数量</li><li>Top-K Candidate 数量</li><li>Attention 计算量</li><li>GPU 显存与 Batch Size</li><li>图片分辨率 / PDF 页数</li><li>模型大小与在线延迟</li></ul></article>
+        </div>
+        <div class="code"><div class="code-head"><span>核心性能边界</span><span>pseudo</span></div><pre><span class="cm"># Dual Encoder：一次编码 + 索引搜索</span>
+query_vec = <span class="fn">text_encoder</span>(query)
+candidates = vector_db.<span class="fn">ann_search</span>(query_vec, top_k=<span class="st">200</span>)
+
+<span class="cm"># Cross Encoder：只对候选逐对打分</span>
+scores = [reranker.<span class="fn">score</span>(query, doc) <span class="kw">for</span> doc <span class="kw">in</span> candidates]
+top_n = <span class="fn">sort_by_score</span>(candidates, scores)[:<span class="st">10</span>]</pre></div>
+      </section>
+
+      <section id="rag">
+        <div class="section-kicker">08 · Multimodal RAG</div><h2>放进企业 PRD 知识库</h2>
+        <p class="lead">PRD 不只有正文，还可能包含截图、原型、流程图和表格。合理做法不是让一个大模型逐份扫完整库，而是分阶段收敛证据。</p>
+        <div class="card">
+          <div class="pipeline">
+            <div class="stage recall"><small>KNOWLEDGE</small><strong>PRD 多模态内容</strong><em>Text · Screenshot · Table</em></div><span class="arrow">→</span>
+            <div class="stage recall"><small>OFFLINE</small><strong>独立编码入库</strong><em>向量 + 元数据</em></div><span class="arrow">→</span>
+            <div class="stage recall"><small>ONLINE</small><strong>ANN Recall</strong><em>百万级 → Top 100</em></div><span class="arrow">→</span>
+            <div class="stage rerank"><small>ALIGN</small><strong>多模态 Reranker</strong><em>Token ↔ Patch</em></div><span class="arrow">→</span>
+            <div class="stage reason"><small>CONTEXT</small><strong>LLM / Agent</strong><em>回答或 Tool 决策</em></div>
+          </div>
+        </div>
+        <div class="warning"><strong>别直接这么做：</strong>让 Cross-Attention 在线扫描全部企业文档。Query 与每份 Document 都要共同计算，数据规模、显存与延迟会一起失控。</div>
+      </section>
+
+      <section id="interview">
+        <div class="section-kicker">09 · Interview Answer</div><h2>90 秒面试回答模板</h2>
+        <div class="answer-card">
+          <p>在大规模多模态检索中，我不会把 Joint Embedding 和 Cross-Attention 当成完全竞争的方案。</p>
+          <p><strong>Joint Embedding / Dual Encoder</strong> 让 Query 与 Document 独立编码，因此 Document 向量可以离线计算并建立 ANN 索引，适合百万到亿级数据的第一阶段召回；代价是固定维度的全局向量可能损失局部对象、属性和空间关系。</p>
+          <p><strong>Cross-Attention</strong> 让 Query Token 与 Image Patch 或 Document Token 动态交互，细粒度匹配更强；但最终分数依赖 Query × Document，不能直接高效扫描整个知识库。</p>
+          <p>所以生产上我会使用 <strong>Dual Encoder + Contrastive Alignment 做 ANN Recall，再用 Cross-Attention Multimodal Reranker 对 Top-K 精排</strong>。另外，Contrastive Learning 是训练目标，Cross-Attention 是推理交互结构，两者不是同一个分类维度。</p>
+        </div>
+        <div class="quiz" data-answer="b"><div class="quiz-q">追问：为什么 Document Embedding 能提前算，而 Cross-Attention 的最终分数不能？</div><div class="quiz-options"><button type="button" data-option="a">A. 因为向量数据库不能存图片</button><button type="button" data-option="b">B. 因为 Dual Encoder 的 Document 表示与当前 Query 无关；Cross-Attention 分数依赖当前 Query 与 Document 的共同交互</button><button type="button" data-option="c">C. 因为 Cross-Attention 只能处理文本</button></div><div class="quiz-feedback">选择一个答案。</div></div>
+        <div class="quiz" data-answer="c"><div class="quiz-q">追问：下列哪句话最准确？</div><div class="quiz-options"><button type="button" data-option="a">A. 使用 Contrastive Learning 就一定不能使用 Cross-Attention</button><button type="button" data-option="b">B. Joint Embedding 与 Contrastive Learning 是同义词</button><button type="button" data-option="c">C. Contrastive Learning 描述训练目标，Cross-Attention 描述跨模态交互方式</button></div><div class="quiz-feedback">选择一个答案。</div></div>
+      </section>
+
+      <section id="check">
+        <div class="section-kicker">10 · Mastery Check</div><h2>Agent / RAG 岗位掌握到这里就够用</h2>
+        <p class="lead">逐项勾选。重点是能从检索质量、规模、延迟、成本和系统职责解释选型，而不是从零训练完整 CLIP。</p>
+        <div class="checklist" id="checklist">
+          <label class="check"><input type="checkbox"><span>能解释为什么独立编码支持 ANN</span></label><label class="check"><input type="checkbox"><span>能解释 Document 为什么可离线预计算</span></label>
+          <label class="check"><input type="checkbox"><span>知道全局向量会损失哪些细粒度关系</span></label><label class="check"><input type="checkbox"><span>能解释 Cross-Attention 为什么匹配更强</span></label>
+          <label class="check"><input type="checkbox"><span>能说明为什么不能直接扫千万级全库</span></label><label class="check"><input type="checkbox"><span>会设计 Recall → Rerank 两阶段链路</span></label>
+          <label class="check"><input type="checkbox"><span>能区分 Contrastive Learning 与 Cross-Attention</span></label><label class="check"><input type="checkbox"><span>知道 Hard Negative 的训练价值</span></label>
+          <label class="check"><input type="checkbox"><span>知道 Recall@K 评估第一阶段召回</span></label><label class="check"><input type="checkbox"><span>能讨论 Top-K 对精度、显存和延迟的影响</span></label>
+        </div>
+        <div class="mastery" id="mastery">当前掌握度：0 / 10 · 先把架构主线讲顺。</div>
+      </section>
+    </main>
+  </div>
+  <footer>最终记忆：Joint Embedding 解决海量候选的“快”，Cross-Attention 解决少量候选的“准”。</footer>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const toggle = document.getElementById('themeToggle');
+      const saved = localStorage.getItem('mm-theme');
+      if (saved) root.dataset.theme = saved;
+      toggle.addEventListener('click', () => {
+        const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        root.dataset.theme = next; localStorage.setItem('mm-theme', next);
+      });
+
+      const architectureData = {
+        dual: { title: 'Dual Encoder · 先各自理解，再比较全局向量', left: ['文字 Query', 'Text Encoder', 'text embedding [768]'], right: ['图片 Document', 'Image Encoder', 'image embedding [768]'], meet: 'cos', summary: '<b>相遇点：</b>编码完成后才计算相似度。Document 向量与当前 Query 无关，因此可以离线预计算、写入 Vector DB，并建立 ANN 索引。' },
+        late: { title: 'Late Interaction · 独立编码，晚一点做 Token 级匹配', left: ['Query Tokens', 'Text Encoder', '[t₁, t₂, …]'], right: ['Doc Tokens / Patches', 'Doc Encoder', '[p₁, p₂, …]'], meet: 'max', summary: '<b>相遇点：</b>保留多个 Token / Patch 表示，检索时做轻量的细粒度匹配。表达和成本位于 Dual Encoder 与 Cross Encoder 之间，ANN 支持取决于具体实现。' },
+        cross: { title: 'Cross Encoder · Query 针对当前 Document 动态关注', left: ['Query Tokens', '与候选拼接 / 交互', 'Cross-Attention'], right: ['Image Patches', '候选必须在线参与', 'Matching Score'], meet: '×', summary: '<b>相遇点：</b>编码过程中就发生 Query × Document 交互。它能学到“红衣服 ↔ Patch 17”“杯子 ↔ Patch 31”，但每个候选都要重新计算。' }
+      };
+      const archView = document.getElementById('architectureView');
+      function renderArch(key) {
+        const d = architectureData[key];
+        const lane = items => `<div class="encoder-lane">${items.map((x,i) => `${i ? '<div class="down">↓</div>' : ''}<div class="node ${i === items.length - 1 ? (key === 'cross' ? 'purple' : 'accent') : ''}">${x}</div>`).join('')}</div>`;
+        archView.innerHTML = `<div class="arch-title">${d.title}</div><div class="encoder-grid">${lane(d.left)}<div class="meet">${d.meet}</div>${lane(d.right)}</div><div class="arch-summary">${d.summary}</div>`;
+      }
+      document.querySelectorAll('[data-arch]').forEach(btn => btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-arch]').forEach(x => x.setAttribute('aria-pressed', String(x === btn)));
+        renderArch(btn.dataset.arch);
+      })); renderArch('dual');
+
+      const docs = document.getElementById('docs'), topk = document.getElementById('topk');
+      const fmt = n => new Intl.NumberFormat('zh-CN').format(n);
+      function updateTradeoff() {
+        const n = 10 ** Number(docs.value), k = Number(topk.value), ratio = Math.round(n / k);
+        document.getElementById('docsOut').textContent = fmt(n); document.getElementById('topkOut').textContent = fmt(k);
+        document.getElementById('fullPairs').textContent = `${fmt(n)} 对`; document.getElementById('rerankPairs').textContent = `${fmt(k)} 对`;
+        document.getElementById('reduction').textContent = `${fmt(ratio)}×`;
+        document.getElementById('tradeVerdict').textContent = `先用 ANN 把 ${fmt(n)} 缩到 ${fmt(k)}，再做细粒度交互，计算候选减少约 ${fmt(ratio)} 倍。`;
+      }
+      docs.addEventListener('input', updateTradeoff); topk.addEventListener('input', updateTradeoff);
+      document.querySelectorAll('.preset').forEach(btn => btn.addEventListener('click', () => { docs.value = btn.dataset.docs; topk.value = btn.dataset.topk; updateTradeoff(); })); updateTradeoff();
+
+      const detailText = {
+        query: 'Query 可以是文字、截图或二者组合；目标不是现在就理解全库，而是形成可检索的查询表示。',
+        encode: 'Text / Image Encoder 将不同模态映射到共享空间。训练时常用对比学习拉近正样本、推远负样本。',
+        ann: 'Document 向量已离线入库。HNSW、IVF 等 ANN 索引快速得到可能相关的 Top-K，第一目标是高 Recall@K。',
+        rerank: 'Reranker 只处理有限候选，让 Query Token 与 Image Patch / Document Token 显式交互，重新计算更精确的匹配分。',
+        topn: '精排后保留少量高质量上下文，减少噪声与后续推理成本。Top-K / Top-N 都是质量、延迟与成本的控制旋钮。',
+        llm: 'LLM 或 Agent 在有证据的上下文上回答、规划或调用工具；检索质量决定它拿到的事实边界。'
+      };
+      document.querySelectorAll('#pipeline button.stage').forEach(btn => btn.addEventListener('click', () => {
+        document.querySelectorAll('#pipeline button.stage').forEach(x => x.setAttribute('aria-pressed', String(x === btn)));
+        document.getElementById('stageDetail').textContent = detailText[btn.dataset.detail];
+      }));
+
+      const negFeedback = document.getElementById('negativeFeedback');
+      document.querySelectorAll('.negative').forEach(btn => btn.addEventListener('click', () => {
+        document.querySelectorAll('.negative').forEach(x => x.classList.remove('chosen','correct','wrong'));
+        btn.classList.add('chosen');
+        if (btn.dataset.kind === 'hard') { btn.classList.add('correct'); negFeedback.textContent = '正确。它与 Query 高度相似，却在“咖啡 / 手机”这个关键条件上冲突，最能迫使模型学习细粒度差别。'; }
+        else if (btn.dataset.kind === 'positive') { btn.classList.add('wrong'); negFeedback.textContent = '这是 Positive，不是负样本。它应该被拉近，而不是推远。'; }
+        else { btn.classList.add('wrong'); negFeedback.textContent = '这是 Easy Negative。模型不必理解“咖啡”就能把汽车排除，训练价值较低。'; }
+      }));
+
+      document.querySelectorAll('.quiz').forEach(quiz => {
+        if (!quiz.dataset.answer) return;
+        quiz.querySelectorAll('.quiz-options button').forEach(btn => btn.addEventListener('click', () => {
+          quiz.querySelectorAll('.quiz-options button').forEach(x => x.classList.remove('correct','wrong'));
+          const ok = btn.dataset.option === quiz.dataset.answer; btn.classList.add(ok ? 'correct' : 'wrong');
+          quiz.querySelector('.quiz-feedback').textContent = ok ? '正确。你抓住了结构和训练目标的边界。' : '再想想：关键不是模态类型，而是表示能否独立计算，以及当前说的是训练目标还是推理结构。';
+        }));
+      });
+
+      const checks = [...document.querySelectorAll('#checklist input')];
+      checks.forEach(input => input.addEventListener('change', () => {
+        const count = checks.filter(x => x.checked).length;
+        const note = count < 4 ? '先把架构主线讲顺。' : count < 8 ? '已经能讨论基本选型，继续补足工程约束。' : count < 10 ? '接近面试可用，再练两遍 90 秒回答。' : '可以从质量、规模、延迟和成本完整回答。';
+        document.getElementById('mastery').textContent = `当前掌握度：${count} / 10 · ${note}`;
+      }));
+
+      const progress = document.getElementById('progressBar');
+      const tocLinks = [...document.querySelectorAll('.toc a')];
+      const sections = tocLinks.map(a => document.querySelector(a.getAttribute('href')));
+      function onScroll() {
+        const max = document.documentElement.scrollHeight - innerHeight;
+        progress.style.width = `${max > 0 ? scrollY / max * 100 : 0}%`;
+        let active = sections[0];
+        sections.forEach(s => { if (s && s.getBoundingClientRect().top <= 150) active = s; });
+        tocLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === `#${active.id}`));
+      }
+      addEventListener('scroll', onScroll, { passive: true }); onScroll();
+    })();
+  </script>
+</body>
+</html>

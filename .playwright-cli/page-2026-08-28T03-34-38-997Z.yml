@@ -1,0 +1,3641 @@
+- generic [active] [ref=e1]:
+  - link "跳到正文" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: MD
+      - generic [ref=e7]: MySQL 事务隔离、MVCC 与并发控制学习笔记
+    - generic [ref=e8]:
+      - link "查看 Markdown" [ref=e9] [cursor=pointer]:
+        - /url: 0-md/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB-MVCC%E4%B8%8E%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.md
+      - button "切换深浅主题" [ref=e10] [cursor=pointer]: ◐
+  - generic [ref=e11]:
+    - generic [ref=e12]: Markdown Reading Page
+    - heading "MySQL 事务隔离、MVCC 与并发控制学习笔记" [level=1] [ref=e13]
+    - text: MD
+  - main [ref=e14]:
+    - complementary [ref=e15]:
+      - navigation "页面目录" [ref=e16]:
+        - paragraph [ref=e17]: READING MAP
+        - link "1. MySQL 事务隔离级别如何选择？" [ref=e18] [cursor=pointer]:
+          - /url: "#1-mysql-事务隔离级别如何选择"
+        - link "1.1 四种事务隔离级别" [ref=e19] [cursor=pointer]:
+          - /url: "#1-1-四种事务隔离级别"
+        - link "2. Read Uncommitted" [ref=e20] [cursor=pointer]:
+          - /url: "#2-read-uncommitted"
+        - link "3. Read Committed" [ref=e21] [cursor=pointer]:
+          - /url: "#3-read-committed"
+        - link "4. Repeatable Read" [ref=e22] [cursor=pointer]:
+          - /url: "#4-repeatable-read"
+        - link "5. Serializable" [ref=e23] [cursor=pointer]:
+          - /url: "#5-serializable"
+        - link "6. 隔离级别不是越高越好" [ref=e24] [cursor=pointer]:
+          - /url: "#6-隔离级别不是越高越好"
+        - link "7. RC 和 RR 怎么选？" [ref=e25] [cursor=pointer]:
+          - /url: "#7-rc-和-rr-怎么选"
+        - link "RC" [ref=e26] [cursor=pointer]:
+          - /url: "#rc"
+        - link "RR" [ref=e27] [cursor=pointer]:
+          - /url: "#rr"
+        - link "面试回答" [ref=e28] [cursor=pointer]:
+          - /url: "#面试回答"
+        - link "8. 隔离级别不能替代业务并发控制" [ref=e29] [cursor=pointer]:
+          - /url: "#8-隔离级别不能替代业务并发控制"
+        - link "9. MVCC 是什么？" [ref=e30] [cursor=pointer]:
+          - /url: "#9-mvcc-是什么"
+        - link "10. 如果没有 MVCC 会怎么样？" [ref=e31] [cursor=pointer]:
+          - /url: "#10-如果没有-mvcc-会怎么样"
+        - link "11. 什么叫\"多版本\"？" [ref=e32] [cursor=pointer]:
+          - /url: "#11-什么叫-多版本"
+        - link "12. 历史版本在哪里？" [ref=e33] [cursor=pointer]:
+          - /url: "#12-历史版本在哪里"
+        - link "13. Undo Log 有什么作用？" [ref=e34] [cursor=pointer]:
+          - /url: "#13-undo-log-有什么作用"
+        - link "13.1 事务回滚" [ref=e35] [cursor=pointer]:
+          - /url: "#13-1-事务回滚"
+        - link "13.2 MVCC 历史版本读取" [ref=e36] [cursor=pointer]:
+          - /url: "#13-2-mvcc-历史版本读取"
+        - link "14. Read View 是什么？" [ref=e37] [cursor=pointer]:
+          - /url: "#14-read-view-是什么"
+        - link "15. RR 与 RC 的核心区别如何从 MVCC 理解？" [ref=e38] [cursor=pointer]:
+          - /url: "#15-rr-与-rc-的核心区别如何从-mvcc-理解"
+        - link "15.1 RR" [ref=e39] [cursor=pointer]:
+          - /url: "#15-1-rr"
+        - link "15.2 RC" [ref=e40] [cursor=pointer]:
+          - /url: "#15-2-rc"
+        - link "16. RC vs RR 不应该只背定义" [ref=e41] [cursor=pointer]:
+          - /url: "#16-rc-vs-rr-不应该只背定义"
+        - link "17. 快照读与当前读" [ref=e42] [cursor=pointer]:
+          - /url: "#17-快照读与当前读"
+        - link "18. 快照读" [ref=e43] [cursor=pointer]:
+          - /url: "#18-快照读"
+        - link "19. 当前读" [ref=e44] [cursor=pointer]:
+          - /url: "#19-当前读"
+        - link "20. 快照读 vs 当前读的核心区别" [ref=e45] [cursor=pointer]:
+          - /url: "#20-快照读-vs-当前读的核心区别"
+        - link "21. SELECT ... FOR UPDATE" [ref=e46] [cursor=pointer]:
+          - /url: "#21-select-for-update"
+        - link "22. FOR UPDATE 是不是一定只锁一行？" [ref=e47] [cursor=pointer]:
+          - /url: "#22-for-update-是不是一定只锁一行"
+        - link "23. Record Lock、Gap Lock、Next-Key Lock" [ref=e48] [cursor=pointer]:
+          - /url: "#23-record-lock-gap-lock-next-key-lock"
+        - link "Record Lock" [ref=e49] [cursor=pointer]:
+          - /url: "#record-lock"
+        - link "Gap Lock" [ref=e50] [cursor=pointer]:
+          - /url: "#gap-lock"
+        - link "Next-Key Lock" [ref=e51] [cursor=pointer]:
+          - /url: "#next-key-lock"
+        - link "24. MVCC 和 Lock 分别解决什么？" [ref=e52] [cursor=pointer]:
+          - /url: "#24-mvcc-和-lock-分别解决什么"
+        - link "25. 高并发业务为什么不能只会 FOR UPDATE？" [ref=e53] [cursor=pointer]:
+          - /url: "#25-高并发业务为什么不能只会-for-update"
+        - link "26. 乐观锁 / CAS" [ref=e54] [cursor=pointer]:
+          - /url: "#26-乐观锁-cas"
+        - link "27. 原子 UPDATE 为什么重要？" [ref=e55] [cursor=pointer]:
+          - /url: "#27-原子-update-为什么重要"
+        - link "28. MySQL 事务相关面试需要掌握到什么程度？" [ref=e56] [cursor=pointer]:
+          - /url: "#28-mysql-事务相关面试需要掌握到什么程度"
+        - link "29. 面试最容易形成的追问链" [ref=e57] [cursor=pointer]:
+          - /url: "#29-面试最容易形成的追问链"
+        - link "30. 当前完整知识脑图" [ref=e58] [cursor=pointer]:
+          - /url: "#30-当前完整知识脑图"
+        - link "31. 学习边界" [ref=e59] [cursor=pointer]:
+          - /url: "#31-学习边界"
+        - link "必须掌握" [ref=e60] [cursor=pointer]:
+          - /url: "#必须掌握"
+        - link "了解即可" [ref=e61] [cursor=pointer]:
+          - /url: "#了解即可"
+        - link "暂时不用投入大量时间" [ref=e62] [cursor=pointer]:
+          - /url: "#暂时不用投入大量时间"
+        - link "32. 推荐继续学习顺序" [ref=e63] [cursor=pointer]:
+          - /url: "#32-推荐继续学习顺序"
+        - link "33. SELECT ... FOR UPDATE 到底锁什么？" [ref=e64] [cursor=pointer]:
+          - /url: "#33-select-for-update-到底锁什么"
+        - link "34. Record Lock" [ref=e65] [cursor=pointer]:
+          - /url: "#34-record-lock"
+        - link "35. 为什么范围查询不能只锁已有记录？" [ref=e66] [cursor=pointer]:
+          - /url: "#35-为什么范围查询不能只锁已有记录"
+        - link "36. Gap Lock" [ref=e67] [cursor=pointer]:
+          - /url: "#36-gap-lock"
+        - link "37. Next-Key Lock" [ref=e68] [cursor=pointer]:
+          - /url: "#37-next-key-lock"
+        - link "38. 为什么普通 SELECT 不需要这样锁？" [ref=e69] [cursor=pointer]:
+          - /url: "#38-为什么普通-select-不需要这样锁"
+        - link "39. MySQL RR 如何处理幻读？" [ref=e70] [cursor=pointer]:
+          - /url: "#39-mysql-rr-如何处理幻读"
+        - link "快照读" [ref=e71] [cursor=pointer]:
+          - /url: "#快照读"
+        - link "当前读" [ref=e72] [cursor=pointer]:
+          - /url: "#当前读"
+        - link "40. 索引为什么会影响 FOR UPDATE 的锁范围？" [ref=e73] [cursor=pointer]:
+          - /url: "#40-索引为什么会影响-for-update-的锁范围"
+        - link "41. 为什么主键 / 唯一索引等值查询更适合精确加锁？" [ref=e74] [cursor=pointer]:
+          - /url: "#41-为什么主键-唯一索引等值查询更适合精确加锁"
+        - link "42. 什么是死锁？" [ref=e75] [cursor=pointer]:
+          - /url: "#42-什么是死锁"
+        - link "43. InnoDB 遇到死锁怎么办？" [ref=e76] [cursor=pointer]:
+          - /url: "#43-innodb-遇到死锁怎么办"
+        - link "44. 如何降低死锁概率？" [ref=e77] [cursor=pointer]:
+          - /url: "#44-如何降低死锁概率"
+        - link "44.1 统一加锁顺序" [ref=e78] [cursor=pointer]:
+          - /url: "#44-1-统一加锁顺序"
+        - link "44.2 事务尽量短" [ref=e79] [cursor=pointer]:
+          - /url: "#44-2-事务尽量短"
+        - link "44.3 正确设计索引" [ref=e80] [cursor=pointer]:
+          - /url: "#44-3-正确设计索引"
+        - link "44.4 单个事务不要锁太多数据" [ref=e81] [cursor=pointer]:
+          - /url: "#44-4-单个事务不要锁太多数据"
+        - link "45. Agent 多 Worker 抢任务怎么设计？" [ref=e82] [cursor=pointer]:
+          - /url: "#45-agent-多-worker-抢任务怎么设计"
+        - link "46. FOR UPDATE vs CAS / 条件 UPDATE 怎么选？" [ref=e83] [cursor=pointer]:
+          - /url: "#46-for-update-vs-cas-条件-update-怎么选"
+        - link "简单状态竞争" [ref=e84] [cursor=pointer]:
+          - /url: "#简单状态竞争"
+        - link "复杂\"读取 → 判断 → 修改\"" [ref=e85] [cursor=pointer]:
+          - /url: "#复杂-读取-判断-修改"
+        - link "47. 乐观锁 vs 悲观锁的初步理解" [ref=e86] [cursor=pointer]:
+          - /url: "#47-乐观锁-vs-悲观锁的初步理解"
+        - link "悲观锁" [ref=e87] [cursor=pointer]:
+          - /url: "#悲观锁"
+        - link "乐观锁" [ref=e88] [cursor=pointer]:
+          - /url: "#乐观锁"
+        - link "48. 当前 MySQL 并发控制完整知识链" [ref=e89] [cursor=pointer]:
+          - /url: "#48-当前-mysql-并发控制完整知识链"
+        - link "49. 下一阶段学习路线：从单库事务走向分布式一致性" [ref=e90] [cursor=pointer]:
+          - /url: "#49-下一阶段学习路线-从单库事务走向分布式一致性"
+        - link "50. 从 MySQL 本地事务进入分布式一致性" [ref=e91] [cursor=pointer]:
+          - /url: "#50-从-mysql-本地事务进入分布式一致性"
+        - link "51. 为什么 DB COMMIT → MQ SEND 有问题？" [ref=e92] [cursor=pointer]:
+          - /url: "#51-为什么-db-commit-mq-send-有问题"
+        - link "52. 为什么不能把 MQ SEND 放进数据库事务？" [ref=e93] [cursor=pointer]:
+          - /url: "#52-为什么不能把-mq-send-放进数据库事务"
+        - link "53. Transactional Outbox Pattern" [ref=e94] [cursor=pointer]:
+          - /url: "#53-transactional-outbox-pattern"
+        - link "54. Outbox Publisher" [ref=e95] [cursor=pointer]:
+          - /url: "#54-outbox-publisher"
+        - link "55. 为什么 Outbox 仍然可能重复发送？" [ref=e96] [cursor=pointer]:
+          - /url: "#55-为什么-outbox-仍然可能重复发送"
+        - link "56. At-Least-Once 与幂等" [ref=e97] [cursor=pointer]:
+          - /url: "#56-at-least-once-与幂等"
+        - link "57. event_id + UNIQUE 实现消费者去重" [ref=e98] [cursor=pointer]:
+          - /url: "#57-eventid-unique-实现消费者去重"
+        - link "58. 消费记录 + 业务修改必须同事务" [ref=e99] [cursor=pointer]:
+          - /url: "#58-消费记录-业务修改必须同事务"
+        - link "59. Inbox Pattern" [ref=e100] [cursor=pointer]:
+          - /url: "#59-inbox-pattern"
+        - link "60. 在 Agent Workflow 中如何使用 Outbox？" [ref=e101] [cursor=pointer]:
+          - /url: "#60-在-agent-workflow-中如何使用-outbox"
+        - link "61. Agent Worker 为什么也必须幂等？" [ref=e102] [cursor=pointer]:
+          - /url: "#61-agent-worker-为什么也必须幂等"
+        - link "62. Retry、Exponential Backoff 与 Jitter" [ref=e103] [cursor=pointer]:
+          - /url: "#62-retry-exponential-backoff-与-jitter"
+        - link "63. Retryable Error vs Non-Retryable Error" [ref=e104] [cursor=pointer]:
+          - /url: "#63-retryable-error-vs-non-retryable-error"
+        - link "64. DLQ / Failed State" [ref=e105] [cursor=pointer]:
+          - /url: "#64-dlq-failed-state"
+        - link "65. DB + MQ 面试回答模板" [ref=e106] [cursor=pointer]:
+          - /url: "#65-db-mq-面试回答模板"
+        - link "问：DB 成功但 MQ 失败怎么办？" [ref=e107] [cursor=pointer]:
+          - /url: "#问-db-成功但-mq-失败怎么办"
+        - link "问：MQ 重复消费怎么办？" [ref=e108] [cursor=pointer]:
+          - /url: "#问-mq-重复消费怎么办"
+        - link "66. 从 Outbox 进入可靠 Agent Worker" [ref=e109] [cursor=pointer]:
+          - /url: "#66-从-outbox-进入可靠-agent-worker"
+        - link "67. 为什么 Agent 长任务不能一直持有数据库锁？" [ref=e110] [cursor=pointer]:
+          - /url: "#67-为什么-agent-长任务不能一直持有数据库锁"
+        - link "68. Lease：临时执行权" [ref=e111] [cursor=pointer]:
+          - /url: "#68-lease-临时执行权"
+        - link "69. Claim Task：抢任务仍然使用 CAS" [ref=e112] [cursor=pointer]:
+          - /url: "#69-claim-task-抢任务仍然使用-cas"
+        - link "70. Heartbeat：执行中的 Worker 如何续租？" [ref=e113] [cursor=pointer]:
+          - /url: "#70-heartbeat-执行中的-worker-如何续租"
+        - link "71. Stale Worker / Split Brain 问题" [ref=e114] [cursor=pointer]:
+          - /url: "#71-stale-worker-split-brain-问题"
+        - link "72. 提交结果时也要 CAS" [ref=e115] [cursor=pointer]:
+          - /url: "#72-提交结果时也要-cas"
+        - link "73. Fencing Token / execution_version" [ref=e116] [cursor=pointer]:
+          - /url: "#73-fencing-token-executionversion"
+        - link "74. Agent Task Retry" [ref=e117] [cursor=pointer]:
+          - /url: "#74-agent-task-retry"
+        - link "75. 为什么重试必然要求副作用幂等？" [ref=e118] [cursor=pointer]:
+          - /url: "#75-为什么重试必然要求副作用幂等"
+        - link "76. Agent Tool Call 的 operation_id" [ref=e119] [cursor=pointer]:
+          - /url: "#76-agent-tool-call-的-operationid"
+        - link "77. Workflow Node 也需要稳定身份" [ref=e120] [cursor=pointer]:
+          - /url: "#77-workflow-node-也需要稳定身份"
+        - link "78. 可靠 Agent Worker 状态机" [ref=e121] [cursor=pointer]:
+          - /url: "#78-可靠-agent-worker-状态机"
+        - link "79. 一个较完整的 Agent Task 表" [ref=e122] [cursor=pointer]:
+          - /url: "#79-一个较完整的-agent-task-表"
+        - link "80. Agent Worker 完整执行流程" [ref=e123] [cursor=pointer]:
+          - /url: "#80-agent-worker-完整执行流程"
+        - link "81. DB 与 MQ 在 Agent 系统里的职责" [ref=e124] [cursor=pointer]:
+          - /url: "#81-db-与-mq-在-agent-系统里的职责"
+        - link "82. LangGraph 与 Worker 可靠性层的关系" [ref=e125] [cursor=pointer]:
+          - /url: "#82-langgraph-与-worker-可靠性层的关系"
+        - link "83. Agent Worker 崩溃怎么办？面试回答" [ref=e126] [cursor=pointer]:
+          - /url: "#83-agent-worker-崩溃怎么办-面试回答"
+        - link "84. 这一阶段必须掌握的核心概念" [ref=e127] [cursor=pointer]:
+          - /url: "#84-这一阶段必须掌握的核心概念"
+        - link "85. 当前完整学习链" [ref=e128] [cursor=pointer]:
+          - /url: "#85-当前完整学习链"
+        - link "86. 从可靠 Worker 进入 Durable Agent Workflow" [ref=e129] [cursor=pointer]:
+          - /url: "#86-从可靠-worker-进入-durable-agent-workflow"
+        - link "87. Checkpoint 是什么？" [ref=e130] [cursor=pointer]:
+          - /url: "#87-checkpoint-是什么"
+        - link "88. 为什么 Agent Workflow 特别需要 Checkpoint？" [ref=e131] [cursor=pointer]:
+          - /url: "#88-为什么-agent-workflow-特别需要-checkpoint"
+        - link "89. Checkpoint 需要保存什么？" [ref=e132] [cursor=pointer]:
+          - /url: "#89-checkpoint-需要保存什么"
+        - link "89.1 Workflow State" [ref=e133] [cursor=pointer]:
+          - /url: "#89-1-workflow-state"
+        - link "89.2 Node State" [ref=e134] [cursor=pointer]:
+          - /url: "#89-2-node-state"
+        - link "89.3 Execution Metadata" [ref=e135] [cursor=pointer]:
+          - /url: "#89-3-execution-metadata"
+        - link "90. Node 状态机" [ref=e136] [cursor=pointer]:
+          - /url: "#90-node-状态机"
+        - link "91. Checkpoint 并不能自动解决副作用重复" [ref=e137] [cursor=pointer]:
+          - /url: "#91-checkpoint-并不能自动解决副作用重复"
+        - link "92. Node 必须尽量设计成幂等" [ref=e138] [cursor=pointer]:
+          - /url: "#92-node-必须尽量设计成幂等"
+        - link "93. execution_key 与 operation_id 是同一个思想" [ref=e139] [cursor=pointer]:
+          - /url: "#93-executionkey-与-operationid-是同一个思想"
+        - link "94. Workflow Resume 如何工作？" [ref=e140] [cursor=pointer]:
+          - /url: "#94-workflow-resume-如何工作"
+        - link "95. Checkpoint 什么时候保存？" [ref=e141] [cursor=pointer]:
+          - /url: "#95-checkpoint-什么时候保存"
+        - link "96. 长 Node 内部如何 Checkpoint？" [ref=e142] [cursor=pointer]:
+          - /url: "#96-长-node-内部如何-checkpoint"
+        - link "方案 A：接受 Node 重跑" [ref=e143] [cursor=pointer]:
+          - /url: "#方案-a-接受-node-重跑"
+        - link "方案 B：拆成更小的 Node" [ref=e144] [cursor=pointer]:
+          - /url: "#方案-b-拆成更小的-node"
+        - link "97. Human-in-the-loop 为什么依赖 Checkpoint？" [ref=e145] [cursor=pointer]:
+          - /url: "#97-human-in-the-loop-为什么依赖-checkpoint"
+        - link "98. Workspace 中的 Human-in-the-loop" [ref=e146] [cursor=pointer]:
+          - /url: "#98-workspace-中的-human-in-the-loop"
+        - link "99. Checkpoint 应该放 Redis 吗？" [ref=e147] [cursor=pointer]:
+          - /url: "#99-checkpoint-应该放-redis-吗"
+        - link "100. Workflow Runtime、Business Artifact、Knowledge 要分开" [ref=e148] [cursor=pointer]:
+          - /url: "#100-workflow-runtime-business-artifact-knowledge-要分开"
+        - link "100.1 Workflow Runtime State" [ref=e149] [cursor=pointer]:
+          - /url: "#100-1-workflow-runtime-state"
+        - link "100.2 Business Artifact" [ref=e150] [cursor=pointer]:
+          - /url: "#100-2-business-artifact"
+        - link "100.3 Knowledge" [ref=e151] [cursor=pointer]:
+          - /url: "#100-3-knowledge"
+        - link "101. LangGraph Checkpoint 需要掌握到什么程度？" [ref=e152] [cursor=pointer]:
+          - /url: "#101-langgraph-checkpoint-需要掌握到什么程度"
+        - link "必须掌握" [ref=e153] [cursor=pointer]:
+          - /url: "#必须掌握-2"
+        - link "理解即可" [ref=e154] [cursor=pointer]:
+          - /url: "#理解即可"
+        - link "暂时不用深挖" [ref=e155] [cursor=pointer]:
+          - /url: "#暂时不用深挖"
+        - link "102. Worker Recovery 与 Workflow Resume 不要混淆" [ref=e156] [cursor=pointer]:
+          - /url: "#102-worker-recovery-与-workflow-resume-不要混淆"
+        - link "Worker Recovery" [ref=e157] [cursor=pointer]:
+          - /url: "#worker-recovery"
+        - link "Workflow Resume" [ref=e158] [cursor=pointer]:
+          - /url: "#workflow-resume"
+        - link "103. Durable Agent Workflow 完整架构" [ref=e159] [cursor=pointer]:
+          - /url: "#103-durable-agent-workflow-完整架构"
+        - link "104. Checkpoint / Resume 面试回答" [ref=e160] [cursor=pointer]:
+          - /url: "#104-checkpoint-resume-面试回答"
+        - link "105. 这一站必须记住的六句话" [ref=e161] [cursor=pointer]:
+          - /url: "#105-这一站必须记住的六句话"
+        - link "1. Checkpoint 的本质" [ref=e162] [cursor=pointer]:
+          - /url: "#1-checkpoint-的本质"
+        - link "2. Checkpoint 不等于幂等" [ref=e163] [cursor=pointer]:
+          - /url: "#2-checkpoint-不等于幂等"
+        - link "3. 可重试 Node 必须考虑幂等" [ref=e164] [cursor=pointer]:
+          - /url: "#3-可重试-node-必须考虑幂等"
+        - link "4. Worker Recovery 与 Workflow Resume 是两层问题" [ref=e165] [cursor=pointer]:
+          - /url: "#4-worker-recovery-与-workflow-resume-是两层问题"
+        - link "5. Human-in-the-loop 不应该一直占 Worker" [ref=e166] [cursor=pointer]:
+          - /url: "#5-human-in-the-loop-不应该一直占-worker"
+        - link "6. DB 是 Runtime State 的 Source of Truth" [ref=e167] [cursor=pointer]:
+          - /url: "#6-db-是-runtime-state-的-source-of-truth"
+        - link "106. 当前完整学习链" [ref=e168] [cursor=pointer]:
+          - /url: "#106-当前完整学习链"
+    - article [ref=e169]:
+      - blockquote [ref=e170]:
+        - paragraph [ref=e171]:
+          - text: 学习主线：
+          - strong [ref=e172]: 事务隔离级别 → MVCC → Undo Log → Read View → 快照读 / 当前读 → Record / Gap / Next-Key Lock → 死锁 → 高并发事务设计
+      - paragraph [ref=e173]: 本文整理当前对话中关于 MySQL 事务相关的内容，并按照面试学习链路重新组织。
+      - separator [ref=e174]
+      - heading "SECTION 01 1. MySQL 事务隔离级别如何选择？" [level=1] [ref=e175]
+      - paragraph [ref=e176]: 事务隔离级别的选择，本质是在：
+      - list [ref=e177]:
+        - listitem [ref=e178]: 一致性
+        - listitem [ref=e179]: 并发性能
+        - listitem [ref=e180]: 业务复杂度
+      - paragraph [ref=e181]: 之间做权衡。
+      - paragraph [ref=e182]: 实际项目中最常见的是：
+      - list [ref=e183]:
+        - listitem [ref=e184]:
+          - strong [ref=e185]: Repeatable Read（RR，可重复读）
+        - listitem [ref=e186]:
+          - strong [ref=e187]: Read Committed（RC，读已提交）
+      - paragraph [ref=e188]:
+        - text: MySQL InnoDB 默认使用
+        - strong [ref=e189]: Repeatable Read
+        - text: 。
+      - separator [ref=e190]
+      - heading "SECTION 02 1.1 四种事务隔离级别" [level=2] [ref=e191]
+      - generic [ref=e193]: "------------------------------------------------------------------------ 隔离级别 脏读 不可重复读 幻读 并发性能 -------------- ----------- ------------ -------------------- ----------- Read 可能 可能 可能 最高 Uncommitted Read Committed 不会 可能 可能 较高 Repeatable 不会 不会 SQL 中等 Read 标准仍可能；InnoDB 在很多场景通过 MVCC / Next-Key Lock 处理 Serializable 不会 不会 不会 最低 ------------------------------------------------------------------------"
+      - separator [ref=e194]
+      - heading "SECTION 03 2. Read Uncommitted" [level=1] [ref=e195]
+      - paragraph [ref=e196]:
+        - text: Read Uncommitted 允许一个事务读取另一个事务
+        - strong [ref=e197]: 尚未提交的数据
+        - text: 。
+      - paragraph [ref=e198]: 例如：
+      - generic [ref=e199]:
+        - generic [ref=e200]:
+          - generic [ref=e201]: text
+          - button "复制" [ref=e202] [cursor=pointer]
+        - code [ref=e204]: 事务 A： UPDATE account SET balance = 0; 还没有 COMMIT 事务 B： SELECT balance → 读取到了 0 事务 A： ROLLBACK
+      - paragraph [ref=e205]: 事务 B 读取到的：
+      - generic [ref=e206]:
+        - generic [ref=e207]:
+          - generic [ref=e208]: text
+          - button "复制" [ref=e209] [cursor=pointer]
+        - code [ref=e211]: balance = 0
+      - paragraph [ref=e212]: 实际上最终根本没有生效。
+      - paragraph [ref=e213]: 这就是：
+      - blockquote [ref=e214]:
+        - paragraph [ref=e215]:
+          - strong [ref=e216]: 脏读（Dirty Read）
+      - paragraph [ref=e217]: 普通业务系统基本不会使用 Read Uncommitted。
+      - separator [ref=e218]
+      - heading "SECTION 04 3. Read Committed" [level=1] [ref=e219]
+      - paragraph [ref=e220]: RC 的核心规则：
+      - blockquote [ref=e221]:
+        - paragraph [ref=e222]: 每一次普通快照读，都读取当前已经提交、且对该语句可见的数据。
+      - paragraph [ref=e223]: 例如：
+      - generic [ref=e224]:
+        - generic [ref=e225]:
+          - generic [ref=e226]: text
+          - button "复制" [ref=e227] [cursor=pointer]
+        - code [ref=e229]: 事务 A： SELECT price → 100 事务 B： UPDATE product SET price = 200; COMMIT; 事务 A： 再次 SELECT price → 200
+      - paragraph [ref=e230]: 同一个事务中：
+      - generic [ref=e231]:
+        - generic [ref=e232]:
+          - generic [ref=e233]: text
+          - button "复制" [ref=e234] [cursor=pointer]
+        - code [ref=e236]: 第一次 = 100 第二次 = 200
+      - paragraph [ref=e237]: 这就是：
+      - blockquote [ref=e238]:
+        - paragraph [ref=e239]:
+          - strong [ref=e240]: 不可重复读
+      - paragraph [ref=e241]: RC 的优势是：
+      - list [ref=e242]:
+        - listitem [ref=e243]: 通常锁范围相对更小
+        - listitem [ref=e244]: 减少部分 Gap Lock 带来的冲突
+        - listitem [ref=e245]: 高并发场景下比较常见
+      - paragraph [ref=e246]: 适合：
+      - list [ref=e247]:
+        - listitem [ref=e248]: 普通 CRUD
+        - listitem [ref=e249]: 后台管理
+        - listitem [ref=e250]: 大量查询
+        - listitem [ref=e251]: 不要求事务内始终看到完全相同快照的业务
+      - separator [ref=e252]
+      - heading "SECTION 05 4. Repeatable Read" [level=1] [ref=e253]
+      - paragraph [ref=e254]: RR 是 MySQL InnoDB 默认事务隔离级别。
+      - paragraph [ref=e255]: 核心目标：
+      - blockquote [ref=e256]:
+        - paragraph [ref=e257]: 同一个事务中的一致性快照读，可以保持稳定的读取视角。
+      - paragraph [ref=e258]: 例如：
+      - generic [ref=e259]:
+        - generic [ref=e260]:
+          - generic [ref=e261]: text
+          - button "复制" [ref=e262] [cursor=pointer]
+        - code [ref=e264]: 事务 A： BEGIN; SELECT price → 100 事务 B： UPDATE product SET price = 200; COMMIT; 事务 A： 再次 SELECT price → 100
+      - paragraph [ref=e265]: 虽然数据库最新值已经变成：
+      - generic [ref=e266]:
+        - generic [ref=e267]:
+          - generic [ref=e268]: text
+          - button "复制" [ref=e269] [cursor=pointer]
+        - code [ref=e271]: "200"
+      - paragraph [ref=e272]: 但事务 A 仍然可能读取：
+      - generic [ref=e273]:
+        - generic [ref=e274]:
+          - generic [ref=e275]: text
+          - button "复制" [ref=e276] [cursor=pointer]
+        - code [ref=e278]: "100"
+      - paragraph [ref=e279]: 背后的核心机制：
+      - generic [ref=e280]:
+        - generic [ref=e281]:
+          - generic [ref=e282]: text
+          - button "复制" [ref=e283] [cursor=pointer]
+        - code [ref=e285]: MVCC + Read View + Undo Log
+      - separator [ref=e286]
+      - heading "SECTION 06 5. Serializable" [level=1] [ref=e287]
+      - paragraph [ref=e288]: Serializable 提供最高程度的事务隔离。
+      - paragraph [ref=e289]: 可以理解成：
+      - blockquote [ref=e290]:
+        - paragraph [ref=e291]: 宁愿牺牲并发性能，也要提供更严格的事务隔离。
+      - paragraph [ref=e292]: 可能出现：
+      - generic [ref=e293]:
+        - generic [ref=e294]:
+          - generic [ref=e295]: text
+          - button "复制" [ref=e296] [cursor=pointer]
+        - code [ref=e298]: 事务 A ↓ 读取 / 锁定某个范围 事务 B ↓ 修改相关数据 ↓ 等待
+      - paragraph [ref=e299]: 因此可能导致：
+      - list [ref=e300]:
+        - listitem [ref=e301]: 锁等待增加
+        - listitem [ref=e302]: 并发能力降低
+        - listitem [ref=e303]: 吞吐量下降
+      - paragraph [ref=e304]: 一般只在极少数需要严格隔离且并发量可控的场景考虑。
+      - paragraph [ref=e305]: 普通 Web 系统通常不会默认使用 Serializable。
+      - separator [ref=e306]
+      - heading "SECTION 07 6. 隔离级别不是越高越好" [level=1] [ref=e307]
+      - paragraph [ref=e308]: 隔离级别提高，通常意味着更强的一致性约束，但也可能带来更多并发成本：
+      - generic [ref=e309]:
+        - generic [ref=e310]:
+          - generic [ref=e311]: text
+          - button "复制" [ref=e312] [cursor=pointer]
+        - code [ref=e314]: 隔离程度 ↑ 锁竞争可能 ↑ 等待时间可能 ↑ 死锁风险可能 ↑ 吞吐量可能 ↓
+      - paragraph [ref=e315]: 所以不能简单认为：
+      - generic [ref=e316]:
+        - generic [ref=e317]:
+          - generic [ref=e318]: text
+          - button "复制" [ref=e319] [cursor=pointer]
+        - code [ref=e321]: Serializable > RR > RC
+      - paragraph [ref=e322]: 然后无脑选择最高级别。
+      - paragraph [ref=e323]: 真正应该根据业务选择。
+      - separator [ref=e324]
+      - heading "SECTION 08 7. RC 和 RR 怎么选？" [level=1] [ref=e325]
+      - paragraph [ref=e326]: 可以简单记忆：
+      - heading "SECTION 09 RC" [level=2] [ref=e327]
+      - paragraph [ref=e328]: 适合：
+      - generic [ref=e329]:
+        - generic [ref=e330]:
+          - generic [ref=e331]: text
+          - button "复制" [ref=e332] [cursor=pointer]
+        - code [ref=e334]: 高并发 + 普通 CRUD + 可以接受同一事务中两次查询看到不同的已提交数据
+      - separator [ref=e335]
+      - heading "SECTION 10 RR" [level=2] [ref=e336]
+      - paragraph [ref=e337]: 适合：
+      - generic [ref=e338]:
+        - generic [ref=e339]:
+          - generic [ref=e340]: text
+          - button "复制" [ref=e341] [cursor=pointer]
+        - code [ref=e343]: 需要事务内一致性读取视角 + 希望减少不可重复读问题
+      - paragraph [ref=e344]: 也是 MySQL InnoDB 默认选择。
+      - separator [ref=e345]
+      - heading "SECTION 11 面试回答" [level=2] [ref=e346]
+      - paragraph [ref=e347]: 如果面试官问：
+      - blockquote [ref=e348]:
+        - paragraph [ref=e349]: MySQL 为什么默认 RR，而一些高并发互联网系统会选择 RC？
+      - paragraph [ref=e350]: 可以回答：
+      - blockquote [ref=e351]:
+        - paragraph [ref=e352]: MySQL 默认 RR，是因为它在一致性和性能之间比较均衡。InnoDB 可以通过 MVCC 提供事务内稳定的一致性读取视角，并在加锁读和范围操作中结合 Next-Key Lock 处理很多幻读问题。 但 RR 在一些范围更新、加锁读场景中可能涉及更多 Gap Lock 和锁竞争。如果业务并不要求一个事务内多次查询始终看到同一个快照，那么 RC 可以减少部分锁冲突，因此一些高并发业务会选择 RC。
+      - separator [ref=e353]
+      - heading "SECTION 12 8. 隔离级别不能替代业务并发控制" [level=1] [ref=e354]
+      - paragraph [ref=e355]: 例如库存只剩：
+      - generic [ref=e356]:
+        - generic [ref=e357]:
+          - generic [ref=e358]: text
+          - button "复制" [ref=e359] [cursor=pointer]
+        - code [ref=e361]: stock = 1
+      - paragraph [ref=e362]: 两个请求：
+      - generic [ref=e363]:
+        - generic [ref=e364]:
+          - generic [ref=e365]: text
+          - button "复制" [ref=e366] [cursor=pointer]
+        - code [ref=e368]: 事务 A： SELECT stock → 1 事务 B： SELECT stock → 1
+      - paragraph [ref=e369]: 如果应用层分别判断：
+      - generic [ref=e370]:
+        - generic [ref=e371]:
+          - generic [ref=e372]: text
+          - button "复制" [ref=e373] [cursor=pointer]
+        - code [ref=e375]: stock > 0
+      - paragraph [ref=e376]: 然后再修改：
+      - generic [ref=e377]:
+        - generic [ref=e378]:
+          - generic [ref=e379]: text
+          - button "复制" [ref=e380] [cursor=pointer]
+        - code [ref=e382]: A UPDATE stock = 0 B UPDATE stock = 0
+      - paragraph [ref=e383]: 业务逻辑可能产生并发问题。
+      - paragraph [ref=e384]: 更好的方式之一是直接使用条件原子 UPDATE：
+      - generic [ref=e385]:
+        - generic [ref=e386]:
+          - generic [ref=e387]: sql
+          - button "复制" [ref=e388] [cursor=pointer]
+        - code [ref=e390]: UPDATE product SET stock = stock - 1 WHERE id = 1 AND stock > 0;
+      - paragraph [ref=e391]: 然后判断：
+      - generic [ref=e392]:
+        - generic [ref=e393]:
+          - generic [ref=e394]: text
+          - button "复制" [ref=e395] [cursor=pointer]
+        - code [ref=e397]: affected_rows = 1 → 扣减成功 affected_rows = 0 → 库存不足 / 已被其他请求抢先扣减
+      - paragraph [ref=e398]: 所以：
+      - blockquote [ref=e399]:
+        - paragraph [ref=e400]:
+          - strong [ref=e401]: 隔离级别负责事务之间的数据可见性与隔离规则，但不能代替正确的业务并发设计。
+      - separator [ref=e402]
+      - heading "SECTION 13 9. MVCC 是什么？" [level=1] [ref=e403]
+      - paragraph [ref=e404]: MVCC：
+      - blockquote [ref=e405]:
+        - paragraph [ref=e406]:
+          - strong [ref=e407]: Multi-Version Concurrency Control，多版本并发控制。
+      - paragraph [ref=e408]: 先看它解决的问题。
+      - paragraph [ref=e409]: 假设：
+      - generic [ref=e410]:
+        - generic [ref=e411]:
+          - generic [ref=e412]: text
+          - button "复制" [ref=e413] [cursor=pointer]
+        - code [ref=e415]: user id = 1 age = 20
+      - paragraph [ref=e416]: 两个事务：
+      - generic [ref=e417]:
+        - generic [ref=e418]:
+          - generic [ref=e419]: text
+          - button "复制" [ref=e420] [cursor=pointer]
+        - code [ref=e422]: 事务 A 事务 B BEGIN; SELECT age → 20 BEGIN; UPDATE user SET age = 30 WHERE id = 1; COMMIT; SELECT age → ?
+      - paragraph [ref=e423]: 如果事务 A 使用 RR，一致性快照读下第二次通常仍然可以看到：
+      - generic [ref=e424]:
+        - generic [ref=e425]:
+          - generic [ref=e426]: text
+          - button "复制" [ref=e427] [cursor=pointer]
+        - code [ref=e429]: "20"
+      - paragraph [ref=e430]: 问题：
+      - blockquote [ref=e431]:
+        - paragraph [ref=e432]: 数据库明明已经被事务 B 修改成 30，事务 A 为什么还能看到 20？
+      - paragraph [ref=e433]: 答案就是：
+      - blockquote [ref=e434]:
+        - paragraph [ref=e435]:
+          - strong [ref=e436]: MVCC
+      - separator [ref=e437]
+      - heading "SECTION 14 10. 如果没有 MVCC 会怎么样？" [level=1] [ref=e438]
+      - paragraph [ref=e439]: 一种最直接的方案是：
+      - generic [ref=e440]:
+        - generic [ref=e441]:
+          - generic [ref=e442]: text
+          - button "复制" [ref=e443] [cursor=pointer]
+        - code [ref=e445]: 事务 A： 我要读 user:1 ↓ 加锁 事务 B： 我要修改 user:1 ↓ 等待事务 A
+      - paragraph [ref=e446]: 这样当然能够保证：
+      - generic [ref=e447]:
+        - generic [ref=e448]:
+          - generic [ref=e449]: text
+          - button "复制" [ref=e450] [cursor=pointer]
+        - code [ref=e452]: A 第一次读 = 20 A 第二次读 = 20
+      - paragraph [ref=e453]: 但是会造成大量：
+      - generic [ref=e454]:
+        - generic [ref=e455]:
+          - generic [ref=e456]: text
+          - button "复制" [ref=e457] [cursor=pointer]
+        - code [ref=e459]: 读阻塞写 写阻塞读
+      - paragraph [ref=e460]: 并发性能会明显下降。
+      - paragraph [ref=e461]: MVCC 的思路是：
+      - blockquote [ref=e462]:
+        - paragraph [ref=e463]:
+          - strong [ref=e464]: 你修改你的，我读取适合我的数据版本。
+      - paragraph [ref=e465]: 通过保存历史版本，让普通读操作不必总是通过互斥锁来保证一致性。
+      - separator [ref=e466]
+      - heading "SECTION 15 11. 什么叫\"多版本\"？" [level=1] [ref=e467]
+      - paragraph [ref=e468]: 假设：
+      - generic [ref=e469]:
+        - generic [ref=e470]:
+          - generic [ref=e471]: text
+          - button "复制" [ref=e472] [cursor=pointer]
+        - code [ref=e474]: age = 20
+      - paragraph [ref=e475]: 事务 B：
+      - generic [ref=e476]:
+        - generic [ref=e477]:
+          - generic [ref=e478]: sql
+          - button "复制" [ref=e479] [cursor=pointer]
+        - code [ref=e481]: UPDATE user SET age = 30 WHERE id = 1;
+      - paragraph [ref=e482]: 逻辑上可以理解成：
+      - generic [ref=e483]:
+        - generic [ref=e484]:
+          - generic [ref=e485]: text
+          - button "复制" [ref=e486] [cursor=pointer]
+        - code [ref=e488]: 当前版本 age = 30 trx_id = B ↓ 历史版本 age = 20 trx_id = ...
+      - paragraph [ref=e489]: 事务 A 查询时：
+      - generic [ref=e490]:
+        - generic [ref=e491]:
+          - generic [ref=e492]: text
+          - button "复制" [ref=e493] [cursor=pointer]
+        - code [ref=e495]: age = 30 ↓ 当前事务是否可见？
+      - paragraph [ref=e496]: 如果不可见：
+      - generic [ref=e497]:
+        - generic [ref=e498]:
+          - generic [ref=e499]: text
+          - button "复制" [ref=e500] [cursor=pointer]
+        - code [ref=e502]: 30 ❌ ↓ 20 ✅
+      - paragraph [ref=e503]: 于是返回：
+      - generic [ref=e504]:
+        - generic [ref=e505]:
+          - generic [ref=e506]: text
+          - button "复制" [ref=e507] [cursor=pointer]
+        - code [ref=e509]: "20"
+      - paragraph [ref=e510]: MVCC 最核心的思想：
+      - blockquote [ref=e511]:
+        - paragraph [ref=e512]:
+          - strong [ref=e513]: 通过多个数据版本，让不同事务读取对自己可见的数据版本，从而降低普通读与写之间的锁冲突。
+      - separator [ref=e514]
+      - heading "SECTION 16 12. 历史版本在哪里？" [level=1] [ref=e515]
+      - paragraph [ref=e516]: 这就涉及：
+      - generic [ref=e517]:
+        - generic [ref=e518]:
+          - generic [ref=e519]: text
+          - button "复制" [ref=e520] [cursor=pointer]
+        - code [ref=e522]: MVCC ↓ Undo Log
+      - paragraph [ref=e523]: 可以先理解 InnoDB 记录中存在一些隐藏信息，其中两个关键概念是：
+      - generic [ref=e524]:
+        - generic [ref=e525]:
+          - generic [ref=e526]: text
+          - button "复制" [ref=e527] [cursor=pointer]
+        - code [ref=e529]: DB_TRX_ID DB_ROLL_PTR
+      - paragraph [ref=e530]: 当前学习阶段不需要背内部占多少字节。
+      - paragraph [ref=e531]: 只需要理解：
+      - generic [ref=e532]:
+        - generic [ref=e533]:
+          - generic [ref=e534]: text
+          - button "复制" [ref=e535] [cursor=pointer]
+        - code [ref=e537]: DB_TRX_ID → 最后修改该记录的事务 ID DB_ROLL_PTR → 指向相关 Undo 信息，用于找到之前的数据版本
+      - paragraph [ref=e538]: 逻辑结构：
+      - generic [ref=e539]:
+        - generic [ref=e540]:
+          - generic [ref=e541]: text
+          - button "复制" [ref=e542] [cursor=pointer]
+        - code [ref=e544]: 当前记录 age = 30 trx_id = 200 roll_ptr │ ↓ Undo Log age = 20 trx_id = 100 roll_ptr │ ↓ Undo Log age = 18 trx_id = 50
+      - paragraph [ref=e545]: 由此形成：
+      - blockquote [ref=e546]:
+        - paragraph [ref=e547]:
+          - strong [ref=e548]: 版本链
+      - separator [ref=e549]
+      - heading "SECTION 17 13. Undo Log 有什么作用？" [level=1] [ref=e550]
+      - paragraph [ref=e551]: Undo Log 至少需要掌握两个核心用途。
+      - heading "SECTION 18 13.1 事务回滚" [level=2] [ref=e552]
+      - paragraph [ref=e553]: 例如：
+      - generic [ref=e554]:
+        - generic [ref=e555]:
+          - generic [ref=e556]: sql
+          - button "复制" [ref=e557] [cursor=pointer]
+        - code [ref=e559]: BEGIN; UPDATE user SET age = 30 WHERE id = 1; ROLLBACK;
+      - paragraph [ref=e560]: 数据库必须知道：
+      - generic [ref=e561]:
+        - generic [ref=e562]:
+          - generic [ref=e563]: text
+          - button "复制" [ref=e564] [cursor=pointer]
+        - code [ref=e566]: 30 之前是什么？
+      - paragraph [ref=e567]: 通过 Undo 信息可以恢复之前的数据状态。
+      - paragraph [ref=e568]: 逻辑上：
+      - generic [ref=e569]:
+        - generic [ref=e570]:
+          - generic [ref=e571]: text
+          - button "复制" [ref=e572] [cursor=pointer]
+        - code [ref=e574]: 30 ↓ ROLLBACK 20
+      - separator [ref=e575]
+      - heading "SECTION 19 13.2 MVCC 历史版本读取" [level=2] [ref=e576]
+      - paragraph [ref=e577]: 例如事务 A 判断：
+      - generic [ref=e578]:
+        - generic [ref=e579]:
+          - generic [ref=e580]: text
+          - button "复制" [ref=e581] [cursor=pointer]
+        - code [ref=e583]: age = 30
+      - paragraph [ref=e584]: 这个版本对自己不可见。
+      - paragraph [ref=e585]: 就可以沿版本链寻找：
+      - generic [ref=e586]:
+        - generic [ref=e587]:
+          - generic [ref=e588]: text
+          - button "复制" [ref=e589] [cursor=pointer]
+        - code [ref=e591]: 30 ❌ ↓ 20 ✅
+      - paragraph [ref=e592]: 所以当前阶段可以先记：
+      - generic [ref=e593]:
+        - generic [ref=e594]:
+          - generic [ref=e595]: text
+          - button "复制" [ref=e596] [cursor=pointer]
+        - code [ref=e598]: MVCC = Read View + Undo Log 版本链
+      - separator [ref=e599]
+      - heading "SECTION 20 14. Read View 是什么？" [level=1] [ref=e600]
+      - paragraph [ref=e601]: 有了历史版本之后，还存在一个问题：
+      - blockquote [ref=e602]:
+        - paragraph [ref=e603]: 当前事务到底应该读取哪个版本？
+      - paragraph [ref=e604]: 这就需要：
+      - blockquote [ref=e605]:
+        - paragraph [ref=e606]:
+          - strong [ref=e607]: Read View
+      - paragraph [ref=e608]: 可以把 Read View 理解为：
+      - blockquote [ref=e609]:
+        - paragraph [ref=e610]: 事务进行一致性读取时，用于判断数据版本可见性的"事务状态快照"。
+      - paragraph [ref=e611]: 注意：
+      - paragraph [ref=e612]:
+        - strong [ref=e613]: Read View 不是把整个数据库复制一份。
+      - paragraph [ref=e614]: 不是：
+      - generic [ref=e615]:
+        - generic [ref=e616]:
+          - generic [ref=e617]: text
+          - button "复制" [ref=e618] [cursor=pointer]
+        - code [ref=e620]: 数据库 = 10 GB BEGIN 复制 10 GB 数据
+      - paragraph [ref=e621]: 而是维护用于判断事务可见性的相关事务 ID / 活跃事务边界信息。
+      - paragraph [ref=e622]: 查询某个数据版本时：
+      - generic [ref=e623]:
+        - generic [ref=e624]:
+          - generic [ref=e625]: text
+          - button "复制" [ref=e626] [cursor=pointer]
+        - code [ref=e628]: 数据版本 ↓ 对应修改事务 ID ↓ 结合 Read View ↓ 判断这个版本是否可见
+      - paragraph [ref=e629]: 如果不可见：
+      - generic [ref=e630]:
+        - generic [ref=e631]:
+          - generic [ref=e632]: text
+          - button "复制" [ref=e633] [cursor=pointer]
+        - code [ref=e635]: 沿 Undo 版本链继续找
+      - separator [ref=e636]
+      - heading "SECTION 21 15. RR 与 RC 的核心区别如何从 MVCC 理解？" [level=1] [ref=e637]
+      - paragraph [ref=e638]: 这是理解隔离级别非常重要的一步。
+      - separator [ref=e639]
+      - heading "SECTION 22 15.1 RR" [level=2] [ref=e640]
+      - paragraph [ref=e641]: 可以理解成：
+      - generic [ref=e642]:
+        - generic [ref=e643]:
+          - generic [ref=e644]: text
+          - button "复制" [ref=e645] [cursor=pointer]
+        - code [ref=e647]: 事务 A BEGIN 第一次一致性快照读 ↓ 建立 / 使用一致性 Read View 第二次一致性快照读 ↓ 继续保持该事务的一致性读取视角 第三次一致性快照读 ↓ 继续保持一致性读取视角 COMMIT
+      - paragraph [ref=e648]: 因此：
+      - generic [ref=e649]:
+        - generic [ref=e650]:
+          - generic [ref=e651]: text
+          - button "复制" [ref=e652] [cursor=pointer]
+        - code [ref=e654]: 第一次 SELECT → 20
+      - paragraph [ref=e655]: 事务 B：
+      - generic [ref=e656]:
+        - generic [ref=e657]:
+          - generic [ref=e658]: text
+          - button "复制" [ref=e659] [cursor=pointer]
+        - code [ref=e661]: UPDATE → 30 COMMIT
+      - paragraph [ref=e662]: 事务 A：
+      - generic [ref=e663]:
+        - generic [ref=e664]:
+          - generic [ref=e665]: text
+          - button "复制" [ref=e666] [cursor=pointer]
+        - code [ref=e668]: 第二次 SELECT → 20 第三次 SELECT → 20
+      - paragraph [ref=e669]: 这就是：
+      - blockquote [ref=e670]:
+        - paragraph [ref=e671]: Repeatable Read
+      - separator [ref=e672]
+      - heading "SECTION 23 15.2 RC" [level=2] [ref=e673]
+      - paragraph [ref=e674]: RC 下通常可以理解成：
+      - blockquote [ref=e675]:
+        - paragraph [ref=e676]: 每条一致性快照读语句使用新的 Read View。
+      - paragraph [ref=e677]: 例如：
+      - generic [ref=e678]:
+        - generic [ref=e679]:
+          - generic [ref=e680]: text
+          - button "复制" [ref=e681] [cursor=pointer]
+        - code [ref=e683]: 事务 A： SELECT ↓ Read View 1 ↓ 20 事务 B： UPDATE → 30 COMMIT 事务 A： SELECT ↓ Read View 2 ↓ 30
+      - paragraph [ref=e684]: 于是：
+      - generic [ref=e685]:
+        - generic [ref=e686]:
+          - generic [ref=e687]: text
+          - button "复制" [ref=e688] [cursor=pointer]
+        - code [ref=e690]: 第一次 → 20 第二次 → 30
+      - paragraph [ref=e691]: 这就是：
+      - blockquote [ref=e692]:
+        - paragraph [ref=e693]: Read Committed 下可能出现不可重复读。
+      - separator [ref=e694]
+      - heading "SECTION 24 16. RC vs RR 不应该只背定义" [level=1] [ref=e695]
+      - paragraph [ref=e696]: 不要只记：
+      - generic [ref=e697]:
+        - generic [ref=e698]:
+          - generic [ref=e699]: text
+          - button "复制" [ref=e700] [cursor=pointer]
+        - code [ref=e702]: RC → 不可重复读 RR → 可重复读
+      - paragraph [ref=e703]: 应该进一步理解：
+      - generic [ref=e704]:
+        - generic [ref=e705]:
+          - generic [ref=e706]: text
+          - button "复制" [ref=e707] [cursor=pointer]
+        - code [ref=e709]: MVCC │ ┌────────┴────────┐ ↓ ↓ RC RR 每条快照读语句 事务的一致性读取 使用新的 Read View 保持稳定读取视角 ↓ ↓ 可能看到新提交数据 通常继续看到原快照 ↓ ↓ 不可重复读 可重复读
+      - paragraph [ref=e710]: 这才是完整的理解链路。
+      - separator [ref=e711]
+      - heading "SECTION 25 17. 快照读与当前读" [level=1] [ref=e712]
+      - paragraph [ref=e713]: 理解 MVCC 后，下一个非常关键的概念就是：
+      - generic [ref=e714]:
+        - generic [ref=e715]:
+          - generic [ref=e716]: text
+          - button "复制" [ref=e717] [cursor=pointer]
+        - code [ref=e719]: 快照读 vs 当前读
+      - separator [ref=e720]
+      - heading "SECTION 26 18. 快照读" [level=1] [ref=e721]
+      - paragraph [ref=e722]: 普通 SELECT：
+      - generic [ref=e723]:
+        - generic [ref=e724]:
+          - generic [ref=e725]: sql
+          - button "复制" [ref=e726] [cursor=pointer]
+        - code [ref=e728]: SELECT * FROM user WHERE id = 1;
+      - paragraph [ref=e729]: 在 InnoDB 的普通一致性读取场景下，通常属于：
+      - blockquote [ref=e730]:
+        - paragraph [ref=e731]:
+          - strong [ref=e732]: Snapshot Read（快照读）
+      - paragraph [ref=e733]: 主要依赖：
+      - generic [ref=e734]:
+        - generic [ref=e735]:
+          - generic [ref=e736]: text
+          - button "复制" [ref=e737] [cursor=pointer]
+        - code [ref=e739]: MVCC + Read View + Undo Log
+      - paragraph [ref=e740]: 因此可以读取符合当前事务可见性规则的历史版本。
+      - paragraph [ref=e741]: 目的之一：
+      - blockquote [ref=e742]:
+        - paragraph [ref=e743]: 减少普通读和写之间的锁竞争。
+      - separator [ref=e744]
+      - heading "SECTION 27 19. 当前读" [level=1] [ref=e745]
+      - paragraph [ref=e746]: 例如：
+      - generic [ref=e747]:
+        - generic [ref=e748]:
+          - generic [ref=e749]: sql
+          - button "复制" [ref=e750] [cursor=pointer]
+        - code [ref=e752]: SELECT * FROM user WHERE id = 1 FOR UPDATE;
+      - paragraph [ref=e753]: 以及：
+      - generic [ref=e754]:
+        - generic [ref=e755]:
+          - generic [ref=e756]: sql
+          - button "复制" [ref=e757] [cursor=pointer]
+        - code [ref=e759]: UPDATE ... DELETE ...
+      - paragraph [ref=e760]: 需要围绕当前记录进行并发控制。
+      - paragraph [ref=e761]: 例如：
+      - generic [ref=e762]:
+        - generic [ref=e763]:
+          - generic [ref=e764]: text
+          - button "复制" [ref=e765] [cursor=pointer]
+        - code [ref=e767]: 数据库当前： age = 30
+      - paragraph [ref=e768]: 如果事务准备修改这条数据，却只拿到：
+      - generic [ref=e769]:
+        - generic [ref=e770]:
+          - generic [ref=e771]: text
+          - button "复制" [ref=e772] [cursor=pointer]
+        - code [ref=e774]: 历史版本 age = 20
+      - paragraph [ref=e775]: 显然可能产生问题。
+      - paragraph [ref=e776]: 因此：
+      - generic [ref=e777]:
+        - generic [ref=e778]:
+          - generic [ref=e779]: text
+          - button "复制" [ref=e780] [cursor=pointer]
+        - code [ref=e782]: 我要操作当前数据 ↓ 不能只依赖历史快照 ↓ 读取当前版本 ↓ 必要时加锁
+      - paragraph [ref=e783]: 这就是：
+      - blockquote [ref=e784]:
+        - paragraph [ref=e785]:
+          - strong [ref=e786]: Current Read（当前读）
+      - separator [ref=e787]
+      - heading "SECTION 28 20. 快照读 vs 当前读的核心区别" [level=1] [ref=e788]
+      - paragraph [ref=e789]: 可以记：
+      - generic [ref=e790]:
+        - generic [ref=e791]:
+          - generic [ref=e792]: text
+          - button "复制" [ref=e793] [cursor=pointer]
+        - code [ref=e795]: 快照读 → MVCC → 主要解决： “当前事务应该看到哪个版本？” 当前读 → Lock → 主要解决： “并发事务能不能同时修改相关数据？”
+      - paragraph [ref=e796]: 这是后续理解 MySQL 锁的关键分界点。
+      - separator [ref=e797]
+      - heading "SECTION 29 21. SELECT ... FOR UPDATE" [level=1] [ref=e798]
+      - paragraph [ref=e799]: 这是高并发业务和面试中的重点。
+      - paragraph [ref=e800]: 例如：
+      - generic [ref=e801]:
+        - generic [ref=e802]:
+          - generic [ref=e803]: sql
+          - button "复制" [ref=e804] [cursor=pointer]
+        - code [ref=e806]: BEGIN; SELECT * FROM task WHERE id = 100 FOR UPDATE; UPDATE task SET status = 'running' WHERE id = 100; COMMIT;
+      - paragraph [ref=e807]: 普通：
+      - generic [ref=e808]:
+        - generic [ref=e809]:
+          - generic [ref=e810]: sql
+          - button "复制" [ref=e811] [cursor=pointer]
+        - code [ref=e813]: SELECT * FROM task WHERE id = 100;
+      - paragraph [ref=e814]: 通常属于：
+      - generic [ref=e815]:
+        - generic [ref=e816]:
+          - generic [ref=e817]: text
+          - button "复制" [ref=e818] [cursor=pointer]
+        - code [ref=e820]: 快照读 ↓ MVCC ↓ 通常不需要给目标记录加排他锁
+      - paragraph [ref=e821]: 而：
+      - generic [ref=e822]:
+        - generic [ref=e823]:
+          - generic [ref=e824]: sql
+          - button "复制" [ref=e825] [cursor=pointer]
+        - code [ref=e827]: SELECT * FROM task WHERE id = 100 FOR UPDATE;
+      - paragraph [ref=e828]: 属于：
+      - generic [ref=e829]:
+        - generic [ref=e830]:
+          - generic [ref=e831]: text
+          - button "复制" [ref=e832] [cursor=pointer]
+        - code [ref=e834]: 当前读 ↓ 需要进行锁定 ↓ 防止其他事务并发修改相关记录
+      - separator [ref=e835]
+      - heading "SECTION 30 22. FOR UPDATE 是不是一定只锁一行？" [level=1] [ref=e836]
+      - paragraph [ref=e837]: 不是。
+      - paragraph [ref=e838]: 锁定范围与多个因素有关：
+      - generic [ref=e839]:
+        - generic [ref=e840]:
+          - generic [ref=e841]: text
+          - button "复制" [ref=e842] [cursor=pointer]
+        - code [ref=e844]: 索引 + 查询条件 + 隔离级别
+      - paragraph [ref=e845]: 例如：
+      - generic [ref=e846]:
+        - generic [ref=e847]:
+          - generic [ref=e848]: sql
+          - button "复制" [ref=e849] [cursor=pointer]
+        - code [ref=e851]: SELECT * FROM orders WHERE amount > 100 FOR UPDATE;
+      - paragraph [ref=e852]: 这类范围查询在 RR 等场景下可能涉及：
+      - generic [ref=e853]:
+        - generic [ref=e854]:
+          - generic [ref=e855]: text
+          - button "复制" [ref=e856] [cursor=pointer]
+        - code [ref=e858]: Record Lock Gap Lock Next-Key Lock
+      - paragraph [ref=e859]: 所以不能简单回答：
+      - blockquote [ref=e860]:
+        - paragraph [ref=e861]: FOR UPDATE 就是给查询结果加一把行锁。
+      - paragraph [ref=e862]: 更准确的理解是：
+      - blockquote [ref=e863]:
+        - paragraph [ref=e864]: InnoDB 会根据索引访问方式、查询条件和隔离级别确定实际锁定的索引记录及可能的范围。
+      - separator [ref=e865]
+      - heading "SECTION 31 23. Record Lock、Gap Lock、Next-Key Lock" [level=1] [ref=e866]
+      - paragraph [ref=e867]: 当前阶段需要知道概念和为什么存在，不需要研究所有极端边界 Case。
+      - heading "SECTION 32 Record Lock" [level=2] [ref=e868]
+      - paragraph [ref=e869]: 锁住具体的索引记录。
+      - paragraph [ref=e870]: 可以简单理解成：
+      - generic [ref=e871]:
+        - generic [ref=e872]:
+          - generic [ref=e873]: text
+          - button "复制" [ref=e874] [cursor=pointer]
+        - code [ref=e876]: 锁某条记录
+      - separator [ref=e877]
+      - heading "SECTION 33 Gap Lock" [level=2] [ref=e878]
+      - paragraph [ref=e879]: 锁住索引记录之间的：
+      - generic [ref=e880]:
+        - generic [ref=e881]:
+          - generic [ref=e882]: text
+          - button "复制" [ref=e883] [cursor=pointer]
+        - code [ref=e885]: 间隙
+      - paragraph [ref=e886]: 目的之一是阻止其他事务在某个范围内插入新记录。
+      - separator [ref=e887]
+      - heading "SECTION 34 Next-Key Lock" [level=2] [ref=e888]
+      - paragraph [ref=e889]: 可以先理解为：
+      - generic [ref=e890]:
+        - generic [ref=e891]:
+          - generic [ref=e892]: text
+          - button "复制" [ref=e893] [cursor=pointer]
+        - code [ref=e895]: Next-Key Lock = Record Lock + Gap Lock
+      - paragraph [ref=e896]: 即：
+      - blockquote [ref=e897]:
+        - paragraph [ref=e898]: 既锁记录，也保护相关索引范围。
+      - paragraph [ref=e899]: InnoDB 在 RR 下的某些加锁读和范围操作中，会使用 Next-Key Lock 来防止范围内出现新的记录，从而处理很多幻读场景。
+      - separator [ref=e900]
+      - heading "SECTION 35 24. MVCC 和 Lock 分别解决什么？" [level=1] [ref=e901]
+      - paragraph [ref=e902]: 这是整套知识最重要的理解之一：
+      - generic [ref=e903]:
+        - generic [ref=e904]:
+          - generic [ref=e905]: text
+          - button "复制" [ref=e906] [cursor=pointer]
+        - code [ref=e908]: MySQL 并发控制 │ ┌─────────┴─────────┐ ↓ ↓ MVCC Lock ↓ ↓ Read View + Undo Record / Gap / 版本链 Next-Key ↓ ↓ 我应该看到哪个版本？ 别人能不能同时修改？
+      - paragraph [ref=e909]: 一句话：
+      - blockquote [ref=e910]:
+        - paragraph [ref=e911]:
+          - strong [ref=e912]: MVCC 主要解决"读哪个版本"，锁主要解决"并发事务能不能修改相关数据"。
+      - separator [ref=e913]
+      - heading "SECTION 36 25. 高并发业务为什么不能只会 FOR UPDATE？" [level=1] [ref=e914]
+      - paragraph [ref=e915]: 例如多个 Worker 同时抢一个 Agent Task。
+      - paragraph [ref=e916]: 数据库：
+      - generic [ref=e917]:
+        - generic [ref=e918]:
+          - generic [ref=e919]: text
+          - button "复制" [ref=e920] [cursor=pointer]
+        - code [ref=e922]: "task: id = 100 status = pending"
+      - paragraph [ref=e923]: 多个 Worker：
+      - generic [ref=e924]:
+        - generic [ref=e925]:
+          - generic [ref=e926]: text
+          - button "复制" [ref=e927] [cursor=pointer]
+        - code [ref=e929]: Worker A Worker B Worker C
+      - paragraph [ref=e930]: 都想把：
+      - generic [ref=e931]:
+        - generic [ref=e932]:
+          - generic [ref=e933]: text
+          - button "复制" [ref=e934] [cursor=pointer]
+        - code [ref=e936]: pending → running
+      - paragraph [ref=e937]: 一种方案是：
+      - generic [ref=e938]:
+        - generic [ref=e939]:
+          - generic [ref=e940]: sql
+          - button "复制" [ref=e941] [cursor=pointer]
+        - code [ref=e943]: BEGIN; SELECT * FROM agent_task WHERE id = 100 FOR UPDATE; UPDATE agent_task SET status = 'running' WHERE id = 100; COMMIT;
+      - paragraph [ref=e944]: 但是很多场景还可以通过更简单的：
+      - blockquote [ref=e945]:
+        - paragraph [ref=e946]:
+          - strong [ref=e947]: 条件 UPDATE / CAS
+      - paragraph [ref=e948]: 解决。
+      - paragraph [ref=e949]: 例如：
+      - generic [ref=e950]:
+        - generic [ref=e951]:
+          - generic [ref=e952]: sql
+          - button "复制" [ref=e953] [cursor=pointer]
+        - code [ref=e955]: UPDATE agent_task SET status = 'running', worker_id = ? WHERE id = ? AND status = 'pending';
+      - paragraph [ref=e956]: 判断：
+      - generic [ref=e957]:
+        - generic [ref=e958]:
+          - generic [ref=e959]: text
+          - button "复制" [ref=e960] [cursor=pointer]
+        - code [ref=e962]: affected_rows = 1 ↓ 抢任务成功 affected_rows = 0 ↓ 任务已经被其他 Worker 抢走
+      - paragraph [ref=e963]: 这类思维对高并发业务非常重要。
+      - separator [ref=e964]
+      - heading "SECTION 37 26. 乐观锁 / CAS" [level=1] [ref=e965]
+      - paragraph [ref=e966]: 如果数据存在版本号：
+      - generic [ref=e967]:
+        - generic [ref=e968]:
+          - generic [ref=e969]: text
+          - button "复制" [ref=e970] [cursor=pointer]
+        - code [ref=e972]: id = 1 balance = 100 version = 5
+      - paragraph [ref=e973]: 读取：
+      - generic [ref=e974]:
+        - generic [ref=e975]:
+          - generic [ref=e976]: text
+          - button "复制" [ref=e977] [cursor=pointer]
+        - code [ref=e979]: version = 5
+      - paragraph [ref=e980]: 修改时：
+      - generic [ref=e981]:
+        - generic [ref=e982]:
+          - generic [ref=e983]: sql
+          - button "复制" [ref=e984] [cursor=pointer]
+        - code [ref=e986]: UPDATE account SET balance = 80, version = version + 1 WHERE id = 1 AND version = 5;
+      - paragraph [ref=e987]: 如果：
+      - generic [ref=e988]:
+        - generic [ref=e989]:
+          - generic [ref=e990]: text
+          - button "复制" [ref=e991] [cursor=pointer]
+        - code [ref=e993]: affected_rows = 1
+      - paragraph [ref=e994]: 说明：
+      - generic [ref=e995]:
+        - generic [ref=e996]:
+          - generic [ref=e997]: text
+          - button "复制" [ref=e998] [cursor=pointer]
+        - code [ref=e1000]: 期间没人修改 ↓ 更新成功
+      - paragraph [ref=e1001]: 如果：
+      - generic [ref=e1002]:
+        - generic [ref=e1003]:
+          - generic [ref=e1004]: text
+          - button "复制" [ref=e1005] [cursor=pointer]
+        - code [ref=e1007]: affected_rows = 0
+      - paragraph [ref=e1008]: 说明：
+      - generic [ref=e1009]:
+        - generic [ref=e1010]:
+          - generic [ref=e1011]: text
+          - button "复制" [ref=e1012] [cursor=pointer]
+        - code [ref=e1014]: version 已经变化 ↓ 发生并发修改
+      - paragraph [ref=e1015]: 这就是典型：
+      - blockquote [ref=e1016]:
+        - paragraph [ref=e1017]:
+          - strong [ref=e1018]: Optimistic Lock / CAS 思维
+      - separator [ref=e1019]
+      - heading "SECTION 38 27. 原子 UPDATE 为什么重要？" [level=1] [ref=e1020]
+      - paragraph [ref=e1021]: 相比：
+      - generic [ref=e1022]:
+        - generic [ref=e1023]:
+          - generic [ref=e1024]: text
+          - button "复制" [ref=e1025] [cursor=pointer]
+        - code [ref=e1027]: SELECT ↓ 应用层判断 ↓ UPDATE
+      - paragraph [ref=e1028]: 高并发业务中通常更应该优先考虑：
+      - generic [ref=e1029]:
+        - generic [ref=e1030]:
+          - generic [ref=e1031]: text
+          - button "复制" [ref=e1032] [cursor=pointer]
+        - code [ref=e1034]: 条件直接写进 UPDATE
+      - paragraph [ref=e1035]: 例如库存：
+      - generic [ref=e1036]:
+        - generic [ref=e1037]:
+          - generic [ref=e1038]: sql
+          - button "复制" [ref=e1039] [cursor=pointer]
+        - code [ref=e1041]: UPDATE product SET stock = stock - 1 WHERE id = ? AND stock > 0;
+      - paragraph [ref=e1042]: 数据库原子执行：
+      - generic [ref=e1043]:
+        - generic [ref=e1044]:
+          - generic [ref=e1045]: text
+          - button "复制" [ref=e1046] [cursor=pointer]
+        - code [ref=e1048]: 判断 stock > 0 + stock - 1
+      - paragraph [ref=e1049]: 应用层只需要判断：
+      - generic [ref=e1050]:
+        - generic [ref=e1051]:
+          - generic [ref=e1052]: text
+          - button "复制" [ref=e1053] [cursor=pointer]
+        - code [ref=e1055]: affected_rows
+      - paragraph [ref=e1056]: 这可以显著减少很多"先查再改"产生的竞态窗口。
+      - separator [ref=e1057]
+      - heading "SECTION 39 28. MySQL 事务相关面试需要掌握到什么程度？" [level=1] [ref=e1058]
+      - paragraph [ref=e1059]: 对于偏 AI 应用 / AI Agent / 全栈工程岗位，不需要深入到 DBA 或 InnoDB 源码级别。
+      - paragraph [ref=e1060]: 重点是：
+      - blockquote [ref=e1061]:
+        - paragraph [ref=e1062]:
+          - strong [ref=e1063]: 能解释核心原理 + 能处理真实高并发业务问题。
+      - paragraph [ref=e1064]: 建议掌握程度：
+      - table [ref=e1066]:
+        - rowgroup [ref=e1067]:
+          - row "知识点 程度 应该能回答" [ref=e1068]:
+            - columnheader "知识点" [ref=e1069]
+            - columnheader "程度" [ref=e1070]
+            - columnheader "应该能回答" [ref=e1071]
+        - rowgroup [ref=e1072]:
+          - row "ACID ★★★ 四个特性" [ref=e1073]:
+            - cell "ACID" [ref=e1074]
+            - cell "★★★" [ref=e1075]
+            - cell "四个特性" [ref=e1076]
+          - row "四种隔离级别 ★★★★★ RU / RC / RR / Serializable" [ref=e1077]:
+            - cell "四种隔离级别" [ref=e1078]
+            - cell "★★★★★" [ref=e1079]
+            - cell "RU / RC / RR / Serializable" [ref=e1080]
+          - row "脏读 / 不可重复读 / 幻读 ★★★★★ 能举例" [ref=e1081]:
+            - cell "脏读 / 不可重复读 / 幻读" [ref=e1082]
+            - cell "★★★★★" [ref=e1083]
+            - cell "能举例" [ref=e1084]
+          - row "RC vs RR ★★★★★ 为什么选择 RC / RR" [ref=e1085]:
+            - cell "RC vs RR" [ref=e1086]
+            - cell "★★★★★" [ref=e1087]
+            - cell "为什么选择 RC / RR" [ref=e1088]
+          - row "MySQL 默认 RR ★★★★ 为什么" [ref=e1089]:
+            - cell "MySQL 默认 RR" [ref=e1090]
+            - cell "★★★★" [ref=e1091]
+            - cell "为什么" [ref=e1092]
+          - row "MVCC ★★★★★ 解决什么、基本原理" [ref=e1093]:
+            - cell "MVCC" [ref=e1094]
+            - cell "★★★★★" [ref=e1095]
+            - cell "解决什么、基本原理" [ref=e1096]
+          - row "Undo Log ★★★★ 为什么需要历史版本" [ref=e1097]:
+            - cell "Undo Log" [ref=e1098]
+            - cell "★★★★" [ref=e1099]
+            - cell "为什么需要历史版本" [ref=e1100]
+          - row "Read View ★★★★ 用来判断版本可见性" [ref=e1101]:
+            - cell "Read View" [ref=e1102]
+            - cell "★★★★" [ref=e1103]
+            - cell "用来判断版本可见性" [ref=e1104]
+          - row "快照读 / 当前读 ★★★★★ 普通 SELECT vs FOR UPDATE" [ref=e1105]:
+            - cell "快照读 / 当前读" [ref=e1106]
+            - cell "★★★★★" [ref=e1107]
+            - cell "普通 SELECT vs FOR UPDATE" [ref=e1108]
+          - row "Record Lock ★★★★ 基本作用" [ref=e1109]:
+            - cell "Record Lock" [ref=e1110]
+            - cell "★★★★" [ref=e1111]
+            - cell "基本作用" [ref=e1112]
+          - row "Gap Lock ★★★★ 为什么锁间隙" [ref=e1113]:
+            - cell "Gap Lock" [ref=e1114]
+            - cell "★★★★" [ref=e1115]
+            - cell "为什么锁间隙" [ref=e1116]
+          - row "Next-Key Lock ★★★★ Record + Gap 基本思想" [ref=e1117]:
+            - cell "Next-Key Lock" [ref=e1118]
+            - cell "★★★★" [ref=e1119]
+            - cell "Record + Gap 基本思想" [ref=e1120]
+          - row "SELECT FOR UPDATE ★★★★★ 什么时候使用" [ref=e1121]:
+            - cell "SELECT FOR UPDATE" [ref=e1122]
+            - cell "★★★★★" [ref=e1123]
+            - cell "什么时候使用" [ref=e1124]
+          - row "乐观锁 / CAS ★★★★★ version / 条件 UPDATE" [ref=e1125]:
+            - cell "乐观锁 / CAS" [ref=e1126]
+            - cell "★★★★★" [ref=e1127]
+            - cell "version / 条件 UPDATE" [ref=e1128]
+          - row "原子 UPDATE ★★★★★ 为什么比先 SELECT 再 UPDATE 好" [ref=e1129]:
+            - cell "原子 UPDATE" [ref=e1130]
+            - cell "★★★★★" [ref=e1131]
+            - cell "为什么比先 SELECT 再 UPDATE 好" [ref=e1132]
+          - row "死锁 ★★★★ 为什么发生、怎么减少" [ref=e1133]:
+            - cell "死锁" [ref=e1134]
+            - cell "★★★★" [ref=e1135]
+            - cell "为什么发生、怎么减少" [ref=e1136]
+          - row "Redo Log / Binlog ★★★ 知道核心用途" [ref=e1137]:
+            - cell "Redo Log / Binlog" [ref=e1138]
+            - cell "★★★" [ref=e1139]
+            - cell "知道核心用途" [ref=e1140]
+          - row "InnoDB 源码 ★ 不需要" [ref=e1141]:
+            - cell "InnoDB 源码" [ref=e1142]
+            - cell "★" [ref=e1143]
+            - cell "不需要" [ref=e1144]
+          - row "MVCC 源码实现 ★ 不需要" [ref=e1145]:
+            - cell "MVCC 源码实现" [ref=e1146]
+            - cell "★" [ref=e1147]
+            - cell "不需要" [ref=e1148]
+      - separator [ref=e1149]
+      - heading "SECTION 40 29. 面试最容易形成的追问链" [level=1] [ref=e1150]
+      - generic [ref=e1151]:
+        - generic [ref=e1152]:
+          - generic [ref=e1153]: text
+          - button "复制" [ref=e1154] [cursor=pointer]
+        - code [ref=e1156]: MySQL 有哪些事务隔离级别？ ↓ 默认是什么？ ↓ 为什么默认 RR？ ↓ RR 怎么实现可重复读？ ↓ MVCC ↓ MVCC 怎么知道读哪个版本？ ↓ Undo Log + Read View ↓ 普通 SELECT 会不会加锁？ ↓ 快照读 vs 当前读 ↓ SELECT ... FOR UPDATE 呢？ ↓ Record / Gap / Next-Key Lock ↓ 为什么会发生死锁？ ↓ 实际高并发业务如何设计？
+      - paragraph [ref=e1157]: 因此不要把这些知识点独立背诵。
+      - paragraph [ref=e1158]: 应该把它们理解成：
+      - blockquote [ref=e1159]:
+        - paragraph [ref=e1160]:
+          - strong [ref=e1161]: 一条完整的 MySQL 并发控制知识链。
+      - separator [ref=e1162]
+      - heading "SECTION 41 30. 当前完整知识脑图" [level=1] [ref=e1163]
+      - generic [ref=e1164]:
+        - generic [ref=e1165]:
+          - generic [ref=e1166]: text
+          - button "复制" [ref=e1167] [cursor=pointer]
+        - code [ref=e1169]: 事务隔离级别 │ ├── RU ├── RC ├── RR └── Serializable │ ↓ MVCC │ ├─────────────┐ ↓ ↓ Undo Log Read View ↓ ↓ 版本链 可见性判断 └──────┬──────┘ ↓ 快照读 ↓ 普通 SELECT ↓ 减少读写冲突 但是： SELECT ... FOR UPDATE UPDATE DELETE ↓ 当前读 ↓ Lock ↓ ┌──────┼──────┐ ↓ ↓ ↓ Record Gap Next-Key Lock Lock Lock ↓ 锁竞争 ↓ 死锁 ↓ 高并发事务设计 ↓ ┌────────┼────────┐ ↓ ↓ ↓ FOR UPDATE CAS 原子 UPDATE
+      - separator [ref=e1170]
+      - heading "SECTION 42 31. 学习边界" [level=1] [ref=e1171]
+      - heading "SECTION 43 必须掌握" [level=2] [ref=e1172]
+      - generic [ref=e1173]:
+        - generic [ref=e1174]:
+          - generic [ref=e1175]: text
+          - button "复制" [ref=e1176] [cursor=pointer]
+        - code [ref=e1178]: ACID 事务隔离级别 RC vs RR 脏读 / 不可重复读 / 幻读 MVCC Undo Log Read View 快照读 vs 当前读 SELECT ... FOR UPDATE Record / Gap / Next-Key Lock 乐观锁 / CAS 原子 UPDATE 死锁基本处理
+      - separator [ref=e1179]
+      - heading "SECTION 44 了解即可" [level=2] [ref=e1180]
+      - generic [ref=e1181]:
+        - generic [ref=e1182]:
+          - generic [ref=e1183]: text
+          - button "复制" [ref=e1184] [cursor=pointer]
+        - code [ref=e1186]: Redo Log Binlog 两阶段提交 复杂锁边界规则
+      - separator [ref=e1187]
+      - heading "SECTION 45 暂时不用投入大量时间" [level=2] [ref=e1188]
+      - generic [ref=e1189]:
+        - generic [ref=e1190]:
+          - generic [ref=e1191]: text
+          - button "复制" [ref=e1192] [cursor=pointer]
+        - code [ref=e1194]: InnoDB 源码 MVCC 源码 Buffer Pool 内部算法细节 各种极端 Gap Lock Case
+      - separator [ref=e1195]
+      - heading "SECTION 46 32. 推荐继续学习顺序" [level=1] [ref=e1196]
+      - paragraph [ref=e1197]: 当前已经学习到：
+      - generic [ref=e1198]:
+        - generic [ref=e1199]:
+          - generic [ref=e1200]: text
+          - button "复制" [ref=e1201] [cursor=pointer]
+        - code [ref=e1203]: 事务隔离级别 ↓ MVCC ↓ Undo Log ↓ Read View ↓ 快照读 / 当前读 ↓ SELECT ... FOR UPDATE
+      - paragraph [ref=e1204]: 下一阶段继续：
+      - generic [ref=e1205]:
+        - generic [ref=e1206]:
+          - generic [ref=e1207]: text
+          - button "复制" [ref=e1208] [cursor=pointer]
+        - code [ref=e1210]: SELECT ... FOR UPDATE ↓ Record Lock ↓ Gap Lock ↓ Next-Key Lock ↓ 锁等待 ↓ 死锁 ↓ 如何排查死锁 ↓ 如何减少死锁 ↓ 高并发事务设计 ↓ FOR UPDATE vs CAS vs 原子 UPDATE 如何选择
+      - paragraph [ref=e1211]: 这条链掌握以后，MySQL 事务与并发控制相关的中高级工程面试知识就基本串起来了。
+      - separator [ref=e1212]
+      - heading "SECTION 47 33. SELECT ... FOR UPDATE 到底锁什么？" [level=1] [ref=e1213]
+      - paragraph [ref=e1214]: 继续沿着：
+      - generic [ref=e1215]:
+        - generic [ref=e1216]:
+          - generic [ref=e1217]: text
+          - button "复制" [ref=e1218] [cursor=pointer]
+        - code [ref=e1220]: MVCC ↓ 快照读 / 当前读 ↓ SELECT ... FOR UPDATE ↓ Record Lock ↓ Gap Lock ↓ Next-Key Lock ↓ 死锁 ↓ 高并发事务设计
+      - paragraph [ref=e1221]: 这一阶段最重要的问题是：
+      - blockquote [ref=e1222]:
+        - paragraph [ref=e1223]:
+          - strong [ref=e1224]: MySQL 为什么不能只锁查询结果里的那几行？
+      - paragraph [ref=e1225]: 假设订单表：
+      - generic [ref=e1226]:
+        - generic [ref=e1227]:
+          - generic [ref=e1228]: sql
+          - button "复制" [ref=e1229] [cursor=pointer]
+        - code [ref=e1231]: CREATE TABLE orders ( id BIGINT PRIMARY KEY, user_id BIGINT, amount INT, status VARCHAR(20), INDEX idx_amount(amount) );
+      - paragraph [ref=e1232]: 存在：
+      - generic [ref=e1233]:
+        - generic [ref=e1234]:
+          - generic [ref=e1235]: text
+          - button "复制" [ref=e1236] [cursor=pointer]
+        - code [ref=e1238]: id amount -------------- 1 10 2 20 3 30 4 40 5 50
+      - paragraph [ref=e1239]: 事务 A：
+      - generic [ref=e1240]:
+        - generic [ref=e1241]:
+          - generic [ref=e1242]: sql
+          - button "复制" [ref=e1243] [cursor=pointer]
+        - code [ref=e1245]: BEGIN; SELECT * FROM orders WHERE id = 3 FOR UPDATE;
+      - paragraph [ref=e1246]:
+        - code [ref=e1247]: id
+        - text: 是主键，并且进行唯一等值查询，因此 InnoDB 可以非常明确地定位目标索引记录。
+      - paragraph [ref=e1248]: 这种场景通常对应比较明确的：
+      - blockquote [ref=e1249]:
+        - paragraph [ref=e1250]:
+          - strong [ref=e1251]: Record Lock
+      - separator [ref=e1252]
+      - heading "SECTION 48 34. Record Lock" [level=1] [ref=e1253]
+      - paragraph [ref=e1254]: Record Lock 可以先理解成：
+      - blockquote [ref=e1255]:
+        - paragraph [ref=e1256]:
+          - strong [ref=e1257]: 锁住一条具体的索引记录。
+      - paragraph [ref=e1258]: 例如事务 A：
+      - generic [ref=e1259]:
+        - generic [ref=e1260]:
+          - generic [ref=e1261]: sql
+          - button "复制" [ref=e1262] [cursor=pointer]
+        - code [ref=e1264]: BEGIN; SELECT * FROM orders WHERE id = 3 FOR UPDATE;
+      - paragraph [ref=e1265]: 事务 A 尚未提交。
+      - paragraph [ref=e1266]: 事务 B：
+      - generic [ref=e1267]:
+        - generic [ref=e1268]:
+          - generic [ref=e1269]: sql
+          - button "复制" [ref=e1270] [cursor=pointer]
+        - code [ref=e1272]: UPDATE orders SET amount = 100 WHERE id = 3;
+      - paragraph [ref=e1273]: 此时：
+      - generic [ref=e1274]:
+        - generic [ref=e1275]:
+          - generic [ref=e1276]: text
+          - button "复制" [ref=e1277] [cursor=pointer]
+        - code [ref=e1279]: 事务 A id = 3 🔒 事务 B UPDATE id = 3 ↓ 等待
+      - paragraph [ref=e1280]: 直到事务 A：
+      - generic [ref=e1281]:
+        - generic [ref=e1282]:
+          - generic [ref=e1283]: sql
+          - button "复制" [ref=e1284] [cursor=pointer]
+        - code [ref=e1286]: COMMIT;
+      - paragraph [ref=e1287]: 事务 B 才能继续。
+      - paragraph [ref=e1288]: 需要注意：
+      - blockquote [ref=e1289]:
+        - paragraph [ref=e1290]:
+          - strong [ref=e1291]: InnoDB 的行锁本质上是基于索引实现的。
+      - separator [ref=e1292]
+      - heading "SECTION 49 35. 为什么范围查询不能只锁已有记录？" [level=1] [ref=e1293]
+      - paragraph [ref=e1294]: 事务 A：
+      - generic [ref=e1295]:
+        - generic [ref=e1296]:
+          - generic [ref=e1297]: sql
+          - button "复制" [ref=e1298] [cursor=pointer]
+        - code [ref=e1300]: SELECT * FROM orders WHERE amount >= 20 AND amount <= 40 FOR UPDATE;
+      - paragraph [ref=e1301]: 查询结果：
+      - generic [ref=e1302]:
+        - generic [ref=e1303]:
+          - generic [ref=e1304]: text
+          - button "复制" [ref=e1305] [cursor=pointer]
+        - code [ref=e1307]: 20 30 40
+      - paragraph [ref=e1308]: 如果只锁：
+      - generic [ref=e1309]:
+        - generic [ref=e1310]:
+          - generic [ref=e1311]: text
+          - button "复制" [ref=e1312] [cursor=pointer]
+        - code [ref=e1314]: 10 20 30 40 50 🔒 🔒 🔒
+      - paragraph [ref=e1315]: 事务 B 仍然可能：
+      - generic [ref=e1316]:
+        - generic [ref=e1317]:
+          - generic [ref=e1318]: sql
+          - button "复制" [ref=e1319] [cursor=pointer]
+        - code [ref=e1321]: INSERT INTO orders VALUES (6, 2, 25, 'pending');
+      - paragraph [ref=e1322]: 也就是向：
+      - generic [ref=e1323]:
+        - generic [ref=e1324]:
+          - generic [ref=e1325]: text
+          - button "复制" [ref=e1326] [cursor=pointer]
+        - code [ref=e1328]: 20 ~ 30
+      - paragraph [ref=e1329]: 之间插入：
+      - generic [ref=e1330]:
+        - generic [ref=e1331]:
+          - generic [ref=e1332]: text
+          - button "复制" [ref=e1333] [cursor=pointer]
+        - code [ref=e1335]: "25"
+      - paragraph [ref=e1336]: 如果允许成功，那么范围结果中就会出现一条新的记录。
+      - paragraph [ref=e1337]: 因此：
+      - blockquote [ref=e1338]:
+        - paragraph [ref=e1339]:
+          - strong [ref=e1340]: 只锁已经存在的记录，并不能阻止其他事务向查询范围内插入新记录。
+      - paragraph [ref=e1341]: 这就是 Gap Lock 出现的重要原因。
+      - separator [ref=e1342]
+      - heading "SECTION 50 36. Gap Lock" [level=1] [ref=e1343]
+      - paragraph [ref=e1344]: 索引：
+      - generic [ref=e1345]:
+        - generic [ref=e1346]:
+          - generic [ref=e1347]: text
+          - button "复制" [ref=e1348] [cursor=pointer]
+        - code [ref=e1350]: 10 20 30 40 50 gap gap gap gap
+      - paragraph [ref=e1351]: 其中存在：
+      - generic [ref=e1352]:
+        - generic [ref=e1353]:
+          - generic [ref=e1354]: text
+          - button "复制" [ref=e1355] [cursor=pointer]
+        - code [ref=e1357]: (10,20) (20,30) (30,40) (40,50)
+      - paragraph [ref=e1358]: 这些索引间隙。
+      - paragraph [ref=e1359]: Gap Lock：
+      - blockquote [ref=e1360]:
+        - paragraph [ref=e1361]:
+          - strong [ref=e1362]: 锁定索引记录之间的间隙，主要用于阻止其他事务向相关间隙插入新的索引记录。
+      - paragraph [ref=e1363]: 例如锁住：
+      - generic [ref=e1364]:
+        - generic [ref=e1365]:
+          - generic [ref=e1366]: text
+          - button "复制" [ref=e1367] [cursor=pointer]
+        - code [ref=e1369]: (20,30)
+      - paragraph [ref=e1370]: 那么：
+      - generic [ref=e1371]:
+        - generic [ref=e1372]:
+          - generic [ref=e1373]: sql
+          - button "复制" [ref=e1374] [cursor=pointer]
+        - code [ref=e1376]: INSERT ... amount = 25;
+      - paragraph [ref=e1377]: 可能被阻塞。
+      - paragraph [ref=e1378]: Gap Lock 的重点不是：
+      - generic [ref=e1379]:
+        - generic [ref=e1380]:
+          - generic [ref=e1381]: text
+          - button "复制" [ref=e1382] [cursor=pointer]
+        - code [ref=e1384]: 禁止别人修改 amount=20
+      - paragraph [ref=e1385]: 而是：
+      - generic [ref=e1386]:
+        - generic [ref=e1387]:
+          - generic [ref=e1388]: text
+          - button "复制" [ref=e1389] [cursor=pointer]
+        - code [ref=e1391]: 限制别人向 20~30 之间插入新的索引记录
+      - paragraph [ref=e1392]: 因此可以记：
+      - generic [ref=e1393]:
+        - generic [ref=e1394]:
+          - generic [ref=e1395]: text
+          - button "复制" [ref=e1396] [cursor=pointer]
+        - code [ref=e1398]: Record Lock → 防止已有索引记录被并发修改 Gap Lock → 防止相关索引范围出现新的记录
+      - separator [ref=e1399]
+      - heading "SECTION 51 37. Next-Key Lock" [level=1] [ref=e1400]
+      - paragraph [ref=e1401]: 实际 InnoDB 中，Record Lock 和 Gap Lock 经常组合使用。
+      - paragraph [ref=e1402]: 可以先理解：
+      - generic [ref=e1403]:
+        - generic [ref=e1404]:
+          - generic [ref=e1405]: text
+          - button "复制" [ref=e1406] [cursor=pointer]
+        - code [ref=e1408]: Next-Key Lock = Record Lock + Gap Lock
+      - paragraph [ref=e1409]: 例如索引：
+      - generic [ref=e1410]:
+        - generic [ref=e1411]:
+          - generic [ref=e1412]: text
+          - button "复制" [ref=e1413] [cursor=pointer]
+        - code [ref=e1415]: 10 20 30
+      - paragraph [ref=e1416]: 可以粗略理解一个 Next-Key 区间为：
+      - generic [ref=e1417]:
+        - generic [ref=e1418]:
+          - generic [ref=e1419]: text
+          - button "复制" [ref=e1420] [cursor=pointer]
+        - code [ref=e1422]: (10,20]
+      - paragraph [ref=e1423]: 其中：
+      - generic [ref=e1424]:
+        - generic [ref=e1425]:
+          - generic [ref=e1426]: text
+          - button "复制" [ref=e1427] [cursor=pointer]
+        - code [ref=e1429]: (10,20) → Gap 20 → Record
+      - paragraph [ref=e1430]: 组合起来就是 Next-Key Lock。
+      - paragraph [ref=e1431]: 当前学习阶段不需要死背所有左右开闭边界。
+      - paragraph [ref=e1432]: 真正需要掌握的是：
+      - generic [ref=e1433]:
+        - generic [ref=e1434]:
+          - generic [ref=e1435]: text
+          - button "复制" [ref=e1436] [cursor=pointer]
+        - code [ref=e1438]: Record Lock → 锁已有索引记录 Gap Lock → 锁索引间隙 Next-Key Lock → Record + Gap 的组合思想
+      - separator [ref=e1439]
+      - heading "SECTION 52 38. 为什么普通 SELECT 不需要这样锁？" [level=1] [ref=e1440]
+      - paragraph [ref=e1441]: 普通：
+      - generic [ref=e1442]:
+        - generic [ref=e1443]:
+          - generic [ref=e1444]: sql
+          - button "复制" [ref=e1445] [cursor=pointer]
+        - code [ref=e1447]: SELECT * FROM orders WHERE amount BETWEEN 20 AND 40;
+      - paragraph [ref=e1448]: 通常属于：
+      - generic [ref=e1449]:
+        - generic [ref=e1450]:
+          - generic [ref=e1451]: text
+          - button "复制" [ref=e1452] [cursor=pointer]
+        - code [ref=e1454]: 快照读 ↓ MVCC ↓ Read View ↓ 读取对当前事务可见的数据版本
+      - paragraph [ref=e1455]: 在 RR 的一致性读取场景中，即使其他事务后来插入：
+      - generic [ref=e1456]:
+        - generic [ref=e1457]:
+          - generic [ref=e1458]: text
+          - button "复制" [ref=e1459] [cursor=pointer]
+        - code [ref=e1461]: amount = 25
+      - paragraph [ref=e1462]: 当前事务仍然可以通过 MVCC 保持自己的读取视角。
+      - paragraph [ref=e1463]: 因此普通快照读通常不需要为了保持读取一致性，把整个查询范围都锁住。
+      - paragraph [ref=e1464]: 而：
+      - generic [ref=e1465]:
+        - generic [ref=e1466]:
+          - generic [ref=e1467]: sql
+          - button "复制" [ref=e1468] [cursor=pointer]
+        - code [ref=e1470]: SELECT ... FOR UPDATE;
+      - paragraph [ref=e1471]: 属于：
+      - generic [ref=e1472]:
+        - generic [ref=e1473]:
+          - generic [ref=e1474]: text
+          - button "复制" [ref=e1475] [cursor=pointer]
+        - code [ref=e1477]: 当前读 ↓ 读取并准备操作当前数据 ↓ 需要锁进行并发控制
+      - separator [ref=e1478]
+      - heading "SECTION 53 39. MySQL RR 如何处理幻读？" [level=1] [ref=e1479]
+      - paragraph [ref=e1480]: 面试中经常会问：
+      - blockquote [ref=e1481]:
+        - paragraph [ref=e1482]: SQL 标准里的 RR 仍然可能有幻读，为什么 MySQL InnoDB 又经常说可以避免很多幻读场景？
+      - paragraph [ref=e1483]: 需要区分：
+      - heading "SECTION 54 快照读" [level=2] [ref=e1484]
+      - paragraph [ref=e1485]: 例如：
+      - generic [ref=e1486]:
+        - generic [ref=e1487]:
+          - generic [ref=e1488]: sql
+          - button "复制" [ref=e1489] [cursor=pointer]
+        - code [ref=e1491]: SELECT ...
+      - paragraph [ref=e1492]: 主要依靠：
+      - generic [ref=e1493]:
+        - generic [ref=e1494]:
+          - generic [ref=e1495]: text
+          - button "复制" [ref=e1496] [cursor=pointer]
+        - code [ref=e1498]: MVCC + Read View
+      - paragraph [ref=e1499]: 维持事务的一致性读取视角。
+      - heading "SECTION 55 当前读" [level=2] [ref=e1500]
+      - paragraph [ref=e1501]: 例如：
+      - generic [ref=e1502]:
+        - generic [ref=e1503]:
+          - generic [ref=e1504]: sql
+          - button "复制" [ref=e1505] [cursor=pointer]
+        - code [ref=e1507]: SELECT ... FOR UPDATE; UPDATE ...; DELETE ...;
+      - paragraph [ref=e1508]: 在需要范围锁定的场景下，InnoDB 会通过：
+      - generic [ref=e1509]:
+        - generic [ref=e1510]:
+          - generic [ref=e1511]: text
+          - button "复制" [ref=e1512] [cursor=pointer]
+        - code [ref=e1514]: Record Lock + Gap Lock + Next-Key Lock
+      - paragraph [ref=e1515]: 限制其他事务向相关范围插入记录。
+      - paragraph [ref=e1516]: 因此可以记：
+      - generic [ref=e1517]:
+        - generic [ref=e1518]:
+          - generic [ref=e1519]: text
+          - button "复制" [ref=e1520] [cursor=pointer]
+        - code [ref=e1522]: RR 下处理幻读 │ ┌────────┴────────┐ ↓ ↓ 快照读 当前读 ↓ ↓ MVCC Next-Key Lock
+      - paragraph [ref=e1523]: 这是一个非常适合面试表达的理解模型。
+      - separator [ref=e1524]
+      - heading "SECTION 56 40. 索引为什么会影响 FOR UPDATE 的锁范围？" [level=1] [ref=e1525]
+      - paragraph [ref=e1526]: InnoDB 行锁是：
+      - blockquote [ref=e1527]:
+        - paragraph [ref=e1528]:
+          - strong [ref=e1529]: 基于索引实现的。
+      - paragraph [ref=e1530]: 例如：
+      - generic [ref=e1531]:
+        - generic [ref=e1532]:
+          - generic [ref=e1533]: sql
+          - button "复制" [ref=e1534] [cursor=pointer]
+        - code [ref=e1536]: SELECT * FROM orders WHERE id = 100 FOR UPDATE;
+      - paragraph [ref=e1537]:
+        - code [ref=e1538]: id
+        - text: 是主键：
+      - generic [ref=e1539]:
+        - generic [ref=e1540]:
+          - generic [ref=e1541]: text
+          - button "复制" [ref=e1542] [cursor=pointer]
+        - code [ref=e1544]: 主键 B+Tree ↓ 精确定位 id=100 ↓ 锁定相关索引记录
+      - paragraph [ref=e1545]: 锁范围通常非常明确。
+      - paragraph [ref=e1546]: 但如果：
+      - generic [ref=e1547]:
+        - generic [ref=e1548]:
+          - generic [ref=e1549]: sql
+          - button "复制" [ref=e1550] [cursor=pointer]
+        - code [ref=e1552]: SELECT * FROM orders WHERE some_field = 'xxx' FOR UPDATE;
+      - paragraph [ref=e1553]: 而：
+      - generic [ref=e1554]:
+        - generic [ref=e1555]:
+          - generic [ref=e1556]: text
+          - button "复制" [ref=e1557] [cursor=pointer]
+        - code [ref=e1559]: some_field 没有合适索引
+      - paragraph [ref=e1560]: 数据库可能需要扫描大量记录。
+      - paragraph [ref=e1561]: 这会导致：
+      - generic [ref=e1562]:
+        - generic [ref=e1563]:
+          - generic [ref=e1564]: text
+          - button "复制" [ref=e1565] [cursor=pointer]
+        - code [ref=e1567]: 扫描范围扩大 ↓ 锁影响范围可能扩大 ↓ 并发冲突增加
+      - paragraph [ref=e1568]: 因此：
+      - blockquote [ref=e1569]:
+        - paragraph [ref=e1570]:
+          - strong [ref=e1571]: FOR UPDATE 并不意味着永远只锁一行。
+      - paragraph [ref=e1572]: 锁范围取决于：
+      - generic [ref=e1573]:
+        - generic [ref=e1574]:
+          - generic [ref=e1575]: text
+          - button "复制" [ref=e1576] [cursor=pointer]
+        - code [ref=e1578]: 索引 + 查询条件 + 隔离级别 + 实际执行计划
+      - separator [ref=e1579]
+      - heading "SECTION 57 41. 为什么主键 / 唯一索引等值查询更适合精确加锁？" [level=1] [ref=e1580]
+      - paragraph [ref=e1581]: 例如：
+      - generic [ref=e1582]:
+        - generic [ref=e1583]:
+          - generic [ref=e1584]: sql
+          - button "复制" [ref=e1585] [cursor=pointer]
+        - code [ref=e1587]: SELECT * FROM user WHERE id = 100 FOR UPDATE;
+      - paragraph [ref=e1588]: 其中：
+      - generic [ref=e1589]:
+        - generic [ref=e1590]:
+          - generic [ref=e1591]: text
+          - button "复制" [ref=e1592] [cursor=pointer]
+        - code [ref=e1594]: id = PRIMARY KEY
+      - paragraph [ref=e1595]: 并且：
+      - generic [ref=e1596]:
+        - generic [ref=e1597]:
+          - generic [ref=e1598]: text
+          - button "复制" [ref=e1599] [cursor=pointer]
+        - code [ref=e1601]: id=100 确实存在
+      - paragraph [ref=e1602]: 数据库可以精确定位目标记录。
+      - paragraph [ref=e1603]: 这种情况下通常能够形成比较明确的 Record Lock，而不需要保护很大的索引范围。
+      - paragraph [ref=e1604]: 所以高并发事务设计里，一个非常实用的原则是：
+      - blockquote [ref=e1605]:
+        - paragraph [ref=e1606]:
+          - strong [ref=e1607]: 尽量通过主键或合适的唯一索引精确定位需要锁定的数据。
+      - separator [ref=e1608]
+      - heading "SECTION 58 42. 什么是死锁？" [level=1] [ref=e1609]
+      - paragraph [ref=e1610]: 假设：
+      - generic [ref=e1611]:
+        - generic [ref=e1612]:
+          - generic [ref=e1613]: text
+          - button "复制" [ref=e1614] [cursor=pointer]
+        - code [ref=e1616]: id = 1 id = 2
+      - paragraph [ref=e1617]: 事务 A：
+      - generic [ref=e1618]:
+        - generic [ref=e1619]:
+          - generic [ref=e1620]: sql
+          - button "复制" [ref=e1621] [cursor=pointer]
+        - code [ref=e1623]: BEGIN; UPDATE account SET balance = balance - 100 WHERE id = 1;
+      - paragraph [ref=e1624]: A 持有：
+      - generic [ref=e1625]:
+        - generic [ref=e1626]:
+          - generic [ref=e1627]: text
+          - button "复制" [ref=e1628] [cursor=pointer]
+        - code [ref=e1630]: id=1 🔒
+      - paragraph [ref=e1631]: 事务 B：
+      - generic [ref=e1632]:
+        - generic [ref=e1633]:
+          - generic [ref=e1634]: sql
+          - button "复制" [ref=e1635] [cursor=pointer]
+        - code [ref=e1637]: BEGIN; UPDATE account SET balance = balance - 100 WHERE id = 2;
+      - paragraph [ref=e1638]: B 持有：
+      - generic [ref=e1639]:
+        - generic [ref=e1640]:
+          - generic [ref=e1641]: text
+          - button "复制" [ref=e1642] [cursor=pointer]
+        - code [ref=e1644]: id=2 🔒
+      - paragraph [ref=e1645]: 接下来 A：
+      - generic [ref=e1646]:
+        - generic [ref=e1647]:
+          - generic [ref=e1648]: sql
+          - button "复制" [ref=e1649] [cursor=pointer]
+        - code [ref=e1651]: UPDATE account SET balance = balance + 100 WHERE id = 2;
+      - paragraph [ref=e1652]: A 等待 B。
+      - paragraph [ref=e1653]: 与此同时 B：
+      - generic [ref=e1654]:
+        - generic [ref=e1655]:
+          - generic [ref=e1656]: sql
+          - button "复制" [ref=e1657] [cursor=pointer]
+        - code [ref=e1659]: UPDATE account SET balance = balance + 100 WHERE id = 1;
+      - paragraph [ref=e1660]: B 又等待 A。
+      - paragraph [ref=e1661]: 形成：
+      - generic [ref=e1662]:
+        - generic [ref=e1663]:
+          - generic [ref=e1664]: text
+          - button "复制" [ref=e1665] [cursor=pointer]
+        - code [ref=e1667]: 事务 A │ │ 等待 id=2 ↓ 事务 B │ │ 等待 id=1 ↓ 事务 A
+      - paragraph [ref=e1668]: 也就是：
+      - generic [ref=e1669]:
+        - generic [ref=e1670]:
+          - generic [ref=e1671]: text
+          - button "复制" [ref=e1672] [cursor=pointer]
+        - code [ref=e1674]: A 等 B B 等 A
+      - paragraph [ref=e1675]: 形成资源等待环：
+      - blockquote [ref=e1676]:
+        - paragraph [ref=e1677]:
+          - strong [ref=e1678]: Deadlock（死锁）
+      - separator [ref=e1679]
+      - heading "SECTION 59 43. InnoDB 遇到死锁怎么办？" [level=1] [ref=e1680]
+      - paragraph [ref=e1681]: InnoDB 具备死锁检测能力。
+      - paragraph [ref=e1682]: 当发现事务之间形成等待环后，会选择其中一个事务作为 victim：
+      - generic [ref=e1683]:
+        - generic [ref=e1684]:
+          - generic [ref=e1685]: text
+          - button "复制" [ref=e1686] [cursor=pointer]
+        - code [ref=e1688]: 检测到死锁 ↓ 回滚其中一个事务 ↓ 释放它持有的锁 ↓ 另一个事务继续
+      - paragraph [ref=e1689]: 应用可能收到类似错误：
+      - generic [ref=e1690]:
+        - generic [ref=e1691]:
+          - generic [ref=e1692]: text
+          - button "复制" [ref=e1693] [cursor=pointer]
+        - code [ref=e1695]: Deadlock found when trying to get lock; try restarting transaction
+      - paragraph [ref=e1696]: 因此需要认识到：
+      - blockquote [ref=e1697]:
+        - paragraph [ref=e1698]:
+          - strong [ref=e1699]: 在高并发数据库系统中，死锁不一定代表代码存在简单 Bug，也可能是需要正常处理的并发现象。
+      - paragraph [ref=e1700]: 重要事务可以设计：
+      - generic [ref=e1701]:
+        - generic [ref=e1702]:
+          - generic [ref=e1703]: text
+          - button "复制" [ref=e1704] [cursor=pointer]
+        - code [ref=e1706]: 死锁 ↓ 事务回滚 ↓ 有限次数重试
+      - paragraph [ref=e1707]: 当然，重试必须有次数限制，避免无限循环。
+      - separator [ref=e1708]
+      - heading "SECTION 60 44. 如何降低死锁概率？" [level=1] [ref=e1709]
+      - heading "SECTION 61 44.1 统一加锁顺序" [level=2] [ref=e1710]
+      - paragraph [ref=e1711]: 错误方式：
+      - generic [ref=e1712]:
+        - generic [ref=e1713]:
+          - generic [ref=e1714]: text
+          - button "复制" [ref=e1715] [cursor=pointer]
+        - code [ref=e1717]: 事务 A： 1 → 2 事务 B： 2 → 1
+      - paragraph [ref=e1718]: 容易形成：
+      - generic [ref=e1719]:
+        - generic [ref=e1720]:
+          - generic [ref=e1721]: text
+          - button "复制" [ref=e1722] [cursor=pointer]
+        - code [ref=e1724]: A 拿着 1 等 2 B 拿着 2 等 1
+      - paragraph [ref=e1725]: 改成所有业务统一：
+      - generic [ref=e1726]:
+        - generic [ref=e1727]:
+          - generic [ref=e1728]: text
+          - button "复制" [ref=e1729] [cursor=pointer]
+        - code [ref=e1731]: 先锁较小 ID ↓ 再锁较大 ID
+      - paragraph [ref=e1732]: 例如：
+      - generic [ref=e1733]:
+        - generic [ref=e1734]:
+          - generic [ref=e1735]: text
+          - button "复制" [ref=e1736] [cursor=pointer]
+        - code [ref=e1738]: A：1 → 2 B：1 → 2
+      - paragraph [ref=e1739]: 这样 B 一开始就等待 A 的 1，而不是先拿着 2 再等待 1。
+      - paragraph [ref=e1740]: 核心原则：
+      - blockquote [ref=e1741]:
+        - paragraph [ref=e1742]:
+          - strong [ref=e1743]: 统一资源访问 / 加锁顺序。
+      - separator [ref=e1744]
+      - heading "SECTION 62 44.2 事务尽量短" [level=2] [ref=e1745]
+      - paragraph [ref=e1746]: 不要：
+      - generic [ref=e1747]:
+        - generic [ref=e1748]:
+          - generic [ref=e1749]: text
+          - button "复制" [ref=e1750] [cursor=pointer]
+        - code [ref=e1752]: BEGIN ↓ 查询并加锁 ↓ 调用 HTTP ↓ 调用 LLM ↓ 等待 20 秒 ↓ 更新 DB ↓ COMMIT
+      - paragraph [ref=e1753]: 因为这意味着数据库锁可能被持有：
+      - generic [ref=e1754]:
+        - generic [ref=e1755]:
+          - generic [ref=e1756]: text
+          - button "复制" [ref=e1757] [cursor=pointer]
+        - code [ref=e1759]: 20 秒甚至更久
+      - paragraph [ref=e1760]: 对于 Agent 系统尤其应该避免：
+      - generic [ref=e1761]:
+        - generic [ref=e1762]:
+          - generic [ref=e1763]: text
+          - button "复制" [ref=e1764] [cursor=pointer]
+        - code [ref=e1766]: BEGIN SELECT task FOR UPDATE 调用 LLM 等待模型生成 UPDATE task COMMIT
+      - paragraph [ref=e1767]: 更好的思路：
+      - generic [ref=e1768]:
+        - generic [ref=e1769]:
+          - generic [ref=e1770]: text
+          - button "复制" [ref=e1771] [cursor=pointer]
+        - code [ref=e1773]: 短事务： 抢占任务 ↓ COMMIT 事务外： 调用 LLM 执行 Agent 短事务： 更新任务结果 ↓ COMMIT
+      - paragraph [ref=e1774]: 核心原则：
+      - blockquote [ref=e1775]:
+        - paragraph [ref=e1776]:
+          - strong [ref=e1777]: 不要把耗时外部调用包在数据库事务里。
+      - separator [ref=e1778]
+      - heading "SECTION 63 44.3 正确设计索引" [level=2] [ref=e1779]
+      - paragraph [ref=e1780]: 例如：
+      - generic [ref=e1781]:
+        - generic [ref=e1782]:
+          - generic [ref=e1783]: sql
+          - button "复制" [ref=e1784] [cursor=pointer]
+        - code [ref=e1786]: UPDATE orders SET status = 'done' WHERE user_id = 100 AND status = 'pending';
+      - paragraph [ref=e1787]: 如果没有合适索引：
+      - generic [ref=e1788]:
+        - generic [ref=e1789]:
+          - generic [ref=e1790]: text
+          - button "复制" [ref=e1791] [cursor=pointer]
+        - code [ref=e1793]: 扫描范围扩大 ↓ 锁影响范围扩大 ↓ 锁竞争增加 ↓ 死锁概率增加
+      - paragraph [ref=e1794]: 所以：
+      - blockquote [ref=e1795]:
+        - paragraph [ref=e1796]:
+          - strong [ref=e1797]: 慢 SQL 有时候不仅是性能问题，也会演变成并发锁问题。
+      - separator [ref=e1798]
+      - heading "SECTION 64 44.4 单个事务不要锁太多数据" [level=2] [ref=e1799]
+      - paragraph [ref=e1800]: 例如一个事务一次更新：
+      - generic [ref=e1801]:
+        - generic [ref=e1802]:
+          - generic [ref=e1803]: text
+          - button "复制" [ref=e1804] [cursor=pointer]
+        - code [ref=e1806]: 100000 行
+      - paragraph [ref=e1807]: 会导致：
+      - list [ref=e1808]:
+        - listitem [ref=e1809]: 锁数量增加
+        - listitem [ref=e1810]: 锁持有时间增加
+        - listitem [ref=e1811]: 冲突概率增加
+      - paragraph [ref=e1812]: 如果业务允许，可以：
+      - generic [ref=e1813]:
+        - generic [ref=e1814]:
+          - generic [ref=e1815]: text
+          - button "复制" [ref=e1816] [cursor=pointer]
+        - code [ref=e1818]: 分批处理 + 缩短单次事务
+      - separator [ref=e1819]
+      - heading "SECTION 65 45. Agent 多 Worker 抢任务怎么设计？" [level=1] [ref=e1820]
+      - paragraph [ref=e1821]: 假设：
+      - generic [ref=e1822]:
+        - generic [ref=e1823]:
+          - generic [ref=e1824]: text
+          - button "复制" [ref=e1825] [cursor=pointer]
+        - code [ref=e1827]: agent_task id status ---------------- 100 pending
+      - paragraph [ref=e1828]: 现在：
+      - generic [ref=e1829]:
+        - generic [ref=e1830]:
+          - generic [ref=e1831]: text
+          - button "复制" [ref=e1832] [cursor=pointer]
+        - code [ref=e1834]: Worker A Worker B Worker C
+      - paragraph [ref=e1835]: 同时准备执行任务 100。
+      - paragraph [ref=e1836]: 一种方案：
+      - generic [ref=e1837]:
+        - generic [ref=e1838]:
+          - generic [ref=e1839]: sql
+          - button "复制" [ref=e1840] [cursor=pointer]
+        - code [ref=e1842]: BEGIN; SELECT * FROM agent_task WHERE id = 100 FOR UPDATE; UPDATE agent_task SET status = 'running' WHERE id = 100; COMMIT;
+      - paragraph [ref=e1843]: 这种方案可以工作。
+      - paragraph [ref=e1844]: 但是如果业务只是简单地：
+      - generic [ref=e1845]:
+        - generic [ref=e1846]:
+          - generic [ref=e1847]: text
+          - button "复制" [ref=e1848] [cursor=pointer]
+        - code [ref=e1850]: pending ↓ running
+      - paragraph [ref=e1851]: 通常没必要先：
+      - generic [ref=e1852]:
+        - generic [ref=e1853]:
+          - generic [ref=e1854]: text
+          - button "复制" [ref=e1855] [cursor=pointer]
+        - code [ref=e1857]: SELECT ↓ 加锁 ↓ UPDATE
+      - paragraph [ref=e1858]: 可以直接使用：
+      - generic [ref=e1859]:
+        - generic [ref=e1860]:
+          - generic [ref=e1861]: sql
+          - button "复制" [ref=e1862] [cursor=pointer]
+        - code [ref=e1864]: UPDATE agent_task SET status = 'running', worker_id = ? WHERE id = ? AND status = 'pending';
+      - paragraph [ref=e1865]: 然后：
+      - generic [ref=e1866]:
+        - generic [ref=e1867]:
+          - generic [ref=e1868]: text
+          - button "复制" [ref=e1869] [cursor=pointer]
+        - code [ref=e1871]: affected_rows = 1 → 抢任务成功 affected_rows = 0 → 任务已经被其他 Worker 抢走
+      - paragraph [ref=e1872]: 这就是：
+      - blockquote [ref=e1873]:
+        - paragraph [ref=e1874]:
+          - strong [ref=e1875]: 条件 UPDATE / CAS 思维
+      - separator [ref=e1876]
+      - heading "SECTION 66 46. FOR UPDATE vs CAS / 条件 UPDATE 怎么选？" [level=1] [ref=e1877]
+      - paragraph [ref=e1878]: 这是实际工程中非常重要的判断。
+      - heading "SECTION 67 简单状态竞争" [level=2] [ref=e1879]
+      - paragraph [ref=e1880]: 例如：
+      - generic [ref=e1881]:
+        - generic [ref=e1882]:
+          - generic [ref=e1883]: text
+          - button "复制" [ref=e1884] [cursor=pointer]
+        - code [ref=e1886]: pending → running
+      - paragraph [ref=e1887]: 业务条件可以直接写进一条 SQL：
+      - generic [ref=e1888]:
+        - generic [ref=e1889]:
+          - generic [ref=e1890]: sql
+          - button "复制" [ref=e1891] [cursor=pointer]
+        - code [ref=e1893]: UPDATE agent_task SET status = 'running' WHERE id = ? AND status = 'pending';
+      - paragraph [ref=e1894]: 优先考虑：
+      - blockquote [ref=e1895]:
+        - paragraph [ref=e1896]:
+          - strong [ref=e1897]: 原子条件 UPDATE / CAS
+      - paragraph [ref=e1898]: 因为：
+      - generic [ref=e1899]:
+        - generic [ref=e1900]:
+          - generic [ref=e1901]: text
+          - button "复制" [ref=e1902] [cursor=pointer]
+        - code [ref=e1904]: 一次 SQL ↓ 判断 + 修改 ↓ 完成
+      - paragraph [ref=e1905]: 事务窗口很小。
+      - separator [ref=e1906]
+      - heading "SECTION 68 复杂\"读取 → 判断 → 修改\"" [level=2] [ref=e1907]
+      - paragraph [ref=e1908]: 例如转账：
+      - generic [ref=e1909]:
+        - generic [ref=e1910]:
+          - generic [ref=e1911]: text
+          - button "复制" [ref=e1912] [cursor=pointer]
+        - code [ref=e1914]: 读取账户 A ↓ 读取账户 B ↓ 检查余额 / 状态 ↓ 执行复杂业务判断 ↓ 修改账户 A ↓ 修改账户 B
+      - paragraph [ref=e1915]: 这类业务可能需要：
+      - generic [ref=e1916]:
+        - generic [ref=e1917]:
+          - generic [ref=e1918]: text
+          - button "复制" [ref=e1919] [cursor=pointer]
+        - code [ref=e1921]: 数据库事务 + SELECT ... FOR UPDATE
+      - paragraph [ref=e1922]: 以保证业务判断期间相关数据不会被其他事务并发修改。
+      - paragraph [ref=e1923]: 因此可以记：
+      - generic [ref=e1924]:
+        - generic [ref=e1925]:
+          - generic [ref=e1926]: text
+          - button "复制" [ref=e1927] [cursor=pointer]
+        - code [ref=e1929]: 简单状态竞争 ↓ CAS / 条件 UPDATE 复杂读取 → 判断 → 修改 ↓ 事务 + FOR UPDATE
+      - separator [ref=e1930]
+      - heading "SECTION 69 47. 乐观锁 vs 悲观锁的初步理解" [level=1] [ref=e1931]
+      - heading "SECTION 70 悲观锁" [level=2] [ref=e1932]
+      - paragraph [ref=e1933]: 代表：
+      - generic [ref=e1934]:
+        - generic [ref=e1935]:
+          - generic [ref=e1936]: sql
+          - button "复制" [ref=e1937] [cursor=pointer]
+        - code [ref=e1939]: SELECT ... FOR UPDATE;
+      - paragraph [ref=e1940]: 思想：
+      - blockquote [ref=e1941]:
+        - paragraph [ref=e1942]: 我认为并发冲突可能发生，因此先把相关数据锁住，再执行业务逻辑。
+      - paragraph [ref=e1943]: 特点：
+      - list [ref=e1944]:
+        - listitem [ref=e1945]: 冲突高时比较直接
+        - listitem [ref=e1946]: 会产生锁等待
+        - listitem [ref=e1947]: 事务必须尽量短
+      - separator [ref=e1948]
+      - heading "SECTION 71 乐观锁" [level=2] [ref=e1949]
+      - paragraph [ref=e1950]: 典型：
+      - generic [ref=e1951]:
+        - generic [ref=e1952]:
+          - generic [ref=e1953]: text
+          - button "复制" [ref=e1954] [cursor=pointer]
+        - code [ref=e1956]: version CAS 条件 UPDATE
+      - paragraph [ref=e1957]: 例如：
+      - generic [ref=e1958]:
+        - generic [ref=e1959]:
+          - generic [ref=e1960]: sql
+          - button "复制" [ref=e1961] [cursor=pointer]
+        - code [ref=e1963]: UPDATE account SET balance = 80, version = version + 1 WHERE id = 1 AND version = 5;
+      - paragraph [ref=e1964]: 思想：
+      - blockquote [ref=e1965]:
+        - paragraph [ref=e1966]: 我先假设冲突不会发生，提交修改时再判断数据是否已经被其他事务修改。
+      - paragraph [ref=e1967]: 特点：
+      - list [ref=e1968]:
+        - listitem [ref=e1969]: 不需要长时间持有悲观锁
+        - listitem [ref=e1970]: 冲突低时非常合适
+        - listitem [ref=e1971]: 冲突高时可能产生大量失败与重试
+      - separator [ref=e1972]
+      - heading "SECTION 72 48. 当前 MySQL 并发控制完整知识链" [level=1] [ref=e1973]
+      - paragraph [ref=e1974]: 现在已经可以从隔离级别一路串到实际高并发设计：
+      - generic [ref=e1975]:
+        - generic [ref=e1976]:
+          - generic [ref=e1977]: text
+          - button "复制" [ref=e1978] [cursor=pointer]
+        - code [ref=e1980]: 事务隔离级别 ↓ MVCC ↓ ┌──────┴──────┐ ↓ ↓ Undo Log Read View ↓ ↓ 版本链 可见性判断 └──────┬──────┘ ↓ 快照读 ↓ 普通 SELECT 需要操作当前数据 ↓ 当前读 ↓ SELECT ... FOR UPDATE UPDATE / DELETE ↓ Lock ↓ ┌──────┼──────────┐ ↓ ↓ ↓ Record Gap Next-Key Lock Lock Lock ↓ 锁竞争 ↓ 死锁 ↓ ┌──────┴──────────────┐ ↓ ↓ 减少锁冲突 正确业务设计 ↓ ↓ 统一锁顺序 CAS 短事务 条件 UPDATE 正确索引 FOR UPDATE 分批处理 乐观锁
+      - separator [ref=e1981]
+      - heading "SECTION 73 49. 下一阶段学习路线：从单库事务走向分布式一致性" [level=1] [ref=e1982]
+      - paragraph [ref=e1983]: 完成 MySQL 锁与死锁后，下一阶段建议进入：
+      - generic [ref=e1984]:
+        - generic [ref=e1985]:
+          - generic [ref=e1986]: text
+          - button "复制" [ref=e1987] [cursor=pointer]
+        - code [ref=e1989]: 库存扣减怎么做？ ↓ 账户转账怎么做？ ↓ Agent Task 多 Worker 抢任务怎么做？ ↓ CAS vs FOR UPDATE 怎么选？ ↓ 乐观锁 vs 悲观锁怎么选？ ↓ 数据库事务提交成功，但 MQ 发送失败怎么办？ ↓ DB + MQ 一致性 ↓ Outbox Pattern
+      - paragraph [ref=e1990]: 这一步会把：
+      - generic [ref=e1991]:
+        - generic [ref=e1992]:
+          - generic [ref=e1993]: text
+          - button "复制" [ref=e1994] [cursor=pointer]
+        - code [ref=e1996]: MySQL 本地事务
+      - paragraph [ref=e1997]: 连接到：
+      - generic [ref=e1998]:
+        - generic [ref=e1999]:
+          - generic [ref=e2000]: text
+          - button "复制" [ref=e2001] [cursor=pointer]
+        - code [ref=e2003]: 消息队列 + 分布式系统 + Agent 异步任务架构
+      - paragraph [ref=e2004]: 也是从 MySQL 面试八股进入真实系统设计的重要过渡。
+      - separator [ref=e2005]
+      - heading "SECTION 74 50. 从 MySQL 本地事务进入分布式一致性" [level=1] [ref=e2006]
+      - paragraph [ref=e2007]: 前面的学习主线已经走到：
+      - generic [ref=e2008]:
+        - generic [ref=e2009]:
+          - generic [ref=e2010]: text
+          - button "复制" [ref=e2011] [cursor=pointer]
+        - code [ref=e2013]: MySQL 事务 → 原子 UPDATE / CAS / FOR UPDATE → 高并发事务设计
+      - paragraph [ref=e2014]: 下一步需要解决：
+      - generic [ref=e2015]:
+        - generic [ref=e2016]:
+          - generic [ref=e2017]: text
+          - button "复制" [ref=e2018] [cursor=pointer]
+        - code [ref=e2020]: 数据库事务提交成功 ↓ 但 MQ 消息发送失败怎么办？
+      - paragraph [ref=e2021]: 这就进入：
+      - generic [ref=e2022]:
+        - generic [ref=e2023]:
+          - generic [ref=e2024]: text
+          - button "复制" [ref=e2025] [cursor=pointer]
+        - code [ref=e2027]: DB + MQ 一致性 → Transactional Outbox → At-Least-Once → 幂等消费 → Inbox / 去重 → Retry / DLQ
+      - separator [ref=e2028]
+      - heading "SECTION 75 51. 为什么 DB COMMIT → MQ SEND 有问题？" [level=1] [ref=e2029]
+      - paragraph [ref=e2030]: 例如创建 Agent Task：
+      - generic [ref=e2031]:
+        - generic [ref=e2032]:
+          - generic [ref=e2033]: js
+          - button "复制" [ref=e2034] [cursor=pointer]
+        - code [ref=e2036]: "await db.transaction(async (tx) => { await tx.agentTask.create({ id: 100, status: \"pending\", }); }); await mq.send({ type: \"AgentTaskCreated\", taskId: 100, });"
+      - paragraph [ref=e2037]: 正常流程：
+      - generic [ref=e2038]:
+        - generic [ref=e2039]:
+          - generic [ref=e2040]: text
+          - button "复制" [ref=e2041] [cursor=pointer]
+        - code [ref=e2043]: INSERT task ↓ COMMIT ↓ MQ SEND ↓ Worker 执行
+      - paragraph [ref=e2044]: 但如果：
+      - generic [ref=e2045]:
+        - generic [ref=e2046]:
+          - generic [ref=e2047]: text
+          - button "复制" [ref=e2048] [cursor=pointer]
+        - code [ref=e2050]: DB COMMIT 成功 ↓ 服务进程崩溃 ↓ MQ.send 没执行
+      - paragraph [ref=e2051]: 最终：
+      - generic [ref=e2052]:
+        - generic [ref=e2053]:
+          - generic [ref=e2054]: text
+          - button "复制" [ref=e2055] [cursor=pointer]
+        - code [ref=e2057]: DB： task=100 status=pending MQ： 没有消息
+      - paragraph [ref=e2058]: 任务可能永久没人处理。
+      - paragraph [ref=e2059]: 根本原因：
+      - blockquote [ref=e2060]:
+        - paragraph [ref=e2061]:
+          - strong [ref=e2062]: MySQL 和 MQ 是两个独立系统，本地数据库事务无法天然保证两个系统一起成功。
+      - separator [ref=e2063]
+      - heading "SECTION 76 52. 为什么不能把 MQ SEND 放进数据库事务？" [level=1] [ref=e2064]
+      - paragraph [ref=e2065]: 例如：
+      - generic [ref=e2066]:
+        - generic [ref=e2067]:
+          - generic [ref=e2068]: js
+          - button "复制" [ref=e2069] [cursor=pointer]
+        - code [ref=e2071]: "await db.transaction(async (tx) => { await tx.agentTask.create(...); await mq.send(...); });"
+      - paragraph [ref=e2072]: 看起来：
+      - generic [ref=e2073]:
+        - generic [ref=e2074]:
+          - generic [ref=e2075]: text
+          - button "复制" [ref=e2076] [cursor=pointer]
+        - code [ref=e2078]: BEGIN ↓ INSERT task ↓ MQ SEND ↓ COMMIT
+      - paragraph [ref=e2079]: 但仍然存在：
+      - generic [ref=e2080]:
+        - generic [ref=e2081]:
+          - generic [ref=e2082]: text
+          - button "复制" [ref=e2083] [cursor=pointer]
+        - code [ref=e2085]: MQ SEND 成功 ↓ MQ 已经收到消息 ↓ 数据库 COMMIT 失败
+      - paragraph [ref=e2086]: 最终：
+      - generic [ref=e2087]:
+        - generic [ref=e2088]:
+          - generic [ref=e2089]: text
+          - button "复制" [ref=e2090] [cursor=pointer]
+        - code [ref=e2092]: MQ 有 AgentTaskCreated 但 DB 没有 task
+      - paragraph [ref=e2093]: 仍然不一致。
+      - paragraph [ref=e2094]: 而且还有一个严重工程问题：
+      - generic [ref=e2095]:
+        - generic [ref=e2096]:
+          - generic [ref=e2097]: text
+          - button "复制" [ref=e2098] [cursor=pointer]
+        - code [ref=e2100]: 数据库事务打开 ↓ 持有锁 ↓ 等待 MQ 网络请求
+      - paragraph [ref=e2101]: 如果 MQ 卡住几秒，数据库事务也被拉长。
+      - paragraph [ref=e2102]: 所以仍然遵循前面的原则：
+      - blockquote [ref=e2103]:
+        - paragraph [ref=e2104]:
+          - strong [ref=e2105]: HTTP、MQ、RPC、LLM 等耗时外部调用，不要放在数据库事务中等待。
+      - separator [ref=e2106]
+      - heading "SECTION 77 53. Transactional Outbox Pattern" [level=1] [ref=e2107]
+      - paragraph [ref=e2108]: Outbox 的核心不是保证：
+      - generic [ref=e2109]:
+        - generic [ref=e2110]:
+          - generic [ref=e2111]: text
+          - button "复制" [ref=e2112] [cursor=pointer]
+        - code [ref=e2114]: DB + MQ
+      - paragraph [ref=e2115]: 直接原子提交。
+      - paragraph [ref=e2116]: 而是保证：
+      - generic [ref=e2117]:
+        - generic [ref=e2118]:
+          - generic [ref=e2119]: text
+          - button "复制" [ref=e2120] [cursor=pointer]
+        - code [ref=e2122]: 业务数据 + “需要发送 MQ”这件事
+      - paragraph [ref=e2123]: 一起持久化。
+      - paragraph [ref=e2124]: 例如建立：
+      - generic [ref=e2125]:
+        - generic [ref=e2126]:
+          - generic [ref=e2127]: sql
+          - button "复制" [ref=e2128] [cursor=pointer]
+        - code [ref=e2130]: CREATE TABLE outbox_event ( id BIGINT PRIMARY KEY, event_type VARCHAR(100), aggregate_id BIGINT, payload JSON, status VARCHAR(20), created_at DATETIME );
+      - paragraph [ref=e2131]: 创建 Agent Task：
+      - generic [ref=e2132]:
+        - generic [ref=e2133]:
+          - generic [ref=e2134]: sql
+          - button "复制" [ref=e2135] [cursor=pointer]
+        - code [ref=e2137]: "BEGIN; INSERT INTO agent_task ( id, status ) VALUES ( 100, 'pending' ); INSERT INTO outbox_event ( id, event_type, aggregate_id, payload, status ) VALUES ( 10001, 'AgentTaskCreated', 100, '{\"taskId\":100}', 'pending' ); COMMIT;"
+      - paragraph [ref=e2138]: 这样 MySQL 可以保证：
+      - generic [ref=e2139]:
+        - generic [ref=e2140]:
+          - generic [ref=e2141]: text
+          - button "复制" [ref=e2142] [cursor=pointer]
+        - code [ref=e2144]: agent_task + outbox_event
+      - paragraph [ref=e2145]: 要么一起成功，要么一起失败。
+      - paragraph [ref=e2146]: 也就是说：
+      - blockquote [ref=e2147]:
+        - paragraph [ref=e2148]:
+          - strong [ref=e2149]: 不会出现任务创建成功，但系统完全忘记应该发送事件的情况。
+      - separator [ref=e2150]
+      - heading "SECTION 78 54. Outbox Publisher" [level=1] [ref=e2151]
+      - paragraph [ref=e2152]: Outbox 记录还没有真正发送到 MQ，因此需要后台 Publisher：
+      - generic [ref=e2153]:
+        - generic [ref=e2154]:
+          - generic [ref=e2155]: text
+          - button "复制" [ref=e2156] [cursor=pointer]
+        - code [ref=e2158]: 扫描 outbox_event ↓ 找到 pending ↓ 发送 MQ ↓ 成功后标记 sent
+      - paragraph [ref=e2159]: 伪代码：
+      - generic [ref=e2160]:
+        - generic [ref=e2161]:
+          - generic [ref=e2162]: js
+          - button "复制" [ref=e2163] [cursor=pointer]
+        - code [ref=e2165]: "const events = await db.query(` SELECT * FROM outbox_event WHERE status = 'pending' LIMIT 100 `); for (const event of events) { await mq.send(event); await db.execute(` UPDATE outbox_event SET status = 'sent' WHERE id = ? `, [event.id]); }"
+      - paragraph [ref=e2166]: 如果业务服务崩溃：
+      - generic [ref=e2167]:
+        - generic [ref=e2168]:
+          - generic [ref=e2169]: text
+          - button "复制" [ref=e2170] [cursor=pointer]
+        - code [ref=e2172]: Outbox Event 仍然存在于数据库 ↓ Publisher 恢复后继续发送
+      - paragraph [ref=e2173]: 这样可以大幅降低消息丢失风险。
+      - separator [ref=e2174]
+      - heading "SECTION 79 55. 为什么 Outbox 仍然可能重复发送？" [level=1] [ref=e2175]
+      - paragraph [ref=e2176]: 假设：
+      - generic [ref=e2177]:
+        - generic [ref=e2178]:
+          - generic [ref=e2179]: text
+          - button "复制" [ref=e2180] [cursor=pointer]
+        - code [ref=e2182]: Publisher ↓ 读取 event 10001 ↓ MQ.send 成功
+      - paragraph [ref=e2183]: 但是就在：
+      - generic [ref=e2184]:
+        - generic [ref=e2185]:
+          - generic [ref=e2186]: text
+          - button "复制" [ref=e2187] [cursor=pointer]
+        - code [ref=e2189]: UPDATE outbox_event SET status='sent'
+      - paragraph [ref=e2190]: 之前 Publisher 崩溃。
+      - paragraph [ref=e2191]: 数据库里仍然：
+      - generic [ref=e2192]:
+        - generic [ref=e2193]:
+          - generic [ref=e2194]: text
+          - button "复制" [ref=e2195] [cursor=pointer]
+        - code [ref=e2197]: status = pending
+      - paragraph [ref=e2198]: 重启之后：
+      - generic [ref=e2199]:
+        - generic [ref=e2200]:
+          - generic [ref=e2201]: text
+          - button "复制" [ref=e2202] [cursor=pointer]
+        - code [ref=e2204]: Publisher 再次扫描 ↓ 再次发送 event 10001
+      - paragraph [ref=e2205]: 于是 MQ 收到两次相同消息。
+      - paragraph [ref=e2206]: 因此 Outbox 通常带来的是：
+      - blockquote [ref=e2207]:
+        - paragraph [ref=e2208]:
+          - strong [ref=e2209]: At-Least-Once Delivery
+      - paragraph [ref=e2210]: 也就是：
+      - generic [ref=e2211]:
+        - generic [ref=e2212]:
+          - generic [ref=e2213]: text
+          - button "复制" [ref=e2214] [cursor=pointer]
+        - code [ref=e2216]: 消息至少送达一次
+      - paragraph [ref=e2217]: 它可能到达：
+      - generic [ref=e2218]:
+        - generic [ref=e2219]:
+          - generic [ref=e2220]: text
+          - button "复制" [ref=e2221] [cursor=pointer]
+        - code [ref=e2223]: 1 次 2 次 3 次
+      - paragraph [ref=e2224]: 因此不能假设消费者永远只收到一次。
+      - separator [ref=e2225]
+      - heading "SECTION 80 56. At-Least-Once 与幂等" [level=1] [ref=e2226]
+      - paragraph [ref=e2227]: 工程思维应该从：
+      - generic [ref=e2228]:
+        - generic [ref=e2229]:
+          - generic [ref=e2230]: text
+          - button "复制" [ref=e2231] [cursor=pointer]
+        - code [ref=e2233]: 如何保证消息绝不重复？
+      - paragraph [ref=e2234]: 转向：
+      - blockquote [ref=e2235]:
+        - paragraph [ref=e2236]:
+          - strong [ref=e2237]: 即使重复，业务结果还能否保持正确？
+      - paragraph [ref=e2238]: 这就是：
+      - blockquote [ref=e2239]:
+        - paragraph [ref=e2240]:
+          - strong [ref=e2241]: Idempotency，幂等
+      - paragraph [ref=e2242]: 例如：
+      - generic [ref=e2243]:
+        - generic [ref=e2244]:
+          - generic [ref=e2245]: text
+          - button "复制" [ref=e2246] [cursor=pointer]
+        - code [ref=e2248]: SET status = completed
+      - paragraph [ref=e2249]: 重复执行通常仍然：
+      - generic [ref=e2250]:
+        - generic [ref=e2251]:
+          - generic [ref=e2252]: text
+          - button "复制" [ref=e2253] [cursor=pointer]
+        - code [ref=e2255]: completed
+      - paragraph [ref=e2256]: 但：
+      - generic [ref=e2257]:
+        - generic [ref=e2258]:
+          - generic [ref=e2259]: text
+          - button "复制" [ref=e2260] [cursor=pointer]
+        - code [ref=e2262]: stock = stock - 1
+      - paragraph [ref=e2263]: 执行两次就会扣两次库存，因此不是天然幂等。
+      - separator [ref=e2264]
+      - heading "SECTION 81 57. event_id + UNIQUE 实现消费者去重" [level=1] [ref=e2265]
+      - paragraph [ref=e2266]: 消息可以带：
+      - generic [ref=e2267]:
+        - generic [ref=e2268]:
+          - generic [ref=e2269]: json
+          - button "复制" [ref=e2270] [cursor=pointer]
+        - code [ref=e2272]: "{ \"eventId\": \"evt-10001\", \"type\": \"OrderCreated\", \"orderId\": 100 }"
+      - paragraph [ref=e2273]: 消费者维护：
+      - generic [ref=e2274]:
+        - generic [ref=e2275]:
+          - generic [ref=e2276]: text
+          - button "复制" [ref=e2277] [cursor=pointer]
+        - code [ref=e2279]: processed_event event_id ---------------- evt-10001
+      - paragraph [ref=e2280]: 并对：
+      - generic [ref=e2281]:
+        - generic [ref=e2282]:
+          - generic [ref=e2283]: text
+          - button "复制" [ref=e2284] [cursor=pointer]
+        - code [ref=e2286]: event_id
+      - paragraph [ref=e2287]: 建立 UNIQUE。
+      - paragraph [ref=e2288]: 但不能简单：
+      - generic [ref=e2289]:
+        - generic [ref=e2290]:
+          - generic [ref=e2291]: js
+          - button "复制" [ref=e2292] [cursor=pointer]
+        - code [ref=e2294]: if (await hasProcessed(eventId)) return; await handleBusiness(); await markProcessed(eventId);
+      - paragraph [ref=e2295]: 因为：
+      - generic [ref=e2296]:
+        - generic [ref=e2297]:
+          - generic [ref=e2298]: text
+          - button "复制" [ref=e2299] [cursor=pointer]
+        - code [ref=e2301]: handleBusiness 成功 ↓ 服务崩溃 ↓ markProcessed 没执行
+      - paragraph [ref=e2302]: 重启后仍然会重复执行业务。
+      - separator [ref=e2303]
+      - heading "SECTION 82 58. 消费记录 + 业务修改必须同事务" [level=1] [ref=e2304]
+      - paragraph [ref=e2305]: 更可靠的方式：
+      - generic [ref=e2306]:
+        - generic [ref=e2307]:
+          - generic [ref=e2308]: sql
+          - button "复制" [ref=e2309] [cursor=pointer]
+        - code [ref=e2311]: BEGIN; INSERT INTO processed_event(event_id) VALUES ('evt-10001'); UPDATE product SET stock = stock - 1 WHERE id = 10 AND stock > 0; COMMIT;
+      - paragraph [ref=e2312]: 第一次：
+      - generic [ref=e2313]:
+        - generic [ref=e2314]:
+          - generic [ref=e2315]: text
+          - button "复制" [ref=e2316] [cursor=pointer]
+        - code [ref=e2318]: INSERT processed_event ✅ UPDATE business ✅ COMMIT ✅
+      - paragraph [ref=e2319]: 第二次相同消息：
+      - generic [ref=e2320]:
+        - generic [ref=e2321]:
+          - generic [ref=e2322]: text
+          - button "复制" [ref=e2323] [cursor=pointer]
+        - code [ref=e2325]: INSERT processed_event ↓ Duplicate Key
+      - paragraph [ref=e2326]: 即可识别：
+      - generic [ref=e2327]:
+        - generic [ref=e2328]:
+          - generic [ref=e2329]: text
+          - button "复制" [ref=e2330] [cursor=pointer]
+        - code [ref=e2332]: 这条事件已经处理
+      - paragraph [ref=e2333]: 这就是非常重要的原则：
+      - blockquote [ref=e2334]:
+        - paragraph [ref=e2335]:
+          - strong [ref=e2336]: 记录"已消费"与真正的业务副作用，尽量放进同一个本地数据库事务。
+      - separator [ref=e2337]
+      - heading "SECTION 83 59. Inbox Pattern" [level=1] [ref=e2338]
+      - paragraph [ref=e2339]: 生产者：
+      - generic [ref=e2340]:
+        - generic [ref=e2341]:
+          - generic [ref=e2342]: text
+          - button "复制" [ref=e2343] [cursor=pointer]
+        - code [ref=e2345]: 业务数据 + Outbox Event ↓ 同一个本地事务
+      - paragraph [ref=e2346]: 消费者：
+      - generic [ref=e2347]:
+        - generic [ref=e2348]:
+          - generic [ref=e2349]: text
+          - button "复制" [ref=e2350] [cursor=pointer]
+        - code [ref=e2352]: Inbox / processed_event + 业务修改 ↓ 同一个本地事务
+      - paragraph [ref=e2353]: 可以画成：
+      - generic [ref=e2354]:
+        - generic [ref=e2355]:
+          - generic [ref=e2356]: text
+          - button "复制" [ref=e2357] [cursor=pointer]
+        - code [ref=e2359]: Producer 业务表 ───── Outbox 本地事务 ↓ Publisher ↓ MQ ↓ Consumer ↓ Inbox ────── 业务表 本地事务
+      - paragraph [ref=e2360]: Outbox 更偏：
+      - generic [ref=e2361]:
+        - generic [ref=e2362]:
+          - generic [ref=e2363]: text
+          - button "复制" [ref=e2364] [cursor=pointer]
+        - code [ref=e2366]: 保证事件不会因为中途崩溃而永久丢失
+      - paragraph [ref=e2367]: Inbox / 幂等更偏：
+      - generic [ref=e2368]:
+        - generic [ref=e2369]:
+          - generic [ref=e2370]: text
+          - button "复制" [ref=e2371] [cursor=pointer]
+        - code [ref=e2373]: 保证重复事件不会造成重复业务副作用
+      - separator [ref=e2374]
+      - heading "SECTION 84 60. 在 Agent Workflow 中如何使用 Outbox？" [level=1] [ref=e2375]
+      - paragraph [ref=e2376]: 例如：
+      - generic [ref=e2377]:
+        - generic [ref=e2378]:
+          - generic [ref=e2379]: text
+          - button "复制" [ref=e2380] [cursor=pointer]
+        - code [ref=e2382]: PRD Agent ↓ PRD 节点完成 ↓ 需要触发 RFC Agent
+      - paragraph [ref=e2383]: 不要简单：
+      - generic [ref=e2384]:
+        - generic [ref=e2385]:
+          - generic [ref=e2386]: text
+          - button "复制" [ref=e2387] [cursor=pointer]
+        - code [ref=e2389]: UPDATE PRD status=completed ↓ 直接调用 RFC Agent
+      - paragraph [ref=e2390]: 否则：
+      - generic [ref=e2391]:
+        - generic [ref=e2392]:
+          - generic [ref=e2393]: text
+          - button "复制" [ref=e2394] [cursor=pointer]
+        - code [ref=e2396]: PRD completed 成功 ↓ 服务崩溃 ↓ RFC Agent 没触发
+      - paragraph [ref=e2397]: 可以：
+      - generic [ref=e2398]:
+        - generic [ref=e2399]:
+          - generic [ref=e2400]: sql
+          - button "复制" [ref=e2401] [cursor=pointer]
+        - code [ref=e2403]: "BEGIN; UPDATE workspace_node SET status = 'completed' WHERE id = 'prd'; INSERT INTO outbox_event ( event_id, event_type, payload ) VALUES ( 'evt-001', 'PRD_COMPLETED', '{...}' ); COMMIT;"
+      - paragraph [ref=e2404]: 然后：
+      - generic [ref=e2405]:
+        - generic [ref=e2406]:
+          - generic [ref=e2407]: text
+          - button "复制" [ref=e2408] [cursor=pointer]
+        - code [ref=e2410]: Outbox Publisher ↓ MQ ↓ RFC Agent Worker
+      - paragraph [ref=e2411]: 这样业务状态变化与"需要触发下一节点"可以一起落库。
+      - separator [ref=e2412]
+      - heading "SECTION 85 61. Agent Worker 为什么也必须幂等？" [level=1] [ref=e2413]
+      - paragraph [ref=e2414]: MQ 可能重复：
+      - generic [ref=e2415]:
+        - generic [ref=e2416]:
+          - generic [ref=e2417]: text
+          - button "复制" [ref=e2418] [cursor=pointer]
+        - code [ref=e2420]: PRD_COMPLETED PRD_COMPLETED
+      - paragraph [ref=e2421]: 如果 Worker 每次都：
+      - generic [ref=e2422]:
+        - generic [ref=e2423]:
+          - generic [ref=e2424]: text
+          - button "复制" [ref=e2425] [cursor=pointer]
+        - code [ref=e2427]: 启动 RFC Agent
+      - paragraph [ref=e2428]: 可能生成两份 RFC。
+      - paragraph [ref=e2429]: 可以再次使用前面学过的 CAS：
+      - generic [ref=e2430]:
+        - generic [ref=e2431]:
+          - generic [ref=e2432]: sql
+          - button "复制" [ref=e2433] [cursor=pointer]
+        - code [ref=e2435]: UPDATE workspace_node SET status = 'running' WHERE id = 'rfc' AND status = 'pending';
+      - paragraph [ref=e2436]: 判断：
+      - generic [ref=e2437]:
+        - generic [ref=e2438]:
+          - generic [ref=e2439]: text
+          - button "复制" [ref=e2440] [cursor=pointer]
+        - code [ref=e2442]: affected_rows = 1 → 获得执行权 affected_rows = 0 → 已经有人执行或已经完成
+      - paragraph [ref=e2443]: 因此知识形成闭环：
+      - generic [ref=e2444]:
+        - generic [ref=e2445]:
+          - generic [ref=e2446]: text
+          - button "复制" [ref=e2447] [cursor=pointer]
+        - code [ref=e2449]: Outbox ↓ 可能重复发送 ↓ At-Least-Once ↓ 消费者幂等 ↓ UNIQUE / CAS
+      - separator [ref=e2450]
+      - heading "SECTION 86 62. Retry、Exponential Backoff 与 Jitter" [level=1] [ref=e2451]
+      - paragraph [ref=e2452]: 如果 Agent 调用模型 API 出现：
+      - generic [ref=e2453]:
+        - generic [ref=e2454]:
+          - generic [ref=e2455]: text
+          - button "复制" [ref=e2456] [cursor=pointer]
+        - code [ref=e2458]: Timeout HTTP 429 HTTP 500 网络错误
+      - paragraph [ref=e2459]: 通常属于可恢复错误，可以重试。
+      - paragraph [ref=e2460]: 重试不应该：
+      - generic [ref=e2461]:
+        - generic [ref=e2462]:
+          - generic [ref=e2463]: text
+          - button "复制" [ref=e2464] [cursor=pointer]
+        - code [ref=e2466]: 失败 ↓ 立即疯狂重试
+      - paragraph [ref=e2467]: 而应该采用：
+      - generic [ref=e2468]:
+        - generic [ref=e2469]:
+          - generic [ref=e2470]: text
+          - button "复制" [ref=e2471] [cursor=pointer]
+        - code [ref=e2473]: 第一次：1 秒 第二次：2 秒 第三次：4 秒 第四次：8 秒 第五次：16 秒
+      - paragraph [ref=e2474]: 也就是：
+      - blockquote [ref=e2475]:
+        - paragraph [ref=e2476]:
+          - strong [ref=e2477]: Exponential Backoff
+      - paragraph [ref=e2478]: 可以理解：
+      - generic [ref=e2479]:
+        - generic [ref=e2480]:
+          - generic [ref=e2481]: text
+          - button "复制" [ref=e2482] [cursor=pointer]
+        - code [ref=e2484]: delay ≈ base × 2^retry_count
+      - paragraph [ref=e2485]: 再加：
+      - blockquote [ref=e2486]:
+        - paragraph [ref=e2487]:
+          - strong [ref=e2488]: Jitter
+      - paragraph [ref=e2489]: 让大量任务不要在同一毫秒一起恢复，例如：
+      - generic [ref=e2490]:
+        - generic [ref=e2491]:
+          - generic [ref=e2492]: text
+          - button "复制" [ref=e2493] [cursor=pointer]
+        - code [ref=e2495]: 7.4 秒 8.2 秒 9.0 秒
+      - paragraph [ref=e2496]: 用于减少：
+      - blockquote [ref=e2497]:
+        - paragraph [ref=e2498]: Retry Storm / Thundering Herd
+      - separator [ref=e2499]
+      - heading "SECTION 87 63. Retryable Error vs Non-Retryable Error" [level=1] [ref=e2500]
+      - paragraph [ref=e2501]: 不是所有错误都应该重试。
+      - paragraph [ref=e2502]: 通常可以考虑重试：
+      - generic [ref=e2503]:
+        - generic [ref=e2504]:
+          - generic [ref=e2505]: text
+          - button "复制" [ref=e2506] [cursor=pointer]
+        - code [ref=e2508]: 网络超时 HTTP 429 HTTP 500 临时数据库连接异常 临时 MQ 异常
+      - paragraph [ref=e2509]: 通常不应该机械重试：
+      - generic [ref=e2510]:
+        - generic [ref=e2511]:
+          - generic [ref=e2512]: text
+          - button "复制" [ref=e2513] [cursor=pointer]
+        - code [ref=e2515]: 参数格式错误 业务数据缺失 权限不足 模型名称错误 业务规则明确拒绝
+      - paragraph [ref=e2516]: 因此生产系统应区分：
+      - generic [ref=e2517]:
+        - generic [ref=e2518]:
+          - generic [ref=e2519]: text
+          - button "复制" [ref=e2520] [cursor=pointer]
+        - code [ref=e2522]: Retryable Error vs Non-Retryable Error
+      - paragraph [ref=e2523]: 而不是简单：
+      - generic [ref=e2524]:
+        - generic [ref=e2525]:
+          - generic [ref=e2526]: text
+          - button "复制" [ref=e2527] [cursor=pointer]
+        - code [ref=e2529]: 所有错误统一重试 3 次
+      - separator [ref=e2530]
+      - heading "SECTION 88 64. DLQ / Failed State" [level=1] [ref=e2531]
+      - paragraph [ref=e2532]: 重试必须存在上限：
+      - generic [ref=e2533]:
+        - generic [ref=e2534]:
+          - generic [ref=e2535]: text
+          - button "复制" [ref=e2536] [cursor=pointer]
+        - code [ref=e2538]: max_retry = 5
+      - paragraph [ref=e2539]: 超过上限：
+      - generic [ref=e2540]:
+        - generic [ref=e2541]:
+          - generic [ref=e2542]: text
+          - button "复制" [ref=e2543] [cursor=pointer]
+        - code [ref=e2545]: failed
+      - paragraph [ref=e2546]: 或者进入：
+      - blockquote [ref=e2547]:
+        - paragraph [ref=e2548]:
+          - strong [ref=e2549]: DLQ（Dead Letter Queue，死信队列）
+      - paragraph [ref=e2550]: 然后配合：
+      - generic [ref=e2551]:
+        - generic [ref=e2552]:
+          - generic [ref=e2553]: text
+          - button "复制" [ref=e2554] [cursor=pointer]
+        - code [ref=e2556]: 告警 人工处理 重新驱动 问题排查
+      - paragraph [ref=e2557]: 完整流程：
+      - generic [ref=e2558]:
+        - generic [ref=e2559]:
+          - generic [ref=e2560]: text
+          - button "复制" [ref=e2561] [cursor=pointer]
+        - code [ref=e2563]: "消息 / Task ↓ Worker ↓ 失败 ↓ Retry #1 ↓ Retry #2 ↓ ... ↓ 超过 max_retry ↓ DLQ / failed"
+      - separator [ref=e2564]
+      - heading "SECTION 89 65. DB + MQ 面试回答模板" [level=1] [ref=e2565]
+      - heading "SECTION 90 问：DB 成功但 MQ 失败怎么办？" [level=2] [ref=e2566]
+      - paragraph [ref=e2567]: 可以回答：
+      - blockquote [ref=e2568]:
+        - paragraph [ref=e2569]: 使用 Transactional Outbox。业务数据和 Outbox Event 在同一个本地数据库事务中提交，后台 Publisher 异步扫描 Outbox 并发送 MQ。Publisher 发送过程允许重试，因此消息可能重复，所以消费者需要通过 event_id、唯一键或 Inbox/processed_event 实现幂等消费。
+      - heading "SECTION 91 问：MQ 重复消费怎么办？" [level=2] [ref=e2570]
+      - paragraph [ref=e2571]: 可以回答：
+      - blockquote [ref=e2572]:
+        - paragraph [ref=e2573]: 我会按 At-Least-Once 来设计消费者，每条消息带唯一 event_id，消费者通过唯一键或 Inbox 表判断是否处理过，并且尽量把"消费去重记录"和"实际业务修改"放在同一个本地数据库事务中，避免业务已经成功但消费记录没落库导致再次重复执行。
+      - separator [ref=e2574]
+      - heading "SECTION 92 66. 从 Outbox 进入可靠 Agent Worker" [level=1] [ref=e2575]
+      - paragraph [ref=e2576]: 完成 DB + MQ 一致性之后，下一层问题变成：
+      - generic [ref=e2577]:
+        - generic [ref=e2578]:
+          - generic [ref=e2579]: text
+          - button "复制" [ref=e2580] [cursor=pointer]
+        - code [ref=e2582]: Agent Task 已经被 Worker 拿到 ↓ Worker 执行 2 分钟 ↓ Worker 中途崩溃怎么办？
+      - paragraph [ref=e2583]: 如果任务只有：
+      - generic [ref=e2584]:
+        - generic [ref=e2585]:
+          - generic [ref=e2586]: text
+          - button "复制" [ref=e2587] [cursor=pointer]
+        - code [ref=e2589]: status = running
+      - paragraph [ref=e2590]: Worker 崩溃后任务会永久卡在 running。
+      - paragraph [ref=e2591]: 因此需要：
+      - generic [ref=e2592]:
+        - generic [ref=e2593]:
+          - generic [ref=e2594]: text
+          - button "复制" [ref=e2595] [cursor=pointer]
+        - code [ref=e2597]: Lease Heartbeat Timeout Retry Idempotency Fencing Token
+      - separator [ref=e2598]
+      - heading "SECTION 93 67. 为什么 Agent 长任务不能一直持有数据库锁？" [level=1] [ref=e2599]
+      - paragraph [ref=e2600]: 错误方案：
+      - generic [ref=e2601]:
+        - generic [ref=e2602]:
+          - generic [ref=e2603]: text
+          - button "复制" [ref=e2604] [cursor=pointer]
+        - code [ref=e2606]: BEGIN ↓ SELECT task FOR UPDATE ↓ 调用 LLM ↓ 调用 Tool ↓ 执行 5 分钟 ↓ UPDATE result ↓ COMMIT
+      - paragraph [ref=e2607]: 这意味着：
+      - generic [ref=e2608]:
+        - generic [ref=e2609]:
+          - generic [ref=e2610]: text
+          - button "复制" [ref=e2611] [cursor=pointer]
+        - code [ref=e2613]: 数据库锁可能持有 5 分钟
+      - paragraph [ref=e2614]: 会严重影响并发能力。
+      - paragraph [ref=e2615]: 正确思路：
+      - generic [ref=e2616]:
+        - generic [ref=e2617]:
+          - generic [ref=e2618]: text
+          - button "复制" [ref=e2619] [cursor=pointer]
+        - code [ref=e2621]: 短事务 ↓ Claim Task ↓ COMMIT ---------------- 事务外执行 Agent / LLM / Tool ---------------- 短事务 ↓ 写入结果 ↓ COMMIT
+      - paragraph [ref=e2622]: 因此：
+      - blockquote [ref=e2623]:
+        - paragraph [ref=e2624]:
+          - strong [ref=e2625]: 数据库事务只保护短时间的状态竞争，不负责保护整个长时间 Agent 执行过程。
+      - separator [ref=e2626]
+      - heading "SECTION 94 68. Lease：临时执行权" [level=1] [ref=e2627]
+      - paragraph [ref=e2628]: Agent Task 表可以增加：
+      - generic [ref=e2629]:
+        - generic [ref=e2630]:
+          - generic [ref=e2631]: text
+          - button "复制" [ref=e2632] [cursor=pointer]
+        - code [ref=e2634]: id status worker_id lease_until retry_count next_retry_at execution_version result error_message
+      - paragraph [ref=e2635]: 例如：
+      - generic [ref=e2636]:
+        - generic [ref=e2637]:
+          - generic [ref=e2638]: text
+          - button "复制" [ref=e2639] [cursor=pointer]
+        - code [ref=e2641]: id 100 status running worker_id worker-A lease_until 10:30:00 retry_count 0
+      - paragraph [ref=e2642]: 含义：
+      - blockquote [ref=e2643]:
+        - paragraph [ref=e2644]: task 100 当前由 worker-A 执行，但只拥有到 10:30 的执行权。
+      - paragraph [ref=e2645]: 如果：
+      - generic [ref=e2646]:
+        - generic [ref=e2647]:
+          - generic [ref=e2648]: text
+          - button "复制" [ref=e2649] [cursor=pointer]
+        - code [ref=e2651]: NOW() > lease_until
+      - paragraph [ref=e2652]: 可以认为执行权已经过期，允许其他 Worker 接管。
+      - paragraph [ref=e2653]: 这就是：
+      - blockquote [ref=e2654]:
+        - paragraph [ref=e2655]:
+          - strong [ref=e2656]: Lease
+      - separator [ref=e2657]
+      - heading "SECTION 95 69. Claim Task：抢任务仍然使用 CAS" [level=1] [ref=e2658]
+      - paragraph [ref=e2659]: 简单状态抢占：
+      - generic [ref=e2660]:
+        - generic [ref=e2661]:
+          - generic [ref=e2662]: sql
+          - button "复制" [ref=e2663] [cursor=pointer]
+        - code [ref=e2665]: UPDATE agent_task SET status = 'running', worker_id = ? WHERE id = ? AND status = 'pending';
+      - paragraph [ref=e2666]: 判断：
+      - generic [ref=e2667]:
+        - generic [ref=e2668]:
+          - generic [ref=e2669]: text
+          - button "复制" [ref=e2670] [cursor=pointer]
+        - code [ref=e2672]: affected_rows = 1 → Claim 成功 affected_rows = 0 → 已被其他 Worker 抢走
+      - paragraph [ref=e2673]: 如果允许重新接管过期任务，可以把条件扩展成：
+      - generic [ref=e2674]:
+        - generic [ref=e2675]:
+          - generic [ref=e2676]: sql
+          - button "复制" [ref=e2677] [cursor=pointer]
+        - code [ref=e2679]: UPDATE agent_task SET status = 'running', worker_id = ?, lease_until = ? WHERE id = ? AND ( status = 'pending' OR ( status = 'running' AND lease_until < NOW() ) );
+      - paragraph [ref=e2680]: 这样：
+      - generic [ref=e2681]:
+        - generic [ref=e2682]:
+          - generic [ref=e2683]: text
+          - button "复制" [ref=e2684] [cursor=pointer]
+        - code [ref=e2686]: Worker A 崩溃 ↓ Lease 过期 ↓ Worker B 可以重新 Claim
+      - separator [ref=e2687]
+      - heading "SECTION 96 70. Heartbeat：执行中的 Worker 如何续租？" [level=1] [ref=e2688]
+      - paragraph [ref=e2689]: 如果 Agent 执行需要：
+      - generic [ref=e2690]:
+        - generic [ref=e2691]:
+          - generic [ref=e2692]: text
+          - button "复制" [ref=e2693] [cursor=pointer]
+        - code [ref=e2695]: 10 分钟
+      - paragraph [ref=e2696]: 而 Lease 只有：
+      - generic [ref=e2697]:
+        - generic [ref=e2698]:
+          - generic [ref=e2699]: text
+          - button "复制" [ref=e2700] [cursor=pointer]
+        - code [ref=e2702]: 30 秒
+      - paragraph [ref=e2703]: 正常 Worker 还没完成，Lease 就会过期。
+      - paragraph [ref=e2704]: 因此需要：
+      - blockquote [ref=e2705]:
+        - paragraph [ref=e2706]:
+          - strong [ref=e2707]: Heartbeat
+      - paragraph [ref=e2708]: Worker 每隔一段时间续租：
+      - generic [ref=e2709]:
+        - generic [ref=e2710]:
+          - generic [ref=e2711]: sql
+          - button "复制" [ref=e2712] [cursor=pointer]
+        - code [ref=e2714]: UPDATE agent_task SET lease_until = NOW() + INTERVAL 30 SECOND WHERE id = ? AND worker_id = ? AND status = 'running';
+      - paragraph [ref=e2715]: 例如：
+      - generic [ref=e2716]:
+        - generic [ref=e2717]:
+          - generic [ref=e2718]: text
+          - button "复制" [ref=e2719] [cursor=pointer]
+        - code [ref=e2721]: 10:00:00 lease → 10:00:30 10:00:10 heartbeat ↓ lease → 10:00:40 10:00:20 heartbeat ↓ lease → 10:00:50
+      - paragraph [ref=e2722]: 只要 Worker 正常运行：
+      - generic [ref=e2723]:
+        - generic [ref=e2724]:
+          - generic [ref=e2725]: text
+          - button "复制" [ref=e2726] [cursor=pointer]
+        - code [ref=e2728]: Lease 持续延长
+      - paragraph [ref=e2729]: 如果 Worker 崩溃：
+      - generic [ref=e2730]:
+        - generic [ref=e2731]:
+          - generic [ref=e2732]: text
+          - button "复制" [ref=e2733] [cursor=pointer]
+        - code [ref=e2735]: Heartbeat 停止 ↓ Lease 到期 ↓ 其他 Worker 接管
+      - separator [ref=e2736]
+      - heading "SECTION 97 71. Stale Worker / Split Brain 问题" [level=1] [ref=e2737]
+      - paragraph [ref=e2738]: 可能出现：
+      - generic [ref=e2739]:
+        - generic [ref=e2740]:
+          - generic [ref=e2741]: text
+          - button "复制" [ref=e2742] [cursor=pointer]
+        - code [ref=e2744]: Worker A 因网络抖动暂时失联 ↓ Lease 过期 ↓ Worker B 接管任务 ↓ Worker A 又恢复
+      - paragraph [ref=e2745]: 此时：
+      - generic [ref=e2746]:
+        - generic [ref=e2747]:
+          - generic [ref=e2748]: text
+          - button "复制" [ref=e2749] [cursor=pointer]
+        - code [ref=e2751]: Worker A Worker B
+      - paragraph [ref=e2752]: 可能同时在执行。
+      - paragraph [ref=e2753]: 因此旧 Worker 不能无条件提交结果。
+      - separator [ref=e2754]
+      - heading "SECTION 98 72. 提交结果时也要 CAS" [level=1] [ref=e2755]
+      - paragraph [ref=e2756]: Worker A 完成任务：
+      - generic [ref=e2757]:
+        - generic [ref=e2758]:
+          - generic [ref=e2759]: sql
+          - button "复制" [ref=e2760] [cursor=pointer]
+        - code [ref=e2762]: UPDATE agent_task SET status = 'completed', result = ? WHERE id = 100 AND worker_id = 'worker-A' AND status = 'running';
+      - paragraph [ref=e2763]: 如果任务已经被 Worker B 接管：
+      - generic [ref=e2764]:
+        - generic [ref=e2765]:
+          - generic [ref=e2766]: text
+          - button "复制" [ref=e2767] [cursor=pointer]
+        - code [ref=e2769]: worker_id = worker-B
+      - paragraph [ref=e2770]: 那么 Worker A：
+      - generic [ref=e2771]:
+        - generic [ref=e2772]:
+          - generic [ref=e2773]: text
+          - button "复制" [ref=e2774] [cursor=pointer]
+        - code [ref=e2776]: affected_rows = 0
+      - paragraph [ref=e2777]: 旧 Worker 无法覆盖新 Worker 的执行状态。
+      - paragraph [ref=e2778]: 因此必须记：
+      - blockquote [ref=e2779]:
+        - paragraph [ref=e2780]:
+          - strong [ref=e2781]: Claim 时需要 CAS，提交结果时同样需要验证执行权。
+      - separator [ref=e2782]
+      - heading "SECTION 99 73. Fencing Token / execution_version" [level=1] [ref=e2783]
+      - paragraph [ref=e2784]: 比单纯 worker_id 更稳的方式之一，是增加递增的：
+      - generic [ref=e2785]:
+        - generic [ref=e2786]:
+          - generic [ref=e2787]: text
+          - button "复制" [ref=e2788] [cursor=pointer]
+        - code [ref=e2790]: execution_version
+      - paragraph [ref=e2791]: 例如：
+      - generic [ref=e2792]:
+        - generic [ref=e2793]:
+          - generic [ref=e2794]: text
+          - button "复制" [ref=e2795] [cursor=pointer]
+        - code [ref=e2797]: Worker A 首次 Claim execution_version = 1
+      - paragraph [ref=e2798]: Lease 过期后 Worker B 接管：
+      - generic [ref=e2799]:
+        - generic [ref=e2800]:
+          - generic [ref=e2801]: text
+          - button "复制" [ref=e2802] [cursor=pointer]
+        - code [ref=e2804]: execution_version = 2
+      - paragraph [ref=e2805]: Worker A 恢复后仍携带：
+      - generic [ref=e2806]:
+        - generic [ref=e2807]:
+          - generic [ref=e2808]: text
+          - button "复制" [ref=e2809] [cursor=pointer]
+        - code [ref=e2811]: version = 1
+      - paragraph [ref=e2812]: 写结果：
+      - generic [ref=e2813]:
+        - generic [ref=e2814]:
+          - generic [ref=e2815]: sql
+          - button "复制" [ref=e2816] [cursor=pointer]
+        - code [ref=e2818]: UPDATE agent_task SET status = 'completed' WHERE id = 100 AND execution_version = 1;
+      - paragraph [ref=e2819]: 数据库当前已经：
+      - generic [ref=e2820]:
+        - generic [ref=e2821]:
+          - generic [ref=e2822]: text
+          - button "复制" [ref=e2823] [cursor=pointer]
+        - code [ref=e2825]: execution_version = 2
+      - paragraph [ref=e2826]: 所以更新失败。
+      - paragraph [ref=e2827]: 这种递增执行令牌可以理解成：
+      - blockquote [ref=e2828]:
+        - paragraph [ref=e2829]:
+          - strong [ref=e2830]: Fencing Token
+      - paragraph [ref=e2831]: 作用：
+      - blockquote [ref=e2832]:
+        - paragraph [ref=e2833]:
+          - strong [ref=e2834]: 拒绝已经失效的旧执行者继续污染新状态。
+      - separator [ref=e2835]
+      - heading "SECTION 100 74. Agent Task Retry" [level=1] [ref=e2836]
+      - paragraph [ref=e2837]: Agent 执行失败后不能一概立即永久失败。
+      - paragraph [ref=e2838]: 任务表可维护：
+      - generic [ref=e2839]:
+        - generic [ref=e2840]:
+          - generic [ref=e2841]: text
+          - button "复制" [ref=e2842] [cursor=pointer]
+        - code [ref=e2844]: retry_count max_retry next_retry_at
+      - paragraph [ref=e2845]: 可重试失败：
+      - generic [ref=e2846]:
+        - generic [ref=e2847]:
+          - generic [ref=e2848]: text
+          - button "复制" [ref=e2849] [cursor=pointer]
+        - code [ref=e2851]: status = retry_wait retry_count += 1 next_retry_at = backoff + jitter
+      - paragraph [ref=e2852]: 到时间后重新进入可 Claim 状态。
+      - paragraph [ref=e2853]: 不可重试失败：
+      - generic [ref=e2854]:
+        - generic [ref=e2855]:
+          - generic [ref=e2856]: text
+          - button "复制" [ref=e2857] [cursor=pointer]
+        - code [ref=e2859]: status = failed
+      - paragraph [ref=e2860]: 超过最大重试次数：
+      - generic [ref=e2861]:
+        - generic [ref=e2862]:
+          - generic [ref=e2863]: text
+          - button "复制" [ref=e2864] [cursor=pointer]
+        - code [ref=e2866]: failed / DLQ
+      - separator [ref=e2867]
+      - heading "SECTION 101 75. 为什么重试必然要求副作用幂等？" [level=1] [ref=e2868]
+      - paragraph [ref=e2869]: 假设任务是：
+      - generic [ref=e2870]:
+        - generic [ref=e2871]:
+          - generic [ref=e2872]: text
+          - button "复制" [ref=e2873] [cursor=pointer]
+        - code [ref=e2875]: 发送邮件
+      - paragraph [ref=e2876]: Worker A：
+      - generic [ref=e2877]:
+        - generic [ref=e2878]:
+          - generic [ref=e2879]: text
+          - button "复制" [ref=e2880] [cursor=pointer]
+        - code [ref=e2882]: 邮件发送成功
+      - paragraph [ref=e2883]: 但是在：
+      - generic [ref=e2884]:
+        - generic [ref=e2885]:
+          - generic [ref=e2886]: text
+          - button "复制" [ref=e2887] [cursor=pointer]
+        - code [ref=e2889]: UPDATE task SET status='completed'
+      - paragraph [ref=e2890]: 之前崩溃。
+      - paragraph [ref=e2891]: Lease 到期后 Worker B 重试：
+      - generic [ref=e2892]:
+        - generic [ref=e2893]:
+          - generic [ref=e2894]: text
+          - button "复制" [ref=e2895] [cursor=pointer]
+        - code [ref=e2897]: 再次发送邮件
+      - paragraph [ref=e2898]: 用户会收到两封。
+      - paragraph [ref=e2899]: 所以：
+      - blockquote [ref=e2900]:
+        - paragraph [ref=e2901]:
+          - strong [ref=e2902]: 只要系统允许 Retry / Lease Recovery，就必须考虑重复执行副作用的问题。
+      - separator [ref=e2903]
+      - heading "SECTION 102 76. Agent Tool Call 的 operation_id" [level=1] [ref=e2904]
+      - paragraph [ref=e2905]: 对于有副作用的 Tool：
+      - generic [ref=e2906]:
+        - generic [ref=e2907]:
+          - generic [ref=e2908]: text
+          - button "复制" [ref=e2909] [cursor=pointer]
+        - code [ref=e2911]: create_order refund_order send_email create_ticket
+      - paragraph [ref=e2912]: 应该尽量携带稳定的：
+      - generic [ref=e2913]:
+        - generic [ref=e2914]:
+          - generic [ref=e2915]: text
+          - button "复制" [ref=e2916] [cursor=pointer]
+        - code [ref=e2918]: operation_id
+      - paragraph [ref=e2919]: 例如：
+      - generic [ref=e2920]:
+        - generic [ref=e2921]:
+          - generic [ref=e2922]: text
+          - button "复制" [ref=e2923] [cursor=pointer]
+        - code [ref=e2925]: operation_id = task_id + node_id + logical_operation
+      - paragraph [ref=e2926]: 调用：
+      - generic [ref=e2927]:
+        - generic [ref=e2928]:
+          - generic [ref=e2929]: json
+          - button "复制" [ref=e2930] [cursor=pointer]
+        - code [ref=e2932]: "{ \"operationId\": \"task100-refund\", \"orderId\": \"order888\" }"
+      - paragraph [ref=e2933]: 下游建立：
+      - generic [ref=e2934]:
+        - generic [ref=e2935]:
+          - generic [ref=e2936]: text
+          - button "复制" [ref=e2937] [cursor=pointer]
+        - code [ref=e2939]: operation_id UNIQUE
+      - paragraph [ref=e2940]: 如果重复请求到来：
+      - generic [ref=e2941]:
+        - generic [ref=e2942]:
+          - generic [ref=e2943]: text
+          - button "复制" [ref=e2944] [cursor=pointer]
+        - code [ref=e2946]: 已经执行过 ↓ 直接返回第一次执行结果
+      - paragraph [ref=e2947]: 这就是：
+      - blockquote [ref=e2948]:
+        - paragraph [ref=e2949]:
+          - strong [ref=e2950]: 业务层幂等
+      - paragraph [ref=e2951]: 系统即使是：
+      - generic [ref=e2952]:
+        - generic [ref=e2953]:
+          - generic [ref=e2954]: text
+          - button "复制" [ref=e2955] [cursor=pointer]
+        - code [ref=e2957]: At-Least-Once Execution
+      - paragraph [ref=e2958]: 也能尽量做到：
+      - generic [ref=e2959]:
+        - generic [ref=e2960]:
+          - generic [ref=e2961]: text
+          - button "复制" [ref=e2962] [cursor=pointer]
+        - code [ref=e2964]: 最终业务副作用只发生一次
+      - separator [ref=e2965]
+      - heading "SECTION 103 77. Workflow Node 也需要稳定身份" [level=1] [ref=e2966]
+      - paragraph [ref=e2967]: 例如：
+      - generic [ref=e2968]:
+        - generic [ref=e2969]:
+          - generic [ref=e2970]: text
+          - button "复制" [ref=e2971] [cursor=pointer]
+        - code [ref=e2973]: PRD Agent ↓ RFC Agent ↓ Frontend Agent ↓ Backend Agent ↓ Review Agent
+      - paragraph [ref=e2974]: 如果 RFC Agent 已经生成 RFC，但节点状态还没成功写成 completed，就可能重新执行。
+      - paragraph [ref=e2975]: 因此节点状态建议至少能标识：
+      - generic [ref=e2976]:
+        - generic [ref=e2977]:
+          - generic [ref=e2978]: text
+          - button "复制" [ref=e2979] [cursor=pointer]
+        - code [ref=e2981]: workflow_id node_id execution_version output_version status
+      - paragraph [ref=e2982]: 恢复时可以判断：
+      - generic [ref=e2983]:
+        - generic [ref=e2984]:
+          - generic [ref=e2985]: text
+          - button "复制" [ref=e2986] [cursor=pointer]
+        - code [ref=e2988]: 这个逻辑节点是否已经产生产物？ ↓ 是否应该复用？ ↓ 是否真的需要重新执行？
+      - paragraph [ref=e2989]: 而不是无脑重新调用模型。
+      - separator [ref=e2990]
+      - heading "SECTION 104 78. 可靠 Agent Worker 状态机" [level=1] [ref=e2991]
+      - paragraph [ref=e2992]: 一个比较完整的状态机：
+      - generic [ref=e2993]:
+        - generic [ref=e2994]:
+          - generic [ref=e2995]: text
+          - button "复制" [ref=e2996] [cursor=pointer]
+        - code [ref=e2998]: pending │ claim ↓ running / \ success temporary error ↓ ↓ completed retry_wait │ next_retry_at ↓ pending running │ lease expired ↓ 允许重新 claim permanent error 或超过 max_retry ↓ failed / DLQ
+      - separator [ref=e2999]
+      - heading "SECTION 105 79. 一个较完整的 Agent Task 表" [level=1] [ref=e3000]
+      - paragraph [ref=e3001]: 示例：
+      - generic [ref=e3002]:
+        - generic [ref=e3003]:
+          - generic [ref=e3004]: sql
+          - button "复制" [ref=e3005] [cursor=pointer]
+        - code [ref=e3007]: CREATE TABLE agent_task ( id BIGINT PRIMARY KEY, workflow_id BIGINT, node_id VARCHAR(100), status VARCHAR(20), worker_id VARCHAR(100), execution_version BIGINT NOT NULL DEFAULT 0, lease_until DATETIME, retry_count INT NOT NULL DEFAULT 0, max_retry INT NOT NULL DEFAULT 5, next_retry_at DATETIME, input JSON, result JSON, error_code VARCHAR(100), error_message TEXT, created_at DATETIME, updated_at DATETIME );
+      - paragraph [ref=e3008]: 不要求实际项目完全照抄字段。
+      - paragraph [ref=e3009]: 更重要的是理解每个字段在解决什么问题：
+      - generic [ref=e3010]:
+        - generic [ref=e3011]:
+          - generic [ref=e3012]: text
+          - button "复制" [ref=e3013] [cursor=pointer]
+        - code [ref=e3015]: status → 当前任务状态 worker_id → 当前谁在执行 lease_until → 执行权什么时候过期 execution_version → 防止旧 Worker 写回 retry_count → 已重试几次 next_retry_at → 下次什么时候允许执行 result / error → 可观测和恢复
+      - separator [ref=e3016]
+      - heading "SECTION 106 80. Agent Worker 完整执行流程" [level=1] [ref=e3017]
+      - generic [ref=e3018]:
+        - generic [ref=e3019]:
+          - generic [ref=e3020]: text
+          - button "复制" [ref=e3021] [cursor=pointer]
+        - code [ref=e3023]: 1. 找候选任务 pending retry_wait 到期 running 但 lease 已过期 2. CAS Claim status = running worker_id = A execution_version += 1 lease_until = now + 30s 3. 执行期间 Heartbeat ↓ 持续续租 4. 调用 LLM / Tool 副作用尽量携带 operation_id 保证幂等 5. 成功 CAS 更新 completed 并校验 worker_id / execution_version 6. 失败 判断 Retryable / Non-Retryable 7. 可重试 retry_count += 1 next_retry_at = backoff + jitter status = retry_wait 8. 不可重试 / 超过上限 status = failed 或 DLQ
+      - separator [ref=e3024]
+      - heading "SECTION 107 81. DB 与 MQ 在 Agent 系统里的职责" [level=1] [ref=e3025]
+      - paragraph [ref=e3026]: 可以这样分工：
+      - generic [ref=e3027]:
+        - generic [ref=e3028]:
+          - generic [ref=e3029]: text
+          - button "复制" [ref=e3030] [cursor=pointer]
+        - code [ref=e3032]: MySQL / PostgreSQL ↓ Source of Truth ↓ 任务状态 Workflow 状态 Lease Retry 状态 执行结果 错误信息 MQ ↓ Delivery / Wake-up Mechanism ↓ 告诉 Worker： “有任务可以处理”
+      - paragraph [ref=e3033]: 所以：
+      - blockquote [ref=e3034]:
+        - paragraph [ref=e3035]:
+          - strong [ref=e3036]: 数据库保存事实状态，MQ 负责异步分发和解耦。
+      - paragraph [ref=e3037]: 不要简单把 MQ 当成唯一的任务状态存储。
+      - separator [ref=e3038]
+      - heading "SECTION 108 82. LangGraph 与 Worker 可靠性层的关系" [level=1] [ref=e3039]
+      - paragraph [ref=e3040]: 可以理解：
+      - generic [ref=e3041]:
+        - generic [ref=e3042]:
+          - generic [ref=e3043]: text
+          - button "复制" [ref=e3044] [cursor=pointer]
+        - code [ref=e3046]: LangGraph ↓ Workflow 编排层 ↓ Graph State Checkpoint Interrupt Resume Task Worker / DB / MQ ↓ 执行可靠性层 ↓ Claim Lease Heartbeat Retry Idempotency Fencing
+      - paragraph [ref=e3047]: LangGraph 解决：
+      - generic [ref=e3048]:
+        - generic [ref=e3049]:
+          - generic [ref=e3050]: text
+          - button "复制" [ref=e3051] [cursor=pointer]
+        - code [ref=e3053]: 流程怎么走 状态怎么传 节点怎么恢复
+      - paragraph [ref=e3054]: 可靠 Worker 层解决：
+      - generic [ref=e3055]:
+        - generic [ref=e3056]:
+          - generic [ref=e3057]: text
+          - button "复制" [ref=e3058] [cursor=pointer]
+        - code [ref=e3060]: 谁真正执行 Worker 挂了怎么办 任务重复怎么办 外部副作用怎么办
+      - paragraph [ref=e3061]: 两者并不互相替代。
+      - separator [ref=e3062]
+      - heading "SECTION 109 83. Agent Worker 崩溃怎么办？面试回答" [level=1] [ref=e3063]
+      - paragraph [ref=e3064]: 可以回答：
+      - blockquote [ref=e3065]:
+        - paragraph [ref=e3066]: Agent 长任务不能通过一直持有数据库锁来保证执行权。我会通过任务表中的 status、worker_id、lease_until 建立租约机制，Worker Claim 时用 CAS 原子抢占，执行过程中 Heartbeat 续租。Worker 崩溃后 Lease 到期，允许其他 Worker 重新 Claim。为了防止旧 Worker 恢复后写回旧结果，还会通过 worker_id 或递增的 execution_version / fencing token 验证执行权。临时错误通过 Retry + Exponential Backoff + Jitter 处理，所有有副作用的 Tool 调用需要尽量支持 operation_id 幂等。
+      - separator [ref=e3067]
+      - heading "SECTION 110 84. 这一阶段必须掌握的核心概念" [level=1] [ref=e3068]
+      - generic [ref=e3069]:
+        - generic [ref=e3070]:
+          - generic [ref=e3071]: text
+          - button "复制" [ref=e3072] [cursor=pointer]
+        - code [ref=e3074]: Transactional Outbox → DB 与“待发送事件”同事务 At-Least-Once → 消息可能重复，但尽量不能丢 Idempotency → 重复执行不能产生重复副作用 Inbox / processed_event → 消费去重 Retry + Backoff + Jitter → 处理临时故障 DLQ → 持续失败最终可观测 CAS → 原子抢任务 Lease → 执行权有期限 Heartbeat → 正常 Worker 续租 Fencing Token → 旧 Worker 不能覆盖新状态 operation_id → Tool 副作用幂等
+      - separator [ref=e3075]
+      - heading "SECTION 111 85. 当前完整学习链" [level=1] [ref=e3076]
+      - generic [ref=e3077]:
+        - generic [ref=e3078]:
+          - generic [ref=e3079]: text
+          - button "复制" [ref=e3080] [cursor=pointer]
+        - code [ref=e3082]: 事务隔离级别 ↓ MVCC ↓ Undo Log + Read View ↓ 快照读 / 当前读 ↓ FOR UPDATE ↓ Record / Gap / Next-Key Lock ↓ 死锁 ↓ 原子 UPDATE / CAS ↓ 乐观锁 / 悲观锁 ↓ 短事务原则 ↓ DB + MQ 一致性 ↓ Transactional Outbox ↓ At-Least-Once ↓ Inbox / 幂等消费 ↓ Retry / Backoff / DLQ ↓ Agent Task Claim ↓ Lease / Heartbeat ↓ Fencing Token ↓ Tool Idempotency ↓ 可靠 Agent Worker
+      - paragraph [ref=e3083]: 下一阶段可以继续：
+      - generic [ref=e3084]:
+        - generic [ref=e3085]:
+          - generic [ref=e3086]: text
+          - button "复制" [ref=e3087] [cursor=pointer]
+        - code [ref=e3089]: 可靠 Agent Worker ↓ Workflow Checkpoint ↓ Node State ↓ Resume ↓ Human-in-the-loop ↓ 生产级 LangGraph / Workspace 编排
+      - separator [ref=e3090]
+      - heading "SECTION 112 86. 从可靠 Worker 进入 Durable Agent Workflow" [level=1] [ref=e3091]
+      - paragraph [ref=e3092]: 前面的学习已经解决：
+      - generic [ref=e3093]:
+        - generic [ref=e3094]:
+          - generic [ref=e3095]: text
+          - button "复制" [ref=e3096] [cursor=pointer]
+        - code [ref=e3098]: Agent Task ↓ CAS Claim ↓ Lease ↓ Heartbeat ↓ Retry ↓ Fencing Token ↓ Tool Idempotency ↓ 可靠 Agent Worker
+      - paragraph [ref=e3099]: 下一层需要解决：
+      - blockquote [ref=e3100]:
+        - paragraph [ref=e3101]:
+          - strong [ref=e3102]: 整个 Workflow 执行到一半时服务中断，系统应该从哪里继续？
+      - paragraph [ref=e3103]: 例如：
+      - generic [ref=e3104]:
+        - generic [ref=e3105]:
+          - generic [ref=e3106]: text
+          - button "复制" [ref=e3107] [cursor=pointer]
+        - code [ref=e3109]: 用户需求 ↓ PRD Agent ↓ RFC Agent ↓ Frontend Agent ↓ Backend Agent ↓ Review Agent
+      - paragraph [ref=e3110]: 执行状态：
+      - generic [ref=e3111]:
+        - generic [ref=e3112]:
+          - generic [ref=e3113]: text
+          - button "复制" [ref=e3114] [cursor=pointer]
+        - code [ref=e3116]: PRD completed RFC completed Frontend completed Backend running Review pending
+      - paragraph [ref=e3117]: 如果 Backend Agent 执行期间服务宕机，恢复后不应该重新执行整个 Workflow。
+      - paragraph [ref=e3118]: 因此需要：
+      - blockquote [ref=e3119]:
+        - paragraph [ref=e3120]:
+          - strong [ref=e3121]: Checkpoint + Resume
+      - separator [ref=e3122]
+      - heading "SECTION 113 87. Checkpoint 是什么？" [level=1] [ref=e3123]
+      - paragraph [ref=e3124]: Checkpoint 的本质：
+      - blockquote [ref=e3125]:
+        - paragraph [ref=e3126]:
+          - strong [ref=e3127]: 持久化 Workflow 当前执行状态，使长生命周期 Workflow 可以在中断后恢复。
+      - paragraph [ref=e3128]: 例如：
+      - generic [ref=e3129]:
+        - generic [ref=e3130]:
+          - generic [ref=e3131]: json
+          - button "复制" [ref=e3132] [cursor=pointer]
+        - code [ref=e3134]: "{ \"workflowId\": \"wf-100\", \"currentNode\": \"backend\", \"state\": { \"prdId\": \"prd-001\", \"rfcId\": \"rfc-001\", \"frontendResult\": \"...\", \"backendResult\": null } }"
+      - paragraph [ref=e3135]: 服务恢复：
+      - generic [ref=e3136]:
+        - generic [ref=e3137]:
+          - generic [ref=e3138]: text
+          - button "复制" [ref=e3139] [cursor=pointer]
+        - code [ref=e3141]: Load Checkpoint ↓ 发现： PRD completed RFC completed Frontend completed Backend 未完成 ↓ 从 Backend 附近继续
+      - paragraph [ref=e3142]: 而不是：
+      - generic [ref=e3143]:
+        - generic [ref=e3144]:
+          - generic [ref=e3145]: text
+          - button "复制" [ref=e3146] [cursor=pointer]
+        - code [ref=e3148]: PRD ↓ RFC ↓ Frontend ↓ 全部重新执行
+      - separator [ref=e3149]
+      - heading "SECTION 114 88. 为什么 Agent Workflow 特别需要 Checkpoint？" [level=1] [ref=e3150]
+      - paragraph [ref=e3151]: 传统 HTTP 请求可能只有：
+      - generic [ref=e3152]:
+        - generic [ref=e3153]:
+          - generic [ref=e3154]: text
+          - button "复制" [ref=e3155] [cursor=pointer]
+        - code [ref=e3157]: Request ↓ 100ms ↓ Response
+      - paragraph [ref=e3158]: 失败后重新请求即可。
+      - paragraph [ref=e3159]: 但 Agent Workflow 可能：
+      - generic [ref=e3160]:
+        - generic [ref=e3161]:
+          - generic [ref=e3162]: text
+          - button "复制" [ref=e3163] [cursor=pointer]
+        - code [ref=e3165]: PRD Agent 30s ↓ RFC Agent 60s ↓ Frontend Agent 3min ↓ Backend Agent 3min ↓ Review Agent 1min
+      - paragraph [ref=e3166]: 整个流程可能持续：
+      - generic [ref=e3167]:
+        - generic [ref=e3168]:
+          - generic [ref=e3169]: text
+          - button "复制" [ref=e3170] [cursor=pointer]
+        - code [ref=e3172]: 几分钟 几十分钟 甚至几小时 / 几天
+      - paragraph [ref=e3173]: 期间还可能：
+      - generic [ref=e3174]:
+        - generic [ref=e3175]:
+          - generic [ref=e3176]: text
+          - button "复制" [ref=e3177] [cursor=pointer]
+        - code [ref=e3179]: 等待人工审批 等待外部 API 等待异步任务 等待其他 Agent
+      - paragraph [ref=e3180]: 因此不能假设：
+      - blockquote [ref=e3181]:
+        - paragraph [ref=e3182]:
+          - strong [ref=e3183]: 整个 Workflow 一定会在同一个进程生命周期中一次执行到底。
+      - paragraph [ref=e3184]: Checkpoint 是 Durable Workflow 的基础能力。
+      - separator [ref=e3185]
+      - heading "SECTION 115 89. Checkpoint 需要保存什么？" [level=1] [ref=e3186]
+      - paragraph [ref=e3187]: 至少需要区分三类信息。
+      - heading "SECTION 116 89.1 Workflow State" [level=2] [ref=e3188]
+      - paragraph [ref=e3189]: 例如：
+      - generic [ref=e3190]:
+        - generic [ref=e3191]:
+          - generic [ref=e3192]: json
+          - button "复制" [ref=e3193] [cursor=pointer]
+        - code [ref=e3195]: "{ \"requirement\": \"...\", \"prdId\": \"prd-001\", \"rfcId\": \"rfc-001\", \"repo\": \"xxx\", \"branch\": \"feature/xxx\" }"
+      - paragraph [ref=e3196]: 它回答：
+      - blockquote [ref=e3197]:
+        - paragraph [ref=e3198]:
+          - strong [ref=e3199]: 后续节点继续运行需要哪些上下文？
+      - separator [ref=e3200]
+      - heading "SECTION 117 89.2 Node State" [level=2] [ref=e3201]
+      - paragraph [ref=e3202]: 例如：
+      - generic [ref=e3203]:
+        - generic [ref=e3204]:
+          - generic [ref=e3205]: text
+          - button "复制" [ref=e3206] [cursor=pointer]
+        - code [ref=e3208]: node_id = backend_agent status = running attempt = 2 started_at = ... completed_at = null
+      - paragraph [ref=e3209]: 它回答：
+      - blockquote [ref=e3210]:
+        - paragraph [ref=e3211]:
+          - strong [ref=e3212]: 每个节点当前执行到什么状态？
+      - separator [ref=e3213]
+      - heading "SECTION 118 89.3 Execution Metadata" [level=2] [ref=e3214]
+      - paragraph [ref=e3215]: 例如：
+      - generic [ref=e3216]:
+        - generic [ref=e3217]:
+          - generic [ref=e3218]: text
+          - button "复制" [ref=e3219] [cursor=pointer]
+        - code [ref=e3221]: workflow_id execution_id checkpoint_version execution_version
+      - paragraph [ref=e3222]: 主要用于：
+      - generic [ref=e3223]:
+        - generic [ref=e3224]:
+          - generic [ref=e3225]: text
+          - button "复制" [ref=e3226] [cursor=pointer]
+        - code [ref=e3228]: 恢复 并发控制 执行追踪 防止旧执行覆盖新执行
+      - separator [ref=e3229]
+      - heading "SECTION 119 90. Node 状态机" [level=1] [ref=e3230]
+      - paragraph [ref=e3231]: Agent Node 不应该只理解成一个函数调用。
+      - paragraph [ref=e3232]: 更适合把它理解成一个小状态机：
+      - generic [ref=e3233]:
+        - generic [ref=e3234]:
+          - generic [ref=e3235]: text
+          - button "复制" [ref=e3236] [cursor=pointer]
+        - code [ref=e3238]: pending │ execute ↓ running / \ ↓ ↓ completed failed │ retry ↓ running
+      - paragraph [ref=e3239]: 如果支持人工介入：
+      - generic [ref=e3240]:
+        - generic [ref=e3241]:
+          - generic [ref=e3242]: text
+          - button "复制" [ref=e3243] [cursor=pointer]
+        - code [ref=e3245]: running ↓ waiting_human ↓ running
+      - paragraph [ref=e3246]: 如果等待外部系统：
+      - generic [ref=e3247]:
+        - generic [ref=e3248]:
+          - generic [ref=e3249]: text
+          - button "复制" [ref=e3250] [cursor=pointer]
+        - code [ref=e3252]: running ↓ waiting_external ↓ running
+      - paragraph [ref=e3253]: 实际系统可能包含：
+      - generic [ref=e3254]:
+        - generic [ref=e3255]:
+          - generic [ref=e3256]: text
+          - button "复制" [ref=e3257] [cursor=pointer]
+        - code [ref=e3259]: pending running completed failed retry_wait waiting_human waiting_external cancelled
+      - paragraph [ref=e3260]: 不要求所有项目都实现全部状态。
+      - paragraph [ref=e3261]: 核心是：
+      - blockquote [ref=e3262]:
+        - paragraph [ref=e3263]:
+          - strong [ref=e3264]: Workflow Node 要有明确状态机，而不是只靠内存里的函数调用关系。
+      - separator [ref=e3265]
+      - heading "SECTION 120 91. Checkpoint 并不能自动解决副作用重复" [level=1] [ref=e3266]
+      - paragraph [ref=e3267]: 假设 Backend Agent：
+      - generic [ref=e3268]:
+        - generic [ref=e3269]:
+          - generic [ref=e3270]: text
+          - button "复制" [ref=e3271] [cursor=pointer]
+        - code [ref=e3273]: 1. 修改 Git 仓库代码 2. UPDATE node status = completed
+      - paragraph [ref=e3274]: 执行过程：
+      - generic [ref=e3275]:
+        - generic [ref=e3276]:
+          - generic [ref=e3277]: text
+          - button "复制" [ref=e3278] [cursor=pointer]
+        - code [ref=e3280]: Git 修改成功 ↓ 服务崩溃 ↓ completed 没写入数据库
+      - paragraph [ref=e3281]: 数据库仍然：
+      - generic [ref=e3282]:
+        - generic [ref=e3283]:
+          - generic [ref=e3284]: text
+          - button "复制" [ref=e3285] [cursor=pointer]
+        - code [ref=e3287]: backend node = running
+      - paragraph [ref=e3288]: 恢复以后系统可能认为：
+      - generic [ref=e3289]:
+        - generic [ref=e3290]:
+          - generic [ref=e3291]: text
+          - button "复制" [ref=e3292] [cursor=pointer]
+        - code [ref=e3294]: Backend 没执行完
+      - paragraph [ref=e3295]: 于是再次执行：
+      - generic [ref=e3296]:
+        - generic [ref=e3297]:
+          - generic [ref=e3298]: text
+          - button "复制" [ref=e3299] [cursor=pointer]
+        - code [ref=e3301]: Backend Agent ↓ 再次修改代码
+      - paragraph [ref=e3302]: 因此：
+      - blockquote [ref=e3303]:
+        - paragraph [ref=e3304]:
+          - strong [ref=e3305]: Checkpoint ≠ Idempotency。
+      - paragraph [ref=e3306]: Checkpoint 只能告诉系统：
+      - generic [ref=e3307]:
+        - generic [ref=e3308]:
+          - generic [ref=e3309]: text
+          - button "复制" [ref=e3310] [cursor=pointer]
+        - code [ref=e3312]: 最后可靠记录到哪里
+      - paragraph [ref=e3313]: 但如果：
+      - generic [ref=e3314]:
+        - generic [ref=e3315]:
+          - generic [ref=e3316]: text
+          - button "复制" [ref=e3317] [cursor=pointer]
+        - code [ref=e3319]: 外部副作用成功 ↓ Checkpoint 更新失败
+      - paragraph [ref=e3320]: 仍然存在重复执行窗口。
+      - separator [ref=e3321]
+      - heading "SECTION 121 92. Node 必须尽量设计成幂等" [level=1] [ref=e3322]
+      - paragraph [ref=e3323]: 例如：
+      - generic [ref=e3324]:
+        - generic [ref=e3325]:
+          - generic [ref=e3326]: text
+          - button "复制" [ref=e3327] [cursor=pointer]
+        - code [ref=e3329]: generate_rfc
+      - paragraph [ref=e3330]: 不要每次恢复都：
+      - generic [ref=e3331]:
+        - generic [ref=e3332]:
+          - generic [ref=e3333]: text
+          - button "复制" [ref=e3334] [cursor=pointer]
+        - code [ref=e3336]: INSERT 一个新的 RFC
+      - paragraph [ref=e3337]: 可以为逻辑节点建立稳定身份：
+      - generic [ref=e3338]:
+        - generic [ref=e3339]:
+          - generic [ref=e3340]: text
+          - button "复制" [ref=e3341] [cursor=pointer]
+        - code [ref=e3343]: workflow_id + node_id + logical_execution_id
+      - paragraph [ref=e3344]: 例如：
+      - generic [ref=e3345]:
+        - generic [ref=e3346]:
+          - generic [ref=e3347]: text
+          - button "复制" [ref=e3348] [cursor=pointer]
+        - code [ref=e3350]: artifact_key = wf-100:rfc
+      - paragraph [ref=e3351]: 第一次：
+      - generic [ref=e3352]:
+        - generic [ref=e3353]:
+          - generic [ref=e3354]: text
+          - button "复制" [ref=e3355] [cursor=pointer]
+        - code [ref=e3357]: 生成 RFC ↓ 保存 artifact_key = wf-100:rfc
+      - paragraph [ref=e3358]: 恢复后：
+      - generic [ref=e3359]:
+        - generic [ref=e3360]:
+          - generic [ref=e3361]: text
+          - button "复制" [ref=e3362] [cursor=pointer]
+        - code [ref=e3364]: 查询 artifact_key ↓ 发现产物已经存在 ↓ 复用已有结果
+      - paragraph [ref=e3365]: 而不是重新生成。
+      - paragraph [ref=e3366]: 这就是：
+      - blockquote [ref=e3367]:
+        - paragraph [ref=e3368]:
+          - strong [ref=e3369]: Idempotent Node
+      - separator [ref=e3370]
+      - heading "SECTION 122 93. execution_key 与 operation_id 是同一个思想" [level=1] [ref=e3371]
+      - paragraph [ref=e3372]: 上一阶段 Tool Call 使用：
+      - generic [ref=e3373]:
+        - generic [ref=e3374]:
+          - generic [ref=e3375]: text
+          - button "复制" [ref=e3376] [cursor=pointer]
+        - code [ref=e3378]: operation_id
+      - paragraph [ref=e3379]: 例如：
+      - generic [ref=e3380]:
+        - generic [ref=e3381]:
+          - generic [ref=e3382]: text
+          - button "复制" [ref=e3383] [cursor=pointer]
+        - code [ref=e3385]: task100-refund
+      - paragraph [ref=e3386]: Workflow Node 可以使用：
+      - generic [ref=e3387]:
+        - generic [ref=e3388]:
+          - generic [ref=e3389]: text
+          - button "复制" [ref=e3390] [cursor=pointer]
+        - code [ref=e3392]: execution_key
+      - paragraph [ref=e3393]: 例如：
+      - generic [ref=e3394]:
+        - generic [ref=e3395]:
+          - generic [ref=e3396]: text
+          - button "复制" [ref=e3397] [cursor=pointer]
+        - code [ref=e3399]: wf100-rfc
+      - paragraph [ref=e3400]: 它们本质都是：
+      - generic [ref=e3401]:
+        - generic [ref=e3402]:
+          - generic [ref=e3403]: text
+          - button "复制" [ref=e3404] [cursor=pointer]
+        - code [ref=e3406]: 一个逻辑动作 ↓ 拥有稳定唯一身份 ↓ 重复请求 / Retry / Resume ↓ 识别是否已经执行
+      - paragraph [ref=e3407]: 因此一个非常重要的 Agent 工程原则：
+      - blockquote [ref=e3408]:
+        - paragraph [ref=e3409]:
+          - strong [ref=e3410]: 任何可能 Retry / Resume 的动作，都必须考虑重复执行是否安全。
+      - separator [ref=e3411]
+      - heading "SECTION 123 94. Workflow Resume 如何工作？" [level=1] [ref=e3412]
+      - paragraph [ref=e3413]: 假设：
+      - generic [ref=e3414]:
+        - generic [ref=e3415]:
+          - generic [ref=e3416]: text
+          - button "复制" [ref=e3417] [cursor=pointer]
+        - code [ref=e3419]: PRD completed RFC completed Frontend completed Backend running Review pending
+      - paragraph [ref=e3420]: 系统恢复：
+      - generic [ref=e3421]:
+        - generic [ref=e3422]:
+          - generic [ref=e3423]: text
+          - button "复制" [ref=e3424] [cursor=pointer]
+        - code [ref=e3426]: Load Checkpoint ↓ 加载 Workflow State ↓ 加载 Node State
+      - paragraph [ref=e3427]: 发现：
+      - generic [ref=e3428]:
+        - generic [ref=e3429]:
+          - generic [ref=e3430]: text
+          - button "复制" [ref=e3431] [cursor=pointer]
+        - code [ref=e3433]: Backend = running
+      - paragraph [ref=e3434]: 但它原来的 Worker：
+      - generic [ref=e3435]:
+        - generic [ref=e3436]:
+          - generic [ref=e3437]: text
+          - button "复制" [ref=e3438] [cursor=pointer]
+        - code [ref=e3440]: Lease 已过期
+      - paragraph [ref=e3441]: 因此：
+      - generic [ref=e3442]:
+        - generic [ref=e3443]:
+          - generic [ref=e3444]: text
+          - button "复制" [ref=e3445] [cursor=pointer]
+        - code [ref=e3447]: running + lease expired ↓ 上一次执行权失效
+      - paragraph [ref=e3448]: 然后：
+      - generic [ref=e3449]:
+        - generic [ref=e3450]:
+          - generic [ref=e3451]: text
+          - button "复制" [ref=e3452] [cursor=pointer]
+        - code [ref=e3454]: 检查 Backend execution_key / artifact
+      - paragraph [ref=e3455]: 如果：
+      - generic [ref=e3456]:
+        - generic [ref=e3457]:
+          - generic [ref=e3458]: text
+          - button "复制" [ref=e3459] [cursor=pointer]
+        - code [ref=e3461]: 产物实际上已经存在
+      - paragraph [ref=e3462]: 则：
+      - generic [ref=e3463]:
+        - generic [ref=e3464]:
+          - generic [ref=e3465]: text
+          - button "复制" [ref=e3466] [cursor=pointer]
+        - code [ref=e3468]: 恢复已有结果 ↓ 修正 Node State ↓ completed
+      - paragraph [ref=e3469]: 如果：
+      - generic [ref=e3470]:
+        - generic [ref=e3471]:
+          - generic [ref=e3472]: text
+          - button "复制" [ref=e3473] [cursor=pointer]
+        - code [ref=e3475]: 产物不存在
+      - paragraph [ref=e3476]: 则：
+      - generic [ref=e3477]:
+        - generic [ref=e3478]:
+          - generic [ref=e3479]: text
+          - button "复制" [ref=e3480] [cursor=pointer]
+        - code [ref=e3482]: 重新 Claim ↓ 重新执行 Backend Node
+      - paragraph [ref=e3483]: 完整恢复：
+      - generic [ref=e3484]:
+        - generic [ref=e3485]:
+          - generic [ref=e3486]: text
+          - button "复制" [ref=e3487] [cursor=pointer]
+        - code [ref=e3489]: Load Checkpoint ↓ 找到未完成 Node ↓ 检查 Lease / Execution ↓ 检查副作用 / Artifact ↓ ┌──────┴──────┐ ↓ ↓ 已完成 未完成 ↓ ↓ 恢复结果 重新执行 ↓ ↓ └──────┬──────┘ ↓ 继续 Workflow
+      - separator [ref=e3490]
+      - heading "SECTION 124 95. Checkpoint 什么时候保存？" [level=1] [ref=e3491]
+      - paragraph [ref=e3492]: 最简单和常见的方式：
+      - blockquote [ref=e3493]:
+        - paragraph [ref=e3494]:
+          - strong [ref=e3495]: 在 Node 边界保存 Checkpoint。
+      - paragraph [ref=e3496]: 例如：
+      - generic [ref=e3497]:
+        - generic [ref=e3498]:
+          - generic [ref=e3499]: text
+          - button "复制" [ref=e3500] [cursor=pointer]
+        - code [ref=e3502]: PRD Agent ↓ completed ↓ Checkpoint ↓ RFC Agent
+      - paragraph [ref=e3503]: 然后：
+      - generic [ref=e3504]:
+        - generic [ref=e3505]:
+          - generic [ref=e3506]: text
+          - button "复制" [ref=e3507] [cursor=pointer]
+        - code [ref=e3509]: RFC Agent ↓ completed ↓ Checkpoint ↓ Frontend Agent
+      - paragraph [ref=e3510]: 这样每个重要节点成功后，都有一个可靠恢复点。
+      - separator [ref=e3511]
+      - heading "SECTION 125 96. 长 Node 内部如何 Checkpoint？" [level=1] [ref=e3512]
+      - paragraph [ref=e3513]: 例如 Backend Agent：
+      - generic [ref=e3514]:
+        - generic [ref=e3515]:
+          - generic [ref=e3516]: text
+          - button "复制" [ref=e3517] [cursor=pointer]
+        - code [ref=e3519]: 读取代码 ↓ 生成方案 ↓ 修改文件 ↓ 运行测试 ↓ 修复 ↓ 提交
+      - paragraph [ref=e3520]: 整个 Node 可能执行 10 分钟。
+      - paragraph [ref=e3521]: 如果只在 Node 最后 Checkpoint：
+      - generic [ref=e3522]:
+        - generic [ref=e3523]:
+          - generic [ref=e3524]: text
+          - button "复制" [ref=e3525] [cursor=pointer]
+        - code [ref=e3527]: 第 9 分钟服务挂掉
+      - paragraph [ref=e3528]: 可能需要重新执行整个 Backend Node。
+      - paragraph [ref=e3529]: 有两种主要设计。
+      - heading "SECTION 126 方案 A：接受 Node 重跑" [level=2] [ref=e3530]
+      - paragraph [ref=e3531]: 适合：
+      - generic [ref=e3532]:
+        - generic [ref=e3533]:
+          - generic [ref=e3534]: text
+          - button "复制" [ref=e3535] [cursor=pointer]
+        - code [ref=e3537]: Node 足够幂等 + 重跑成本可以接受
+      - paragraph [ref=e3538]: 优点：
+      - generic [ref=e3539]:
+        - generic [ref=e3540]:
+          - generic [ref=e3541]: text
+          - button "复制" [ref=e3542] [cursor=pointer]
+        - code [ref=e3544]: 架构简单
+      - paragraph [ref=e3545]: 通常应该优先考虑。
+      - heading "SECTION 127 方案 B：拆成更小的 Node" [level=2] [ref=e3546]
+      - paragraph [ref=e3547]: 例如：
+      - generic [ref=e3548]:
+        - generic [ref=e3549]:
+          - generic [ref=e3550]: text
+          - button "复制" [ref=e3551] [cursor=pointer]
+        - code [ref=e3553]: Analyze Code ↓ Checkpoint Generate Patch ↓ Checkpoint Run Tests ↓ Checkpoint Fix ↓ Checkpoint
+      - paragraph [ref=e3554]: 恢复粒度更细。
+      - paragraph [ref=e3555]: 但代价：
+      - generic [ref=e3556]:
+        - generic [ref=e3557]:
+          - generic [ref=e3558]: text
+          - button "复制" [ref=e3559] [cursor=pointer]
+        - code [ref=e3561]: Workflow 状态更多 编排更复杂 维护成本更高
+      - paragraph [ref=e3562]: 所以原则：
+      - blockquote [ref=e3563]:
+        - paragraph [ref=e3564]:
+          - strong [ref=e3565]: Checkpoint 粒度是在恢复成本和系统复杂度之间取平衡。
+      - paragraph [ref=e3566]: 不要为了"绝不重跑一步"把 Workflow 无限拆碎。
+      - separator [ref=e3567]
+      - heading "SECTION 128 97. Human-in-the-loop 为什么依赖 Checkpoint？" [level=1] [ref=e3568]
+      - paragraph [ref=e3569]: 例如：
+      - generic [ref=e3570]:
+        - generic [ref=e3571]:
+          - generic [ref=e3572]: text
+          - button "复制" [ref=e3573] [cursor=pointer]
+        - code [ref=e3575]: PRD Agent ↓ 生成 PRD ↓ 等待产品经理确认
+      - paragraph [ref=e3576]: 错误方式是：
+      - generic [ref=e3577]:
+        - generic [ref=e3578]:
+          - generic [ref=e3579]: text
+          - button "复制" [ref=e3580] [cursor=pointer]
+        - code [ref=e3582]: Worker 一直运行 ↓ 等待用户几小时
+      - paragraph [ref=e3583]: 正确方式：
+      - generic [ref=e3584]:
+        - generic [ref=e3585]:
+          - generic [ref=e3586]: text
+          - button "复制" [ref=e3587] [cursor=pointer]
+        - code [ref=e3589]: PRD Agent ↓ 生成结果 ↓ Checkpoint ↓ status = waiting_human ↓ 释放 Worker
+      - paragraph [ref=e3590]: Workflow 可以暂停：
+      - generic [ref=e3591]:
+        - generic [ref=e3592]:
+          - generic [ref=e3593]: text
+          - button "复制" [ref=e3594] [cursor=pointer]
+        - code [ref=e3596]: 10 分钟 1 小时 1 天
+      - paragraph [ref=e3597]: 用户点击：
+      - generic [ref=e3598]:
+        - generic [ref=e3599]:
+          - generic [ref=e3600]: text
+          - button "复制" [ref=e3601] [cursor=pointer]
+        - code [ref=e3603]: Approve
+      - paragraph [ref=e3604]: 系统收到事件：
+      - generic [ref=e3605]:
+        - generic [ref=e3606]:
+          - generic [ref=e3607]: text
+          - button "复制" [ref=e3608] [cursor=pointer]
+        - code [ref=e3610]: Human Event ↓ Load Checkpoint ↓ 更新 Workflow State ↓ Resume ↓ 继续 RFC Agent
+      - paragraph [ref=e3611]: 这就是：
+      - blockquote [ref=e3612]:
+        - paragraph [ref=e3613]:
+          - strong [ref=e3614]: Durable Human-in-the-loop
+      - separator [ref=e3615]
+      - heading "SECTION 129 98. Workspace 中的 Human-in-the-loop" [level=1] [ref=e3616]
+      - paragraph [ref=e3617]: 例如 Workspace：
+      - generic [ref=e3618]:
+        - generic [ref=e3619]:
+          - generic [ref=e3620]: text
+          - button "复制" [ref=e3621] [cursor=pointer]
+        - code [ref=e3623]: 需求创建 ↓ Product Agent ↓ PRD ↓ Human Review ↓ Full-stack Agent ↓ Code ↓ Test Agent ↓ Human Review ↓ Merge
+      - paragraph [ref=e3624]: 可以设计：
+      - generic [ref=e3625]:
+        - generic [ref=e3626]:
+          - generic [ref=e3627]: text
+          - button "复制" [ref=e3628] [cursor=pointer]
+        - code [ref=e3630]: Product Agent ↓ Checkpoint ↓ waiting_human ↓ 产品确认 ↓ Resume ↓ Full-stack Agent ↓ Checkpoint ↓ Test Agent
+      - paragraph [ref=e3631]: 这样 Workflow 生命周期可以跨：
+      - generic [ref=e3632]:
+        - generic [ref=e3633]:
+          - generic [ref=e3634]: text
+          - button "复制" [ref=e3635] [cursor=pointer]
+        - code [ref=e3637]: 分钟 小时 甚至几天
+      - paragraph [ref=e3638]: 而不需要一直占用一个 Worker 或进程。
+      - separator [ref=e3639]
+      - heading "SECTION 130 99. Checkpoint 应该放 Redis 吗？" [level=1] [ref=e3640]
+      - paragraph [ref=e3641]: 如果 Checkpoint 是：
+      - blockquote [ref=e3642]:
+        - paragraph [ref=e3643]:
+          - strong [ref=e3644]: Workflow 恢复所依赖的事实状态
+      - paragraph [ref=e3645]: 通常不应该只存在 Redis。
+      - paragraph [ref=e3646]: Redis 更适合：
+      - generic [ref=e3647]:
+        - generic [ref=e3648]:
+          - generic [ref=e3649]: text
+          - button "复制" [ref=e3650] [cursor=pointer]
+        - code [ref=e3652]: Cache 临时状态 Lease 分布式协调 高性能读取
+      - paragraph [ref=e3653]: 而 Workflow Checkpoint 需要：
+      - generic [ref=e3654]:
+        - generic [ref=e3655]:
+          - generic [ref=e3656]: text
+          - button "复制" [ref=e3657] [cursor=pointer]
+        - code [ref=e3659]: 可靠持久化 恢复 审计 长期保存
+      - paragraph [ref=e3660]: 因此通常更适合：
+      - generic [ref=e3661]:
+        - generic [ref=e3662]:
+          - generic [ref=e3663]: text
+          - button "复制" [ref=e3664] [cursor=pointer]
+        - code [ref=e3666]: PostgreSQL / MySQL
+      - paragraph [ref=e3667]: 作为 Source of Truth。
+      - paragraph [ref=e3668]: 可以：
+      - generic [ref=e3669]:
+        - generic [ref=e3670]:
+          - generic [ref=e3671]: text
+          - button "复制" [ref=e3672] [cursor=pointer]
+        - code [ref=e3674]: PostgreSQL / MySQL ↓ Workflow State Checkpoint Node State Redis ↓ Cache Lease Coordination
+      - paragraph [ref=e3675]: 仍然符合之前的原则：
+      - blockquote [ref=e3676]:
+        - paragraph [ref=e3677]:
+          - strong [ref=e3678]: DB 保存事实，Redis 负责性能和协调。
+      - separator [ref=e3679]
+      - heading "SECTION 131 100. Workflow Runtime、Business Artifact、Knowledge 要分开" [level=1] [ref=e3680]
+      - paragraph [ref=e3681]: Workspace 中至少存在三类完全不同的数据。
+      - heading "SECTION 132 100.1 Workflow Runtime State" [level=2] [ref=e3682]
+      - paragraph [ref=e3683]: 例如：
+      - generic [ref=e3684]:
+        - generic [ref=e3685]:
+          - generic [ref=e3686]: text
+          - button "复制" [ref=e3687] [cursor=pointer]
+        - code [ref=e3689]: Checkpoint Node Status Retry Lease Execution Human Interrupt
+      - paragraph [ref=e3690]: 解决：
+      - generic [ref=e3691]:
+        - generic [ref=e3692]:
+          - generic [ref=e3693]: text
+          - button "复制" [ref=e3694] [cursor=pointer]
+        - code [ref=e3696]: 流程现在运行到哪里？
+      - separator [ref=e3697]
+      - heading "SECTION 133 100.2 Business Artifact" [level=2] [ref=e3698]
+      - paragraph [ref=e3699]: 例如：
+      - generic [ref=e3700]:
+        - generic [ref=e3701]:
+          - generic [ref=e3702]: text
+          - button "复制" [ref=e3703] [cursor=pointer]
+        - code [ref=e3705]: PRD Summary 生成代码 测试结果 业务文档
+      - paragraph [ref=e3706]: 解决：
+      - generic [ref=e3707]:
+        - generic [ref=e3708]:
+          - generic [ref=e3709]: text
+          - button "复制" [ref=e3710] [cursor=pointer]
+        - code [ref=e3712]: 这个迭代真正产出了什么？
+      - separator [ref=e3713]
+      - heading "SECTION 134 100.3 Knowledge" [level=2] [ref=e3714]
+      - paragraph [ref=e3715]: 例如：
+      - generic [ref=e3716]:
+        - generic [ref=e3717]:
+          - generic [ref=e3718]: text
+          - button "复制" [ref=e3719] [cursor=pointer]
+        - code [ref=e3721]: 归档 PRD Summary Embedding Vector DB
+      - paragraph [ref=e3722]: 解决：
+      - generic [ref=e3723]:
+        - generic [ref=e3724]:
+          - generic [ref=e3725]: text
+          - button "复制" [ref=e3726] [cursor=pointer]
+        - code [ref=e3728]: 未来 Agent 如何检索历史知识？
+      - paragraph [ref=e3729]: 三者不要混在一起。
+      - paragraph [ref=e3730]: 尤其：
+      - blockquote [ref=e3731]:
+        - paragraph [ref=e3732]:
+          - strong [ref=e3733]: Vector DB 不是 Workflow Checkpoint Store。
+      - separator [ref=e3734]
+      - heading "SECTION 135 101. LangGraph Checkpoint 需要掌握到什么程度？" [level=1] [ref=e3735]
+      - paragraph [ref=e3736]: 针对 AI Application / Agent 工程方向：
+      - heading "SECTION 136 必须掌握" [level=2] [ref=e3737]
+      - generic [ref=e3738]:
+        - generic [ref=e3739]:
+          - generic [ref=e3740]: text
+          - button "复制" [ref=e3741] [cursor=pointer]
+        - code [ref=e3743]: State Checkpoint Execution / Thread Identity Node Interrupt Resume
+      - paragraph [ref=e3744]: 并且能够回答：
+      - generic [ref=e3745]:
+        - generic [ref=e3746]:
+          - generic [ref=e3747]: text
+          - button "复制" [ref=e3748] [cursor=pointer]
+        - code [ref=e3750]: 为什么长 Workflow 需要持久化？ 为什么不能失败后全部从头执行？ 为什么 Node 需要幂等？ Human-in-the-loop 为什么需要持久化暂停？ Worker 崩溃与 Workflow Resume 是什么关系？
+      - heading "SECTION 137 理解即可" [level=2] [ref=e3751]
+      - generic [ref=e3752]:
+        - generic [ref=e3753]:
+          - generic [ref=e3754]: text
+          - button "复制" [ref=e3755] [cursor=pointer]
+        - code [ref=e3757]: LangGraph Checkpointer 的基本使用方式 Checkpoint Store 的可替换性 Thread / Run 的基本关系
+      - heading "SECTION 138 暂时不用深挖" [level=2] [ref=e3758]
+      - generic [ref=e3759]:
+        - generic [ref=e3760]:
+          - generic [ref=e3761]: text
+          - button "复制" [ref=e3762] [cursor=pointer]
+        - code [ref=e3764]: LangGraph Checkpointer 源码 内部序列化实现 底层调度源码
+      - paragraph [ref=e3765]: 对于当前目标：
+      - blockquote [ref=e3766]:
+        - paragraph [ref=e3767]:
+          - strong [ref=e3768]: 系统设计能力比背 LangGraph API 更重要。
+      - separator [ref=e3769]
+      - heading "SECTION 139 102. Worker Recovery 与 Workflow Resume 不要混淆" [level=1] [ref=e3770]
+      - paragraph [ref=e3771]: 这是非常重要的分层。
+      - heading "SECTION 140 Worker Recovery" [level=2] [ref=e3772]
+      - paragraph [ref=e3773]: 解决：
+      - generic [ref=e3774]:
+        - generic [ref=e3775]:
+          - generic [ref=e3776]: text
+          - button "复制" [ref=e3777] [cursor=pointer]
+        - code [ref=e3779]: 某个 Task 正在执行 ↓ Worker 挂了 ↓ 谁接手？
+      - paragraph [ref=e3780]: 核心机制：
+      - generic [ref=e3781]:
+        - generic [ref=e3782]:
+          - generic [ref=e3783]: text
+          - button "复制" [ref=e3784] [cursor=pointer]
+        - code [ref=e3786]: Lease Heartbeat Retry Fencing Token Idempotency
+      - separator [ref=e3787]
+      - heading "SECTION 141 Workflow Resume" [level=2] [ref=e3788]
+      - paragraph [ref=e3789]: 解决：
+      - generic [ref=e3790]:
+        - generic [ref=e3791]:
+          - generic [ref=e3792]: text
+          - button "复制" [ref=e3793] [cursor=pointer]
+        - code [ref=e3795]: 整个流程执行了一半 ↓ 服务中断 / 等待人工 ↓ 从哪个 Node 继续？
+      - paragraph [ref=e3796]: 核心机制：
+      - generic [ref=e3797]:
+        - generic [ref=e3798]:
+          - generic [ref=e3799]: text
+          - button "复制" [ref=e3800] [cursor=pointer]
+        - code [ref=e3802]: Checkpoint Workflow State Node State Resume Interrupt
+      - paragraph [ref=e3803]: 所以：
+      - generic [ref=e3804]:
+        - generic [ref=e3805]:
+          - generic [ref=e3806]: text
+          - button "复制" [ref=e3807] [cursor=pointer]
+        - code [ref=e3809]: Production Agent │ ┌──────────┴──────────┐ ↓ ↓ Worker Reliability Workflow Durability ↓ ↓ Lease Checkpoint Heartbeat State Retry Resume Fencing Interrupt Idempotency Human-in-loop
+      - paragraph [ref=e3810]: 这两个层次不能混成一个概念。
+      - separator [ref=e3811]
+      - heading "SECTION 142 103. Durable Agent Workflow 完整架构" [level=1] [ref=e3812]
+      - paragraph [ref=e3813]: 现在整个系统可以理解为：
+      - generic [ref=e3814]:
+        - generic [ref=e3815]:
+          - generic [ref=e3816]: text
+          - button "复制" [ref=e3817] [cursor=pointer]
+        - code [ref=e3819]: API / User │ ↓ Workflow Engine LangGraph │ ┌───────────┼───────────┐ ↓ ↓ ↓ Node State Checkpoint HITL │ ↓ Task Scheduler │ ↓ MQ │ ┌─────────┼─────────┐ ↓ ↓ ↓ Worker A Worker B Worker C │ ↓ Lease / Heartbeat Retry / Fencing Idempotency │ ↓ LLM / Tools │ ↓ PostgreSQL / MySQL │ Source of Truth
+      - paragraph [ref=e3820]: 旁边还可以存在：
+      - generic [ref=e3821]:
+        - generic [ref=e3822]:
+          - generic [ref=e3823]: text
+          - button "复制" [ref=e3824] [cursor=pointer]
+        - code [ref=e3826]: Redis ↓ Cache / Coordination / Lease Vector DB ↓ RAG Knowledge Git / Object Storage ↓ Code / Large Artifact
+      - paragraph [ref=e3827]: 这样：
+      - generic [ref=e3828]:
+        - generic [ref=e3829]:
+          - generic [ref=e3830]: text
+          - button "复制" [ref=e3831] [cursor=pointer]
+        - code [ref=e3833]: MySQL Redis MQ LangGraph Agent RAG
+      - paragraph [ref=e3834]: 不再是几个独立技术点，而是一套完整系统中的不同层。
+      - separator [ref=e3835]
+      - heading "SECTION 143 104. Checkpoint / Resume 面试回答" [level=1] [ref=e3836]
+      - paragraph [ref=e3837]: 如果面试官问：
+      - blockquote [ref=e3838]:
+        - paragraph [ref=e3839]: Agent Workflow 执行到一半服务挂了怎么办？
+      - paragraph [ref=e3840]: 可以回答：
+      - blockquote [ref=e3841]:
+        - paragraph [ref=e3842]: 对于长生命周期 Agent Workflow，我不会依赖进程内状态，而是持久化 Workflow State 和 Node State，通过 Checkpoint 记录可靠执行点。服务恢复后加载 Checkpoint，找到未完成节点，并结合 Task Lease 判断上一次 Worker 是否已经失效。对于可能重复执行的节点，还需要通过稳定的 execution key、artifact key 或 Tool operation_id 做幂等，避免外部副作用已经成功但 Checkpoint 尚未更新时重复执行。如果流程需要人工审批，则在节点完成后持久化 Checkpoint，将 Workflow 置为 waiting_human 并释放 Worker，收到人工事件后再 Resume。
+      - separator [ref=e3843]
+      - heading "SECTION 144 105. 这一站必须记住的六句话" [level=1] [ref=e3844]
+      - heading "SECTION 145 1. Checkpoint 的本质" [level=2] [ref=e3845]
+      - blockquote [ref=e3846]:
+        - paragraph [ref=e3847]:
+          - strong [ref=e3848]: 持久化 Workflow 执行状态，使长流程能够断点恢复。
+      - heading "SECTION 146 2. Checkpoint 不等于幂等" [level=2] [ref=e3849]
+      - blockquote [ref=e3850]:
+        - paragraph [ref=e3851]:
+          - strong [ref=e3852]: 外部副作用成功但 Checkpoint 写入失败时，仍然可能发生重复执行。
+      - heading "SECTION 147 3. 可重试 Node 必须考虑幂等" [level=2] [ref=e3853]
+      - blockquote [ref=e3854]:
+        - paragraph [ref=e3855]:
+          - strong [ref=e3856]: 一个逻辑 Node / Tool Operation 最好拥有稳定 execution key / operation_id。
+      - heading "SECTION 148 4. Worker Recovery 与 Workflow Resume 是两层问题" [level=2] [ref=e3857]
+      - blockquote [ref=e3858]:
+        - paragraph [ref=e3859]:
+          - strong [ref=e3860]: Worker 用 Lease / Heartbeat / Retry；Workflow 用 State / Checkpoint / Resume。
+      - heading "SECTION 149 5. Human-in-the-loop 不应该一直占 Worker" [level=2] [ref=e3861]
+      - blockquote [ref=e3862]:
+        - paragraph [ref=e3863]:
+          - strong [ref=e3864]: Checkpoint → waiting_human → 释放 Worker → Human Event → Resume。
+      - heading "SECTION 150 6. DB 是 Runtime State 的 Source of Truth" [level=2] [ref=e3865]
+      - blockquote [ref=e3866]:
+        - paragraph [ref=e3867]:
+          - strong [ref=e3868]: Redis 可以辅助缓存与协调，但可靠 Workflow Checkpoint 应持久化。
+      - separator [ref=e3869]
+      - heading "SECTION 151 106. 当前完整学习链" [level=1] [ref=e3870]
+      - generic [ref=e3871]:
+        - generic [ref=e3872]:
+          - generic [ref=e3873]: text
+          - button "复制" [ref=e3874] [cursor=pointer]
+        - code [ref=e3876]: 事务隔离级别 ↓ MVCC ↓ Undo Log + Read View ↓ 快照读 / 当前读 ↓ SELECT ... FOR UPDATE ↓ Record / Gap / Next-Key Lock ↓ 死锁 ↓ 原子 UPDATE / CAS ↓ 乐观锁 / 悲观锁 ↓ 短事务原则 ↓ DB + MQ 一致性 ↓ Transactional Outbox ↓ At-Least-Once ↓ Inbox / 幂等消费 ↓ Retry / Backoff / DLQ ↓ Agent Task Claim ↓ Lease / Heartbeat ↓ Fencing Token ↓ Tool Idempotency ↓ 可靠 Agent Worker ↓ Workflow State ↓ Checkpoint ↓ Idempotent Node ↓ Resume ↓ Human-in-the-loop ↓ Durable Agent Workflow
+      - paragraph [ref=e3877]: 下一阶段可以继续进入：
+      - generic [ref=e3878]:
+        - generic [ref=e3879]:
+          - generic [ref=e3880]: text
+          - button "复制" [ref=e3881] [cursor=pointer]
+        - code [ref=e3883]: Durable Agent Workflow ↓ 并发编排 ↓ Fan-out / Fan-in ↓ Join ↓ 部分成功 / 部分失败 ↓ 多 Agent 并行执行
+  - button "返回顶部": ↑
+  - contentinfo [ref=e3884]: MySQL 事务隔离、MVCC 与并发控制学习笔记

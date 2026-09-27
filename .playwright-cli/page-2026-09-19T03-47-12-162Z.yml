@@ -1,0 +1,701 @@
+- generic [active] [ref=e1]:
+  - link "跳到正文" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e4]:
+    - generic [ref=e6]: AG
+    - generic [ref=e8]:
+      - button "打开目录" [ref=e731] [cursor=pointer]: ☰
+      - button "切换深浅主题" [ref=e9] [cursor=pointer]: ◐
+  - generic [ref=e10]:
+    - generic [ref=e11]: Agent Architecture · Capability · Dynamic Tools
+    - heading "Agent Capability Planning 与动态 Tool 架构设计" [level=1] [ref=e12]:
+      - text: Agent Capability Planning
+      - text: 与动态 Tool 架构设计
+    - paragraph [ref=e13]: 从任务理解、能力规划到动态工具发现、策略控制、执行反馈与重新规划，构建可扩展的 Fullstack Agent Runtime。
+    - text: MD
+  - main [ref=e14]:
+    - complementary [ref=e15]:
+      - navigation "页面目录" [ref=e16]:
+        - paragraph [ref=e17]: READING MAP
+        - link "1. 核心结论" [ref=e18] [cursor=pointer]:
+          - /url: "#section-1"
+        - link "2. 示例场景" [ref=e19] [cursor=pointer]:
+          - /url: "#section-2"
+        - link "3. Task Understanding" [ref=e20] [cursor=pointer]:
+          - /url: "#section-3"
+        - link "4. Capability Planning" [ref=e21] [cursor=pointer]:
+          - /url: "#section-4"
+        - link "5. Capability Catalog" [ref=e22] [cursor=pointer]:
+          - /url: "#section-5"
+        - link "6. Tool Registry" [ref=e23] [cursor=pointer]:
+          - /url: "#section-6"
+        - link "7. Capability 稳定，Tool 可变化" [ref=e24] [cursor=pointer]:
+          - /url: "#section-7"
+        - link "8. Tool Router" [ref=e25] [cursor=pointer]:
+          - /url: "#section-8"
+        - link "9. Function Calling" [ref=e26] [cursor=pointer]:
+          - /url: "#section-9"
+        - link "10. Tool Policy" [ref=e27] [cursor=pointer]:
+          - /url: "#section-10"
+        - link "11. Tool Runtime" [ref=e28] [cursor=pointer]:
+          - /url: "#section-11"
+        - link "12. Observe 与 Re-plan" [ref=e29] [cursor=pointer]:
+          - /url: "#section-12"
+        - link "13. Capability Planning 不应该变成固定 Workflow" [ref=e30] [cursor=pointer]:
+          - /url: "#section-13"
+        - link "14. Agent Loop" [ref=e31] [cursor=pointer]:
+          - /url: "#section-14"
+        - link "15. 修改代码后必须验证" [ref=e32] [cursor=pointer]:
+          - /url: "#section-15"
+        - link "16. Capability 是否还需要分层？" [ref=e33] [cursor=pointer]:
+          - /url: "#section-16"
+        - link "一级：Domain Capability" [ref=e34] [cursor=pointer]:
+          - /url: "#heading-17"
+        - link "二级：Atomic Capability" [ref=e35] [cursor=pointer]:
+          - /url: "#heading-18"
+        - link "三级：Concrete Tool" [ref=e36] [cursor=pointer]:
+          - /url: "#heading-19"
+        - link "17. MCP / RAG / Code 与 Capability 的关系" [ref=e37] [cursor=pointer]:
+          - /url: "#section-17"
+        - link "18. 推荐的 Fullstack Agent 架构" [ref=e38] [cursor=pointer]:
+          - /url: "#section-18"
+        - link "19. 各层职责总结" [ref=e39] [cursor=pointer]:
+          - /url: "#section-19"
+        - link "20. 最终设计原则" [ref=e40] [cursor=pointer]:
+          - /url: "#section-20"
+        - link "原则一：Capability ≠ Tool" [ref=e41] [cursor=pointer]:
+          - /url: "#principle-1"
+        - link "原则二：Capability Planner 不感知所有 Function" [ref=e42] [cursor=pointer]:
+          - /url: "#principle-2"
+        - link "原则三：Capability Planning 不是固定 Workflow Planning" [ref=e43] [cursor=pointer]:
+          - /url: "#principle-3"
+        - link "原则四：Capability 稳定，Tool 可替换" [ref=e44] [cursor=pointer]:
+          - /url: "#principle-4"
+        - link "原则五：LLM 决定意图，系统控制执行权限" [ref=e45] [cursor=pointer]:
+          - /url: "#principle-5"
+        - link "原则六：Function Calling 的灵活性来自整个 Agent Runtime" [ref=e46] [cursor=pointer]:
+          - /url: "#principle-6"
+    - article [ref=e47]:
+      - heading "SECTION 01 1. 核心结论" [level=2] [ref=e48]
+      - paragraph [ref=e49]:
+        - text: 提升 Agent Function Calling 灵活性的关键，不是简单给模型提供更多 Function，而是增加一层
+        - strong [ref=e50]: Capability（能力）抽象
+        - text: ：
+      - blockquote [ref=e51]:
+        - paragraph [ref=e52]:
+          - strong [ref=e53]: Task Understanding → Capability Planning → Tool Router → Tool Registry → Function Calling → Tool Policy → Tool Runtime → Observe → Re-plan
+      - paragraph [ref=e54]: 其中：
+      - list [ref=e55]:
+        - listitem [ref=e56]:
+          - strong [ref=e57]: Capability Planning 不直接感知所有具体 Function。
+        - listitem [ref=e58]: 它只需要知道系统可以提供哪些“能力”。
+        - listitem [ref=e59]: 具体 Function 由 Tool Router / Tool Registry 根据 Capability 动态解析和加载。
+        - listitem [ref=e60]: Capability 相对稳定，底层 Tool 可以持续新增、替换和演进。
+      - paragraph [ref=e61]: 这可以避免 Tool 数量越来越多后，把几十甚至上百个 Function Schema 一次性塞给 LLM。
+      - separator [ref=e62]
+      - heading "SECTION 02 2. 示例场景" [level=2] [ref=e63]
+      - paragraph [ref=e64]: 用户输入：
+      - blockquote [ref=e65]:
+        - paragraph [ref=e66]: 把商品详情页的按钮样式按照 Figma 修改一下。
+      - paragraph [ref=e67]: 完整执行链路可以设计为：
+      - generic [ref=e68]:
+        - generic [ref=e69]:
+          - generic [ref=e70]: text
+          - button "复制" [ref=e71] [cursor=pointer]
+        - code [ref=e73]: User │ ▼ Task Understanding │ ▼ Capability Planning │ ▼ Tool Router │ ▼ Tool Registry │ ▼ Function Calling │ ▼ Tool Policy │ ▼ Tool Runtime │ ▼ Observe │ ▼ Re-plan │ ├── 未完成 → 继续 Tool Loop │ └── 完成 → Done
+      - separator [ref=e74]
+      - heading "SECTION 03 3. Task Understanding" [level=2] [ref=e75]
+      - paragraph [ref=e76]: Task Understanding 解决的是：
+      - blockquote [ref=e77]:
+        - paragraph [ref=e78]:
+          - strong [ref=e79]: 用户到底想让我完成什么？
+      - paragraph [ref=e80]:
+        - text: 它关注的是
+        - strong [ref=e81]: What
+        - text: ，而不是具体调用什么 Tool。
+      - paragraph [ref=e82]: 例如：
+      - generic [ref=e83]:
+        - generic [ref=e84]:
+          - generic [ref=e85]: text
+          - button "复制" [ref=e86] [cursor=pointer]
+        - code [ref=e88]: 把商品详情页的按钮样式按照 Figma 修改一下
+      - paragraph [ref=e89]: 可以转换为结构化 Task：
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - generic [ref=e92]: json
+          - button "复制" [ref=e93] [cursor=pointer]
+        - code [ref=e95]: "{ \"intent\": \"modify_ui\", \"target\": { \"page\": \"商品详情页\", \"element\": \"按钮\" }, \"reference\": { \"type\": \"figma\" }, \"change_type\": \"style\", \"expected_result\": \"代码实现与 Figma 设计一致\" }"
+      - paragraph [ref=e96]: 如果用户进一步说：
+      - blockquote [ref=e97]:
+        - paragraph [ref=e98]: 按照 Figma 修改商品详情页按钮样式，不要修改公共 Button 组件。
+      - paragraph [ref=e99]: 则可以得到：
+      - generic [ref=e100]:
+        - generic [ref=e101]:
+          - generic [ref=e102]: json
+          - button "复制" [ref=e103] [cursor=pointer]
+        - code [ref=e105]: "{ \"intent\": \"modify_ui\", \"target\": \"商品详情页按钮\", \"reference\": \"figma\", \"constraints\": [ \"do_not_modify_shared_button\" ] }"
+      - paragraph [ref=e106]: 因此 Task Understanding 主要负责识别：
+      - list [ref=e107]:
+        - listitem [ref=e108]: 用户意图
+        - listitem [ref=e109]: 操作对象
+        - listitem [ref=e110]: 参考信息
+        - listitem [ref=e111]: 用户约束
+        - listitem [ref=e112]: 完成标准
+      - separator [ref=e113]
+      - heading "SECTION 04 4. Capability Planning" [level=2] [ref=e114]
+      - paragraph [ref=e115]: Capability Planning 解决的是：
+      - blockquote [ref=e116]:
+        - paragraph [ref=e117]:
+          - strong [ref=e118]: 完成这个任务，需要系统具备哪些能力？
+      - paragraph [ref=e119]: 此时不要直接考虑：
+      - generic [ref=e120]:
+        - generic [ref=e121]:
+          - generic [ref=e122]: text
+          - button "复制" [ref=e123] [cursor=pointer]
+        - code [ref=e125]: search_code read_file figma_get_node edit_file
+      - paragraph [ref=e126]: 这些都是具体 Tool。
+      - paragraph [ref=e127]: 对于当前任务，Capability Planner 可以得到：
+      - generic [ref=e128]:
+        - generic [ref=e129]:
+          - generic [ref=e130]: json
+          - button "复制" [ref=e131] [cursor=pointer]
+        - code [ref=e133]: "{ \"required_capabilities\": [ \"repository_search\", \"code_read\", \"design_read\", \"code_edit\", \"code_validation\", \"visual_validation\" ] }"
+      - paragraph [ref=e134]: 对应含义：
+      - generic [ref=e135]:
+        - generic [ref=e136]:
+          - generic [ref=e137]: text
+          - button "复制" [ref=e138] [cursor=pointer]
+        - code [ref=e140]: 商品详情页按钮样式修改 │ ├── repository_search │ 找到商品详情页相关实现 │ ├── code_read │ 理解当前按钮代码 │ ├── design_read │ 获取 Figma 设计信息 │ ├── code_edit │ 修改业务代码 │ ├── code_validation │ lint / typecheck / test / build │ └── visual_validation 验证最终 UI 是否符合设计稿
+      - paragraph [ref=e141]: 核心关系：
+      - blockquote [ref=e142]:
+        - paragraph [ref=e143]:
+          - strong [ref=e144]: Capability ≠ Tool
+      - paragraph [ref=e145]: 例如：
+      - generic [ref=e146]:
+        - generic [ref=e147]:
+          - generic [ref=e148]: text
+          - button "复制" [ref=e149] [cursor=pointer]
+        - code [ref=e151]: repository_search
+      - paragraph [ref=e152]: 是一种能力。
+      - paragraph [ref=e153]: 它的实现可以是：
+      - generic [ref=e154]:
+        - generic [ref=e155]:
+          - generic [ref=e156]: text
+          - button "复制" [ref=e157] [cursor=pointer]
+        - code [ref=e159]: ripgrep Code Search API GitHub Search IDE Index Codex Search
+      - paragraph [ref=e160]: Capability Planner 不应该和具体实现强绑定。
+      - separator [ref=e161]
+      - heading "SECTION 05 5. Capability Catalog" [level=2] [ref=e162]
+      - paragraph [ref=e163]: Capability Planner 需要提前知道系统有哪些能力可以提供。
+      - paragraph [ref=e164]: 因此平台可以维护一个 Capability Catalog：
+      - generic [ref=e165]:
+        - generic [ref=e166]:
+          - generic [ref=e167]: python
+          - button "复制" [ref=e168] [cursor=pointer]
+        - code [ref=e170]: "CAPABILITIES = { \"repository_search\": { \"description\": \"定位仓库中的页面、组件、函数、类型和相关实现\" }, \"code_read\": { \"description\": \"读取并理解指定代码文件\" }, \"design_read\": { \"description\": \"获取 Figma 设计信息\" }, \"knowledge_search\": { \"description\": \"检索 PRD、历史迭代和业务知识\" }, \"code_edit\": { \"description\": \"修改或创建代码\" }, \"code_validation\": { \"description\": \"执行 lint、typecheck、test、build 等验证\" }, \"visual_validation\": { \"description\": \"运行页面、截图并验证 UI 与设计稿的一致性\" }, \"git_operation\": { \"description\": \"创建分支、提交代码等 Git 操作\" } }"
+      - paragraph [ref=e171]: Capability Planner 看到这些 Capability，但不需要看到所有 Function Schema。
+      - separator [ref=e172]
+      - heading "SECTION 06 6. Tool Registry" [level=2] [ref=e173]
+      - paragraph [ref=e174]: Tool Registry 负责维护：
+      - blockquote [ref=e175]:
+        - paragraph [ref=e176]:
+          - strong [ref=e177]: Capability → Concrete Tool
+      - paragraph [ref=e178]: 例如：
+      - generic [ref=e179]:
+        - generic [ref=e180]:
+          - generic [ref=e181]: text
+          - button "复制" [ref=e182] [cursor=pointer]
+        - code [ref=e184]: repository_search ├── search_code ├── search_symbol └── find_reference code_read ├── read_file ├── read_files └── read_directory design_read ├── figma_get_node ├── figma_get_design_context └── figma_get_screenshot code_edit ├── edit_file ├── create_file └── delete_file code_validation ├── run_lint ├── run_typecheck ├── run_test └── run_build visual_validation ├── start_dev_server ├── browser_open ├── browser_screenshot └── visual_compare
+      - paragraph [ref=e185]: 也可以给 Tool 注册 Metadata：
+      - generic [ref=e186]:
+        - generic [ref=e187]:
+          - generic [ref=e188]: json
+          - button "复制" [ref=e189] [cursor=pointer]
+        - code [ref=e191]: "{ \"name\": \"search_code\", \"capability\": \"repository_search\", \"provider\": \"code_runtime\", \"risk\": \"read\", \"description\": \"Search source code in the current repository\" }"
+      - paragraph [ref=e192]: 例如：
+      - generic [ref=e193]:
+        - generic [ref=e194]:
+          - generic [ref=e195]: json
+          - button "复制" [ref=e196] [cursor=pointer]
+        - code [ref=e198]: "{ \"name\": \"figma_get_design_context\", \"capability\": \"design_read\", \"provider\": \"figma_mcp\", \"risk\": \"read\" }"
+      - paragraph [ref=e199]: 这样 Capability Planner 不需要知道 Tool 是通过 MCP、Function、CLI 还是内部 Service 实现的。
+      - separator [ref=e200]
+      - heading "SECTION 07 7. Capability 稳定，Tool 可变化" [level=2] [ref=e201]
+      - paragraph [ref=e202]: 这是引入 Capability Layer 最重要的价值之一。
+      - paragraph [ref=e203]: 例如今天：
+      - generic [ref=e204]:
+        - generic [ref=e205]:
+          - generic [ref=e206]: text
+          - button "复制" [ref=e207] [cursor=pointer]
+        - code [ref=e209]: repository_search ↓ ripgrep
+      - paragraph [ref=e210]: 以后升级为：
+      - generic [ref=e211]:
+        - generic [ref=e212]:
+          - generic [ref=e213]: text
+          - button "复制" [ref=e214] [cursor=pointer]
+        - code [ref=e216]: repository_search ↓ Code Index Service
+      - paragraph [ref=e217]: 甚至再升级为：
+      - generic [ref=e218]:
+        - generic [ref=e219]:
+          - generic [ref=e220]: text
+          - button "复制" [ref=e221] [cursor=pointer]
+        - code [ref=e223]: repository_search ↓ Codex Search
+      - paragraph [ref=e224]: 对于 Capability Planner 来说：
+      - generic [ref=e225]:
+        - generic [ref=e226]:
+          - generic [ref=e227]: text
+          - button "复制" [ref=e228] [cursor=pointer]
+        - code [ref=e230]: repository_search
+      - paragraph [ref=e231]: 始终没有变化。
+      - paragraph [ref=e232]: 因此：
+      - blockquote [ref=e233]:
+        - paragraph [ref=e234]:
+          - strong [ref=e235]: Agent 的任务规划逻辑和底层工具实现解耦。
+      - separator [ref=e236]
+      - heading "SECTION 08 8. Tool Router" [level=2] [ref=e237]
+      - paragraph [ref=e238]: Capability Planner 得到：
+      - generic [ref=e239]:
+        - generic [ref=e240]:
+          - generic [ref=e241]: text
+          - button "复制" [ref=e242] [cursor=pointer]
+        - code [ref=e244]: repository_search code_read design_read code_edit code_validation visual_validation
+      - paragraph [ref=e245]: 但并不意味着第一次调用 LLM 时，就需要把所有相关 Tool 全部加载。
+      - paragraph [ref=e246]: Tool Router 应根据 Agent 当前状态动态选择工具。
+      - paragraph [ref=e247]: 例如任务刚开始：
+      - generic [ref=e248]:
+        - generic [ref=e249]:
+          - generic [ref=e250]: text
+          - button "复制" [ref=e251] [cursor=pointer]
+        - code [ref=e253]: 当前不知道代码在哪里 当前不知道 Figma 设计是什么
+      - paragraph [ref=e254]: 此时只需要：
+      - generic [ref=e255]:
+        - generic [ref=e256]:
+          - generic [ref=e257]: text
+          - button "复制" [ref=e258] [cursor=pointer]
+        - code [ref=e260]: repository_search code_read design_read
+      - paragraph [ref=e261]: Tool Router 再从 Registry 中加载：
+      - generic [ref=e262]:
+        - generic [ref=e263]:
+          - generic [ref=e264]: text
+          - button "复制" [ref=e265] [cursor=pointer]
+        - code [ref=e267]: search_code read_file figma_get_design_context figma_get_screenshot
+      - paragraph [ref=e268]: 而不需要加载：
+      - generic [ref=e269]:
+        - generic [ref=e270]:
+          - generic [ref=e271]: text
+          - button "复制" [ref=e272] [cursor=pointer]
+        - code [ref=e274]: edit_file run_build git_commit create_pr deploy send_email query_database ...
+      - paragraph [ref=e275]: 这样可以显著缩小 LLM 当前的 Tool Selection Space。
+      - separator [ref=e276]
+      - heading "SECTION 09 9. Function Calling" [level=2] [ref=e277]
+      - paragraph [ref=e278]: 到了这一层，LLM 才真正看到具体 Function。
+      - paragraph [ref=e279]: 例如：
+      - generic [ref=e280]:
+        - generic [ref=e281]:
+          - generic [ref=e282]: text
+          - button "复制" [ref=e283] [cursor=pointer]
+        - code [ref=e285]: search_code read_file figma_get_design_context
+      - paragraph [ref=e286]: LLM 根据当前上下文判断：
+      - blockquote [ref=e287]:
+        - paragraph [ref=e288]: 我还不知道商品详情页实现在哪里，所以先搜索代码。
+      - paragraph [ref=e289]: 产生：
+      - generic [ref=e290]:
+        - generic [ref=e291]:
+          - generic [ref=e292]: json
+          - button "复制" [ref=e293] [cursor=pointer]
+        - code [ref=e295]: "{ \"name\": \"search_code\", \"arguments\": { \"query\": \"ProductDetail 商品详情\" } }"
+      - paragraph [ref=e296]: 三层职责需要明确区分：
+      - generic [ref=e297]:
+        - generic [ref=e298]:
+          - generic [ref=e299]: text
+          - button "复制" [ref=e300] [cursor=pointer]
+        - code [ref=e302]: Capability Planning ↓ “我需要 repository_search 能力” Tool Registry ↓ “repository_search 可以由 search_code 提供” Function Calling ↓ “当前调用 search_code，参数为 ProductDetail”
+      - separator [ref=e303]
+      - heading "SECTION 10 10. Tool Policy" [level=2] [ref=e304]
+      - paragraph [ref=e305]: Tool 被选中以后，不应该立即执行。
+      - paragraph [ref=e306]: 应该先经过 Tool Policy。
+      - paragraph [ref=e307]: 例如按照风险划分：
+      - generic [ref=e308]:
+        - generic [ref=e309]:
+          - generic [ref=e310]: text
+          - button "复制" [ref=e311] [cursor=pointer]
+        - code [ref=e313]: READ ├── search_code ├── read_file ├── search_prd └── figma_read WRITE ├── edit_file └── create_file EXECUTE ├── run_test ├── run_build └── run_command EXTERNAL_WRITE ├── git_push ├── create_pr └── create_jira DANGEROUS ├── delete_repository ├── deploy_production └── destructive_database_operation
+      - paragraph [ref=e314]: 执行链路：
+      - generic [ref=e315]:
+        - generic [ref=e316]:
+          - generic [ref=e317]: text
+          - button "复制" [ref=e318] [cursor=pointer]
+        - code [ref=e320]: LLM Tool Selection │ ▼ Tool Policy │ ├── Allow ├── Deny ├── Sandbox └── Human Approval │ ▼ Tool Runtime
+      - paragraph [ref=e321]: 核心原则：
+      - blockquote [ref=e322]:
+        - paragraph [ref=e323]:
+          - strong [ref=e324]: LLM 决定“想做什么”，系统决定“允许做什么”。
+      - paragraph [ref=e325]: 不要完全依赖 Prompt 告诉 LLM“不要执行危险操作”。
+      - separator [ref=e326]
+      - heading "SECTION 11 11. Tool Runtime" [level=2] [ref=e327]
+      - paragraph [ref=e328]: Tool Runtime 只负责真正执行 Tool。
+      - paragraph [ref=e329]: 例如：
+      - generic [ref=e330]:
+        - generic [ref=e331]:
+          - generic [ref=e332]: python
+          - button "复制" [ref=e333] [cursor=pointer]
+        - code [ref=e335]: result = search_code( query="ProductDetail" )
+      - paragraph [ref=e336]: 返回：
+      - generic [ref=e337]:
+        - generic [ref=e338]:
+          - generic [ref=e339]: text
+          - button "复制" [ref=e340] [cursor=pointer]
+        - code [ref=e342]: src/pages/product/detail/index.tsx src/components/ProductAction/index.tsx src/components/Button/index.tsx
+      - paragraph [ref=e343]: Tool Runtime 本身不负责业务推理。
+      - paragraph [ref=e344]: 职责应该保持简单：
+      - generic [ref=e345]:
+        - generic [ref=e346]:
+          - generic [ref=e347]: text
+          - button "复制" [ref=e348] [cursor=pointer]
+        - code [ref=e350]: Tool Arguments ↓ Execute ↓ Tool Result
+      - separator [ref=e351]
+      - heading "SECTION 12 12. Observe 与 Re-plan" [level=2] [ref=e352]
+      - paragraph [ref=e353]: Tool 执行完成不意味着任务完成。
+      - paragraph [ref=e354]: Agent 需要理解结果。
+      - paragraph [ref=e355]: 例如 search_code 返回：
+      - generic [ref=e356]:
+        - generic [ref=e357]:
+          - generic [ref=e358]: text
+          - button "复制" [ref=e359] [cursor=pointer]
+        - code [ref=e361]: src/pages/product/detail/index.tsx src/components/ProductAction/index.tsx src/components/Button/index.tsx
+      - paragraph [ref=e362]: Agent Observe 后得到：
+      - generic [ref=e363]:
+        - generic [ref=e364]:
+          - generic [ref=e365]: text
+          - button "复制" [ref=e366] [cursor=pointer]
+        - code [ref=e368]: ProductAction 很可能是商品详情页操作按钮的实现。 但是还没有确认具体代码。
+      - paragraph [ref=e369]: 于是 Re-plan：
+      - generic [ref=e370]:
+        - generic [ref=e371]:
+          - generic [ref=e372]: text
+          - button "复制" [ref=e373] [cursor=pointer]
+        - code [ref=e375]: 下一步： 1. read_file(ProductAction) 2. 获取 Figma Design Context
+      - paragraph [ref=e376]: 这两个任务如果不存在依赖，可以并行：
+      - generic [ref=e377]:
+        - generic [ref=e378]:
+          - generic [ref=e379]: text
+          - button "复制" [ref=e380] [cursor=pointer]
+        - code [ref=e382]: Agent │ ┌────────┴────────┐ ▼ ▼ read ProductAction read Figma │ │ └────────┬────────┘ ▼ Observe
+      - paragraph [ref=e383]: 假设代码当前为：
+      - generic [ref=e384]:
+        - generic [ref=e385]:
+          - generic [ref=e386]: css
+          - button "复制" [ref=e387] [cursor=pointer]
+        - code [ref=e389]: ".buyButton { height: 40px; border-radius: 4px; }"
+      - paragraph [ref=e390]: Figma 为：
+      - generic [ref=e391]:
+        - generic [ref=e392]:
+          - generic [ref=e393]: text
+          - button "复制" [ref=e394] [cursor=pointer]
+        - code [ref=e396]: "height: 44px border-radius: 8px font-size: 16px padding: 0 24px"
+      - paragraph [ref=e397]: Agent 此时才真正具备修改依据。
+      - paragraph [ref=e398]: 然后进入：
+      - generic [ref=e399]:
+        - generic [ref=e400]:
+          - generic [ref=e401]: text
+          - button "复制" [ref=e402] [cursor=pointer]
+        - code [ref=e404]: code_edit
+      - paragraph [ref=e405]: Tool Router 可以动态把当前 Tool Set 调整为：
+      - generic [ref=e406]:
+        - generic [ref=e407]:
+          - generic [ref=e408]: text
+          - button "复制" [ref=e409] [cursor=pointer]
+        - code [ref=e411]: read_file edit_file
+      - separator [ref=e412]
+      - heading "SECTION 13 13. Capability Planning 不应该变成固定 Workflow" [level=2] [ref=e413]
+      - paragraph [ref=e414]: 一个重要误区是：
+      - paragraph [ref=e415]: Capability Planner 输出：
+      - generic [ref=e416]:
+        - generic [ref=e417]:
+          - generic [ref=e418]: json
+          - button "复制" [ref=e419] [cursor=pointer]
+        - code [ref=e421]: "{ \"steps\": [ \"repository_search\", \"code_read\", \"design_read\", \"code_edit\", \"code_validation\" ] }"
+      - paragraph [ref=e422]: 然后系统机械执行：
+      - generic [ref=e423]:
+        - generic [ref=e424]:
+          - generic [ref=e425]: text
+          - button "复制" [ref=e426] [cursor=pointer]
+        - code [ref=e428]: 1 → 2 → 3 → 4 → 5
+      - paragraph [ref=e429]: 这会重新退化成传统 Workflow。
+      - paragraph [ref=e430]: Agent 的优势在于执行过程中可以根据 Observation 动态调整。
+      - paragraph [ref=e431]: 例如读取代码以后发现：
+      - generic [ref=e432]:
+        - generic [ref=e433]:
+          - generic [ref=e434]: text
+          - button "复制" [ref=e435] [cursor=pointer]
+        - code [ref=e437]: Button 来自 @company/design-system
+      - paragraph [ref=e438]: 并且公共 Button 不允许修改。
+      - paragraph [ref=e439]: 那么原计划可能需要调整为：
+      - generic [ref=e440]:
+        - generic [ref=e441]:
+          - generic [ref=e442]: text
+          - button "复制" [ref=e443] [cursor=pointer]
+        - code [ref=e445]: read dependency ↓ 理解 Design System 使用方式 ↓ 确认不能修改公共组件 ↓ 寻找业务层扩展方式 ↓ 修改 ProductAction className
+      - paragraph [ref=e446]: 因此 Capability Planning 更适合回答：
+      - blockquote [ref=e447]:
+        - paragraph [ref=e448]:
+          - strong [ref=e449]: 完成当前 Task 可能需要哪些能力？
+      - paragraph [ref=e450]: 而不是：
+      - blockquote [ref=e451]:
+        - paragraph [ref=e452]:
+          - strong [ref=e453]: 未来必须严格按照哪些步骤执行？
+      - paragraph [ref=e454]: 真正执行顺序应该由 Agent Loop 动态决定。
+      - separator [ref=e455]
+      - heading "SECTION 14 14. Agent Loop" [level=2] [ref=e456]
+      - paragraph [ref=e457]: 推荐执行模型：
+      - generic [ref=e458]:
+        - generic [ref=e459]:
+          - generic [ref=e460]: text
+          - button "复制" [ref=e461] [cursor=pointer]
+        - code [ref=e463]: Task │ ▼ Capability Planning │ ▼ Available Capability Scope │ ▼ Agent Reasoning │ ▼ Tool Call │ ▼ Tool Runtime │ ▼ Observe │ ▼ Agent Reasoning │ ├── 需要更多信息 → Tool Call │ ├── 需要修改 → Tool Call │ ├── 验证失败 → Re-plan │ └── 满足完成条件 → Done
+      - paragraph [ref=e464]: 因此 Function Calling 灵活性的来源其实是：
+      - generic [ref=e465]:
+        - generic [ref=e466]:
+          - generic [ref=e467]: text
+          - button "复制" [ref=e468] [cursor=pointer]
+        - code [ref=e470]: Capability Discovery + Dynamic Tool Selection + Agent Loop + Observation / Re-plan + Tool Policy
+      - paragraph [ref=e471]: 而不是单纯增加 Function 数量。
+      - separator [ref=e472]
+      - heading "SECTION 15 15. 修改代码后必须验证" [level=2] [ref=e473]
+      - paragraph [ref=e474]: 对于：
+      - blockquote [ref=e475]:
+        - paragraph [ref=e476]: 按照 Figma 修改按钮样式
+      - paragraph [ref=e477]: 不能：
+      - generic [ref=e478]:
+        - generic [ref=e479]:
+          - generic [ref=e480]: text
+          - button "复制" [ref=e481] [cursor=pointer]
+        - code [ref=e483]: edit_file ↓ Done
+      - paragraph [ref=e484]: 至少应该：
+      - generic [ref=e485]:
+        - generic [ref=e486]:
+          - generic [ref=e487]: text
+          - button "复制" [ref=e488] [cursor=pointer]
+        - code [ref=e490]: edit_file ↓ run_lint ↓ run_typecheck ↓ run_test / run_build
+      - paragraph [ref=e491]: 但这些只能证明：
+      - blockquote [ref=e492]:
+        - paragraph [ref=e493]:
+          - strong [ref=e494]: 代码没有明显坏掉。
+      - paragraph [ref=e495]: 不能证明：
+      - blockquote [ref=e496]:
+        - paragraph [ref=e497]:
+          - strong [ref=e498]: 页面视觉效果真的和 Figma 一致。
+      - paragraph [ref=e499]: 因此更完整的 Fullstack Agent 后续可以加入 Browser Runtime：
+      - generic [ref=e500]:
+        - generic [ref=e501]:
+          - generic [ref=e502]: text
+          - button "复制" [ref=e503] [cursor=pointer]
+        - code [ref=e505]: 代码修改 ↓ Build ↓ 启动项目 ↓ Browser Open ↓ Screenshot ↓ Visual Compare ↓ Figma Reference ↓ 是否一致？ │ ├── No → Re-plan → Edit → Validate │ └── Yes → Done
+      - paragraph [ref=e506]:
+        - text: 这就是
+        - code [ref=e507]: visual_validation
+        - text: Capability 的意义。
+      - separator [ref=e508]
+      - heading "SECTION 16 16. Capability 是否还需要分层？" [level=2] [ref=e509]
+      - paragraph [ref=e510]: 当平台规模越来越大时，可以进一步采用三级模型。
+      - heading "一级：Domain Capability" [level=3] [ref=e511]
+      - generic [ref=e512]:
+        - generic [ref=e513]:
+          - generic [ref=e514]: text
+          - button "复制" [ref=e515] [cursor=pointer]
+        - code [ref=e517]: repository design knowledge code_execution browser git
+      - heading "二级：Atomic Capability" [level=3] [ref=e518]
+      - generic [ref=e519]:
+        - generic [ref=e520]:
+          - generic [ref=e521]: text
+          - button "复制" [ref=e522] [cursor=pointer]
+        - code [ref=e524]: repository ├── repository_search └── code_read design ├── design_read └── design_screenshot code_execution ├── code_edit └── code_validation browser └── visual_validation
+      - heading "三级：Concrete Tool" [level=3] [ref=e525]
+      - generic [ref=e526]:
+        - generic [ref=e527]:
+          - generic [ref=e528]: text
+          - button "复制" [ref=e529] [cursor=pointer]
+        - code [ref=e531]: repository_search ↓ search_code() code_read ↓ read_file() design_read ↓ figma_get_design_context() code_edit ↓ edit_file() code_validation ↓ run_build() visual_validation ↓ browser_screenshot()
+      - paragraph [ref=e532]: 完整关系：
+      - generic [ref=e533]:
+        - generic [ref=e534]:
+          - generic [ref=e535]: text
+          - button "复制" [ref=e536] [cursor=pointer]
+        - code [ref=e538]: Domain Capability ↓ Atomic Capability ↓ Concrete Tool
+      - paragraph [ref=e539]: 但对于当前 Fullstack Agent，没有必要一开始就过度设计。
+      - paragraph [ref=e540]: 推荐先做到：
+      - generic [ref=e541]:
+        - generic [ref=e542]:
+          - generic [ref=e543]: text
+          - button "复制" [ref=e544] [cursor=pointer]
+        - code [ref=e546]: Capability Planner │ ▼ Atomic Capability │ ▼ Tool Router / Registry │ ▼ Concrete Function / MCP Tool
+      - paragraph [ref=e547]: 即可。
+      - separator [ref=e548]
+      - heading "SECTION 17 17. MCP / RAG / Code 与 Capability 的关系" [level=2] [ref=e549]
+      - paragraph [ref=e550]: 这两个维度不要混淆。
+      - paragraph [ref=e551]: 例如：
+      - generic [ref=e552]:
+        - generic [ref=e553]:
+          - generic [ref=e554]: text
+          - button "复制" [ref=e555] [cursor=pointer]
+        - code [ref=e557]: Capability = Agent 认为“自己能做什么” MCP / RAG / Code = 这个能力“通过什么方式实现”
+      - paragraph [ref=e558]: 例如：
+      - generic [ref=e559]:
+        - generic [ref=e560]:
+          - generic [ref=e561]: text
+          - button "复制" [ref=e562] [cursor=pointer]
+        - code [ref=e564]: design_read ↓ Figma MCP knowledge_search ↓ RAG Runtime repository_search ↓ Code Runtime code_edit ↓ Code Runtime
+      - paragraph [ref=e565]: 因此平台可以保持：
+      - generic [ref=e566]:
+        - generic [ref=e567]:
+          - generic [ref=e568]: text
+          - button "复制" [ref=e569] [cursor=pointer]
+        - code [ref=e571]: Agent Platform │ ▼ LangGraph / Agent Runtime │ ▼ Capability Layer │ ▼ Tool Router / Registry │ ▼ Tool Runtime / | \ MCP RAG Code
+      - paragraph [ref=e572]: Capability 是 Agent 视角。
+      - paragraph [ref=e573]: MCP / RAG / Code 是 Runtime / Infrastructure 视角。
+      - separator [ref=e574]
+      - heading "SECTION 18 18. 推荐的 Fullstack Agent 架构" [level=2] [ref=e575]
+      - generic [ref=e576]:
+        - generic [ref=e577]:
+          - generic [ref=e578]: text
+          - button "复制" [ref=e579] [cursor=pointer]
+        - code [ref=e581]: User │ ▼ Task Understanding │ ▼ Capability Planning │ ▼ Capability Scope │ ▼ Tool Router │ ▼ Tool Registry │ ┌───────────────┼───────────────┐ │ │ │ ▼ ▼ ▼ Code RAG MCP │ │ │ search_code search_prd Figma read_file search_doc Jira edit_file GitHub run_test │ │ │ └───────────────┼───────────────┘ │ ▼ Tool Policy │ ▼ Tool Runtime │ ▼ Observe │ ▼ Agent Loop │ ┌───────────┴───────────┐ │ │ ▼ ▼ Re-plan Done
+      - separator [ref=e582]
+      - heading "SECTION 19 19. 各层职责总结" [level=2] [ref=e583]
+      - table [ref=e585]:
+        - rowgroup [ref=e586]:
+          - row "层 核心问题 商品详情页示例" [ref=e587]:
+            - columnheader "层" [ref=e588]
+            - columnheader "核心问题" [ref=e589]
+            - columnheader "商品详情页示例" [ref=e590]
+        - rowgroup [ref=e591]:
+          - row "Task Understanding 用户要干什么？ 修改商品详情页按钮，使其符合 Figma" [ref=e592]:
+            - cell "Task Understanding" [ref=e593]
+            - cell "用户要干什么？" [ref=e594]
+            - cell "修改商品详情页按钮，使其符合 Figma" [ref=e595]
+          - row "Capability Planning 需要什么能力？ 搜代码、读代码、读设计、改代码、验证" [ref=e596]:
+            - cell "Capability Planning" [ref=e597]
+            - cell "需要什么能力？" [ref=e598]
+            - cell "搜代码、读代码、读设计、改代码、验证" [ref=e599]
+          - row "Capability Catalog 系统有哪些能力？ repository_search、design_read 等" [ref=e600]:
+            - cell "Capability Catalog" [ref=e601]
+            - cell "系统有哪些能力？" [ref=e602]
+            - cell "repository_search、design_read 等" [ref=e603]
+          - row "Tool Router 当前应该开放哪些工具？ search/read/Figma" [ref=e604]:
+            - cell "Tool Router" [ref=e605]
+            - cell "当前应该开放哪些工具？" [ref=e606]
+            - cell "search/read/Figma" [ref=e607]
+          - row "Tool Registry 哪个 Tool 提供对应能力？ repository_search → search_code" [ref=e608]:
+            - cell "Tool Registry" [ref=e609]
+            - cell "哪个 Tool 提供对应能力？" [ref=e610]
+            - cell "repository_search → search_code" [ref=e611]
+          - row "Function Calling 此刻调用什么？参数是什么？ search_code(\"ProductDetail\")" [ref=e612]:
+            - cell "Function Calling" [ref=e613]
+            - cell "此刻调用什么？参数是什么？" [ref=e614]
+            - cell "search_code(\"ProductDetail\")" [ref=e615]
+          - row "Tool Policy 允许执行吗？ read 自动允许，write 受限制" [ref=e616]:
+            - cell "Tool Policy" [ref=e617]
+            - cell "允许执行吗？" [ref=e618]
+            - cell "read 自动允许，write 受限制" [ref=e619]
+          - row "Tool Runtime 真正执行 Tool 搜代码、读取 Figma、修改文件" [ref=e620]:
+            - cell "Tool Runtime" [ref=e621]
+            - cell "真正执行 Tool" [ref=e622]
+            - cell "搜代码、读取 Figma、修改文件" [ref=e623]
+          - row "Observe Tool Result 意味着什么？ 找到了 ProductAction" [ref=e624]:
+            - cell "Observe" [ref=e625]
+            - cell "Tool Result 意味着什么？" [ref=e626]
+            - cell "找到了 ProductAction" [ref=e627]
+          - row "Re-plan 接下来应该做什么？ 读代码 + 读取 Figma" [ref=e628]:
+            - cell "Re-plan" [ref=e629]
+            - cell "接下来应该做什么？" [ref=e630]
+            - cell "读代码 + 读取 Figma" [ref=e631]
+          - row "Validation 修改是否正确？ build/test/screenshot" [ref=e632]:
+            - cell "Validation" [ref=e633]
+            - cell "修改是否正确？" [ref=e634]
+            - cell "build/test/screenshot" [ref=e635]
+          - row "Done 是否满足完成标准？ UI 与目标设计一致" [ref=e636]:
+            - cell "Done" [ref=e637]
+            - cell "是否满足完成标准？" [ref=e638]
+            - cell "UI 与目标设计一致" [ref=e639]
+      - separator [ref=e640]
+      - heading "SECTION 20 20. 最终设计原则" [level=2] [ref=e641]
+      - heading "原则一：Capability ≠ Tool" [level=3] [ref=e642]
+      - generic [ref=e643]:
+        - generic [ref=e644]:
+          - generic [ref=e645]: text
+          - button "复制" [ref=e646] [cursor=pointer]
+        - code [ref=e648]: Capability：我能做什么 Tool：具体怎么做
+      - separator [ref=e649]
+      - heading "原则二：Capability Planner 不感知所有 Function" [level=3] [ref=e650]
+      - paragraph [ref=e651]: 不要：
+      - generic [ref=e652]:
+        - generic [ref=e653]:
+          - generic [ref=e654]: text
+          - button "复制" [ref=e655] [cursor=pointer]
+        - code [ref=e657]: Capability Planner ↓ 100 个 Function Schema
+      - paragraph [ref=e658]: 而应该：
+      - generic [ref=e659]:
+        - generic [ref=e660]:
+          - generic [ref=e661]: text
+          - button "复制" [ref=e662] [cursor=pointer]
+        - code [ref=e664]: Capability Planner ↓ 10 个左右稳定 Capability ↓ Tool Router ↓ 当前真正需要的少量 Function
+      - separator [ref=e665]
+      - heading "原则三：Capability Planning 不是固定 Workflow Planning" [level=3] [ref=e666]
+      - paragraph [ref=e667]: 不要机械地产生：
+      - generic [ref=e668]:
+        - generic [ref=e669]:
+          - generic [ref=e670]: text
+          - button "复制" [ref=e671] [cursor=pointer]
+        - code [ref=e673]: A → B → C → D → E
+      - paragraph [ref=e674]: 而应该：
+      - generic [ref=e675]:
+        - generic [ref=e676]:
+          - generic [ref=e677]: text
+          - button "复制" [ref=e678] [cursor=pointer]
+        - code [ref=e680]: Task ↓ 判断可能需要的 Capability ↓ 执行一个/多个 Tool ↓ Observe ↓ 根据新信息 Re-plan
+      - separator [ref=e681]
+      - heading "原则四：Capability 稳定，Tool 可替换" [level=3] [ref=e682]
+      - generic [ref=e683]:
+        - generic [ref=e684]:
+          - generic [ref=e685]: text
+          - button "复制" [ref=e686] [cursor=pointer]
+        - code [ref=e688]: repository_search
+      - paragraph [ref=e689]: 底层可以从：
+      - generic [ref=e690]:
+        - generic [ref=e691]:
+          - generic [ref=e692]: text
+          - button "复制" [ref=e693] [cursor=pointer]
+        - code [ref=e695]: ripgrep
+      - paragraph [ref=e696]: 升级到：
+      - generic [ref=e697]:
+        - generic [ref=e698]:
+          - generic [ref=e699]: text
+          - button "复制" [ref=e700] [cursor=pointer]
+        - code [ref=e702]: Code Index
+      - paragraph [ref=e703]: 甚至：
+      - generic [ref=e704]:
+        - generic [ref=e705]:
+          - generic [ref=e706]: text
+          - button "复制" [ref=e707] [cursor=pointer]
+        - code [ref=e709]: Codex Search
+      - paragraph [ref=e710]: Agent 上层规划无需变化。
+      - separator [ref=e711]
+      - heading "原则五：LLM 决定意图，系统控制执行权限" [level=3] [ref=e712]
+      - generic [ref=e713]:
+        - generic [ref=e714]:
+          - generic [ref=e715]: text
+          - button "复制" [ref=e716] [cursor=pointer]
+        - code [ref=e718]: LLM ↓ Tool Selection ↓ Policy Engine ↓ Tool Runtime
+      - paragraph [ref=e719]: 即：
+      - blockquote [ref=e720]:
+        - paragraph [ref=e721]:
+          - strong [ref=e722]: LLM 决定“想做什么”，系统决定“允许做什么”。
+      - separator [ref=e723]
+      - heading "原则六：Function Calling 的灵活性来自整个 Agent Runtime" [level=3] [ref=e724]
+      - paragraph [ref=e725]: 最终可以概括为：
+      - blockquote [ref=e726]:
+        - paragraph [ref=e727]:
+          - strong [ref=e728]: Function Calling 的灵活性，不应该靠给模型更多 Function，而应该靠 Capability Planning + Tool Discovery + Dynamic Tool Selection + Agent Loop + Tool Policy。
+      - paragraph [ref=e729]: 这套设计尤其适合 Tool 数量会不断增长的 Fullstack Agent / Agent Platform。
+  - button "返回顶部": ↑
+  - contentinfo [ref=e730]: Agent Capability Planning · Dynamic Tool Architecture

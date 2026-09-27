@@ -1,0 +1,1113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent Capability Planning、动态 Tool 路由，以及 MCP、Function Tool 与多种 Provider 的统一执行架构。">
+  <title>Agent Capability Planning 与动态 Tool 架构设计</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../assets/answer-pages.css?v=2">
+  <style>
+    .article h4 { margin: 32px 0 12px; scroll-margin-top: 94px; font-size: 17px; line-height: 1.4; }
+    .article h4::before { display: block; margin-bottom: 8px; color: var(--mint); content: attr(data-section); font: 800 10px/1 var(--mono); letter-spacing: .1em; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar"><div class="brand"><span class="brand-mark">AG</span><span class="brand-title">Agent Capability Planning 与动态 Tool 架构设计</span></div><div class="top-actions"><button class="menu-button" id="menuToggle" type="button" aria-label="打开目录" aria-expanded="false">☰</button><button class="icon-button" id="themeToggle" type="button" aria-label="切换深浅主题">◐</button></div></header>
+  <section class="hero"><div class="eyebrow">Agent Architecture · Capability · Dynamic Tools</div><h1>Agent Capability Planning<br>与动态 Tool 架构设计</h1><p>从能力规划和动态工具发现，到 MCP、Function、RAG、Code 与 Browser Provider 的统一路由、策略控制和执行反馈。</p></section>
+  <main class="layout" id="main"><aside class="toc-shell" id="tocShell"><nav class="toc" aria-label="页面目录"><p class="toc-title">READING MAP</p><a href="#section-1" data-toc="section-1" data-level="2">1. 核心结论</a>
+<a href="#section-2" data-toc="section-2" data-level="2">2. 示例场景</a>
+<a href="#section-3" data-toc="section-3" data-level="2">3. Task Understanding</a>
+<a href="#section-4" data-toc="section-4" data-level="2">4. Capability Planning</a>
+<a href="#section-5" data-toc="section-5" data-level="2">5. Capability Catalog</a>
+<a href="#section-6" data-toc="section-6" data-level="2">6. Tool Registry</a>
+<a href="#section-7" data-toc="section-7" data-level="2">7. Capability 稳定，Tool 可变化</a>
+<a href="#section-8" data-toc="section-8" data-level="2">8. Tool Router</a>
+<a href="#section-9" data-toc="section-9" data-level="2">9. Function Calling</a>
+<a href="#section-10" data-toc="section-10" data-level="2">10. Tool Policy</a>
+<a href="#section-11" data-toc="section-11" data-level="2">11. Tool Runtime</a>
+<a href="#section-12" data-toc="section-12" data-level="2">12. Observe 与 Re-plan</a>
+<a href="#section-13" data-toc="section-13" data-level="2">13. Capability Planning 不应该变成固定 Workflow</a>
+<a href="#section-14" data-toc="section-14" data-level="2">14. Agent Loop</a>
+<a href="#section-15" data-toc="section-15" data-level="2">15. 修改代码后必须验证</a>
+<a href="#section-16" data-toc="section-16" data-level="2">16. Capability 是否还需要分层？</a>
+<a href="#heading-1" data-toc="heading-1" data-level="3">一级：Domain Capability</a>
+<a href="#heading-2" data-toc="heading-2" data-level="3">二级：Atomic Capability</a>
+<a href="#heading-3" data-toc="heading-3" data-level="3">三级：Concrete Tool</a>
+<a href="#section-17" data-toc="section-17" data-level="2">17. MCP / RAG / Code 与 Capability 的关系</a>
+<a href="#section-18" data-toc="section-18" data-level="2">18. 推荐的 Fullstack Agent 架构</a>
+<a href="#section-19" data-toc="section-19" data-level="2">19. 各层职责总结</a>
+<a href="#section-20" data-toc="section-20" data-level="2">20. 最终设计原则</a>
+<a href="#principle-1" data-toc="principle-1" data-level="3">原则一：Capability ≠ Tool</a>
+<a href="#principle-2" data-toc="principle-2" data-level="3">原则二：Capability Planner 不感知所有 Function</a>
+<a href="#principle-3" data-toc="principle-3" data-level="3">原则三：Capability Planning 不是固定 Workflow Planning</a>
+<a href="#principle-4" data-toc="principle-4" data-level="3">原则四：Capability 稳定，Tool 可替换</a>
+<a href="#principle-5" data-toc="principle-5" data-level="3">原则五：LLM 决定意图，系统控制执行权限</a>
+<a href="#principle-6" data-toc="principle-6" data-level="3">原则六：Function Calling 的灵活性来自整个 Agent Runtime</a>
+<a href="#tool-provider-routing" data-toc="tool-provider-routing" data-level="2">MCP、Function Tool 等如何统一收敛到 Tool Router / Tool Runtime</a>
+<a href="#routing-1" data-toc="routing-1" data-level="3">1. 核心结论</a>
+<a href="#routing-2" data-toc="routing-2" data-level="3">2. Capability、Tool、Provider 三层不要混在一起</a>
+<a href="#routing-3" data-toc="routing-3" data-level="3">3. Tool Registry 统一注册不同来源的 Tool</a>
+<a href="#routing-4" data-toc="routing-4" data-level="3">4. Tool Router 负责“选谁”，而不是“怎么执行”</a>
+<a href="#routing-5" data-toc="routing-5" data-level="3">5. Tool Runtime 再根据 Provider 分发</a>
+<a href="#routing-6" data-toc="routing-6" data-level="3">6. MCP Server 不应该直接成为 Tool Router 的候选 Tool</a>
+<a href="#routing-7" data-toc="routing-7" data-level="3">7. 这种抽象带来的好处</a>
+<a href="#routing-8" data-toc="routing-8" data-level="3">8. 最终推荐架构</a>
+<a href="#routing-9" data-toc="routing-9" data-level="3">9. 最终职责定义</a>
+<a href="#routing-10" data-toc="routing-10" data-level="3">10. 一句话总结</a></nav></aside><article class="article"><h2 id="section-1" data-section="SECTION 01">1. 核心结论</h2>
+<p>提升 Agent Function Calling 灵活性的关键，不是简单给模型提供更多 Function，而是增加一层 <strong>Capability（能力）抽象</strong>：</p>
+<blockquote><p><strong>Task Understanding → Capability Planning → Tool Router → Tool Registry → Function Calling → Tool Policy → Tool Runtime → Observe → Re-plan</strong></p></blockquote>
+<p>其中：</p>
+<ul><li><strong>Capability Planning 不直接感知所有具体 Function。</strong></li><li>它只需要知道系统可以提供哪些“能力”。</li><li>具体 Function 由 Tool Router / Tool Registry 根据 Capability 动态解析和加载。</li><li>Capability 相对稳定，底层 Tool 可以持续新增、替换和演进。</li></ul>
+<p>这可以避免 Tool 数量越来越多后，把几十甚至上百个 Function Schema 一次性塞给 LLM。</p>
+<hr>
+<h2 id="section-2" data-section="SECTION 02">2. 示例场景</h2>
+<p>用户输入：</p>
+<blockquote><p>把商品详情页的按钮样式按照 Figma 修改一下。</p></blockquote>
+<p>完整执行链路可以设计为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">User
+ │
+ ▼
+Task Understanding
+ │
+ ▼
+Capability Planning
+ │
+ ▼
+Tool Router
+ │
+ ▼
+Tool Registry
+ │
+ ▼
+Function Calling
+ │
+ ▼
+Tool Policy
+ │
+ ▼
+Tool Runtime
+ │
+ ▼
+Observe
+ │
+ ▼
+Re-plan
+ │
+ ├── 未完成 → 继续 Tool Loop
+ │
+ └── 完成 → Done</code></pre></div>
+<hr>
+<h2 id="section-3" data-section="SECTION 03">3. Task Understanding</h2>
+<p>Task Understanding 解决的是：</p>
+<blockquote><p><strong>用户到底想让我完成什么？</strong></p></blockquote>
+<p>它关注的是 <strong>What</strong>，而不是具体调用什么 Tool。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">把商品详情页的按钮样式按照 Figma 修改一下</code></pre></div>
+<p>可以转换为结构化 Task：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-json">{
+  &quot;intent&quot;: &quot;modify_ui&quot;,
+  &quot;target&quot;: {
+    &quot;page&quot;: &quot;商品详情页&quot;,
+    &quot;element&quot;: &quot;按钮&quot;
+  },
+  &quot;reference&quot;: {
+    &quot;type&quot;: &quot;figma&quot;
+  },
+  &quot;change_type&quot;: &quot;style&quot;,
+  &quot;expected_result&quot;: &quot;代码实现与 Figma 设计一致&quot;
+}</code></pre></div>
+<p>如果用户进一步说：</p>
+<blockquote><p>按照 Figma 修改商品详情页按钮样式，不要修改公共 Button 组件。</p></blockquote>
+<p>则可以得到：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-json">{
+  &quot;intent&quot;: &quot;modify_ui&quot;,
+  &quot;target&quot;: &quot;商品详情页按钮&quot;,
+  &quot;reference&quot;: &quot;figma&quot;,
+  &quot;constraints&quot;: [
+    &quot;do_not_modify_shared_button&quot;
+  ]
+}</code></pre></div>
+<p>因此 Task Understanding 主要负责识别：</p>
+<ul><li>用户意图</li><li>操作对象</li><li>参考信息</li><li>用户约束</li><li>完成标准</li></ul>
+<hr>
+<h2 id="section-4" data-section="SECTION 04">4. Capability Planning</h2>
+<p>Capability Planning 解决的是：</p>
+<blockquote><p><strong>完成这个任务，需要系统具备哪些能力？</strong></p></blockquote>
+<p>此时不要直接考虑：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">search_code
+read_file
+figma_get_node
+edit_file</code></pre></div>
+<p>这些都是具体 Tool。</p>
+<p>对于当前任务，Capability Planner 可以得到：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-json">{
+  &quot;required_capabilities&quot;: [
+    &quot;repository_search&quot;,
+    &quot;code_read&quot;,
+    &quot;design_read&quot;,
+    &quot;code_edit&quot;,
+    &quot;code_validation&quot;,
+    &quot;visual_validation&quot;
+  ]
+}</code></pre></div>
+<p>对应含义：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">商品详情页按钮样式修改
+        │
+        ├── repository_search
+        │      找到商品详情页相关实现
+        │
+        ├── code_read
+        │      理解当前按钮代码
+        │
+        ├── design_read
+        │      获取 Figma 设计信息
+        │
+        ├── code_edit
+        │      修改业务代码
+        │
+        ├── code_validation
+        │      lint / typecheck / test / build
+        │
+        └── visual_validation
+               验证最终 UI 是否符合设计稿</code></pre></div>
+<p>核心关系：</p>
+<blockquote><p><strong>Capability ≠ Tool</strong></p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search</code></pre></div>
+<p>是一种能力。</p>
+<p>它的实现可以是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">ripgrep
+Code Search API
+GitHub Search
+IDE Index
+Codex Search</code></pre></div>
+<p>Capability Planner 不应该和具体实现强绑定。</p>
+<hr>
+<h2 id="section-5" data-section="SECTION 05">5. Capability Catalog</h2>
+<p>Capability Planner 需要提前知道系统有哪些能力可以提供。</p>
+<p>因此平台可以维护一个 Capability Catalog：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-python">CAPABILITIES = {
+    &quot;repository_search&quot;: {
+        &quot;description&quot;: &quot;定位仓库中的页面、组件、函数、类型和相关实现&quot;
+    },
+    &quot;code_read&quot;: {
+        &quot;description&quot;: &quot;读取并理解指定代码文件&quot;
+    },
+    &quot;design_read&quot;: {
+        &quot;description&quot;: &quot;获取 Figma 设计信息&quot;
+    },
+    &quot;knowledge_search&quot;: {
+        &quot;description&quot;: &quot;检索 PRD、历史迭代和业务知识&quot;
+    },
+    &quot;code_edit&quot;: {
+        &quot;description&quot;: &quot;修改或创建代码&quot;
+    },
+    &quot;code_validation&quot;: {
+        &quot;description&quot;: &quot;执行 lint、typecheck、test、build 等验证&quot;
+    },
+    &quot;visual_validation&quot;: {
+        &quot;description&quot;: &quot;运行页面、截图并验证 UI 与设计稿的一致性&quot;
+    },
+    &quot;git_operation&quot;: {
+        &quot;description&quot;: &quot;创建分支、提交代码等 Git 操作&quot;
+    }
+}</code></pre></div>
+<p>Capability Planner 看到这些 Capability，但不需要看到所有 Function Schema。</p>
+<hr>
+<h2 id="section-6" data-section="SECTION 06">6. Tool Registry</h2>
+<p>Tool Registry 负责维护：</p>
+<blockquote><p><strong>Capability → Concrete Tool</strong></p></blockquote>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search
+├── search_code
+├── search_symbol
+└── find_reference
+
+code_read
+├── read_file
+├── read_files
+└── read_directory
+
+design_read
+├── figma_get_node
+├── figma_get_design_context
+└── figma_get_screenshot
+
+code_edit
+├── edit_file
+├── create_file
+└── delete_file
+
+code_validation
+├── run_lint
+├── run_typecheck
+├── run_test
+└── run_build
+
+visual_validation
+├── start_dev_server
+├── browser_open
+├── browser_screenshot
+└── visual_compare</code></pre></div>
+<p>也可以给 Tool 注册 Metadata：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-json">{
+  &quot;name&quot;: &quot;search_code&quot;,
+  &quot;capability&quot;: &quot;repository_search&quot;,
+  &quot;provider&quot;: &quot;code_runtime&quot;,
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;description&quot;: &quot;Search source code in the current repository&quot;
+}</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-json">{
+  &quot;name&quot;: &quot;figma_get_design_context&quot;,
+  &quot;capability&quot;: &quot;design_read&quot;,
+  &quot;provider&quot;: &quot;figma_mcp&quot;,
+  &quot;risk&quot;: &quot;read&quot;
+}</code></pre></div>
+<p>这样 Capability Planner 不需要知道 Tool 是通过 MCP、Function、CLI 还是内部 Service 实现的。</p>
+<hr>
+<h2 id="section-7" data-section="SECTION 07">7. Capability 稳定，Tool 可变化</h2>
+<p>这是引入 Capability Layer 最重要的价值之一。</p>
+<p>例如今天：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search
+        ↓
+     ripgrep</code></pre></div>
+<p>以后升级为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search
+        ↓
+Code Index Service</code></pre></div>
+<p>甚至再升级为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search
+        ↓
+Codex Search</code></pre></div>
+<p>对于 Capability Planner 来说：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search</code></pre></div>
+<p>始终没有变化。</p>
+<p>因此：</p>
+<blockquote><p><strong>Agent 的任务规划逻辑和底层工具实现解耦。</strong></p></blockquote>
+<hr>
+<h2 id="section-8" data-section="SECTION 08">8. Tool Router</h2>
+<p>Capability Planner 得到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search
+code_read
+design_read
+code_edit
+code_validation
+visual_validation</code></pre></div>
+<p>但并不意味着第一次调用 LLM 时，就需要把所有相关 Tool 全部加载。</p>
+<p>Tool Router 应根据 Agent 当前状态动态选择工具。</p>
+<p>例如任务刚开始：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">当前不知道代码在哪里
+当前不知道 Figma 设计是什么</code></pre></div>
+<p>此时只需要：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search
+code_read
+design_read</code></pre></div>
+<p>Tool Router 再从 Registry 中加载：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">search_code
+read_file
+figma_get_design_context
+figma_get_screenshot</code></pre></div>
+<p>而不需要加载：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">edit_file
+run_build
+git_commit
+create_pr
+deploy
+send_email
+query_database
+...</code></pre></div>
+<p>这样可以显著缩小 LLM 当前的 Tool Selection Space。</p>
+<hr>
+<h2 id="section-9" data-section="SECTION 09">9. Function Calling</h2>
+<p>到了这一层，LLM 才真正看到具体 Function。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">search_code
+read_file
+figma_get_design_context</code></pre></div>
+<p>LLM 根据当前上下文判断：</p>
+<blockquote><p>我还不知道商品详情页实现在哪里，所以先搜索代码。</p></blockquote>
+<p>产生：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-json">{
+  &quot;name&quot;: &quot;search_code&quot;,
+  &quot;arguments&quot;: {
+    &quot;query&quot;: &quot;ProductDetail 商品详情&quot;
+  }
+}</code></pre></div>
+<p>三层职责需要明确区分：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Capability Planning
+↓
+“我需要 repository_search 能力”
+
+Tool Registry
+↓
+“repository_search 可以由 search_code 提供”
+
+Function Calling
+↓
+“当前调用 search_code，参数为 ProductDetail”</code></pre></div>
+<hr>
+<h2 id="section-10" data-section="SECTION 10">10. Tool Policy</h2>
+<p>Tool 被选中以后，不应该立即执行。</p>
+<p>应该先经过 Tool Policy。</p>
+<p>例如按照风险划分：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">READ
+├── search_code
+├── read_file
+├── search_prd
+└── figma_read
+
+WRITE
+├── edit_file
+└── create_file
+
+EXECUTE
+├── run_test
+├── run_build
+└── run_command
+
+EXTERNAL_WRITE
+├── git_push
+├── create_pr
+└── create_jira
+
+DANGEROUS
+├── delete_repository
+├── deploy_production
+└── destructive_database_operation</code></pre></div>
+<p>执行链路：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">LLM Tool Selection
+        │
+        ▼
+    Tool Policy
+        │
+        ├── Allow
+        ├── Deny
+        ├── Sandbox
+        └── Human Approval
+        │
+        ▼
+    Tool Runtime</code></pre></div>
+<p>核心原则：</p>
+<blockquote><p><strong>LLM 决定“想做什么”，系统决定“允许做什么”。</strong></p></blockquote>
+<p>不要完全依赖 Prompt 告诉 LLM“不要执行危险操作”。</p>
+<hr>
+<h2 id="section-11" data-section="SECTION 11">11. Tool Runtime</h2>
+<p>Tool Runtime 只负责真正执行 Tool。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-python">result = search_code(
+    query=&quot;ProductDetail&quot;
+)</code></pre></div>
+<p>返回：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">src/pages/product/detail/index.tsx
+src/components/ProductAction/index.tsx
+src/components/Button/index.tsx</code></pre></div>
+<p>Tool Runtime 本身不负责业务推理。</p>
+<p>职责应该保持简单：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Tool Arguments
+      ↓
+Execute
+      ↓
+Tool Result</code></pre></div>
+<hr>
+<h2 id="section-12" data-section="SECTION 12">12. Observe 与 Re-plan</h2>
+<p>Tool 执行完成不意味着任务完成。</p>
+<p>Agent 需要理解结果。</p>
+<p>例如 search_code 返回：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">src/pages/product/detail/index.tsx
+src/components/ProductAction/index.tsx
+src/components/Button/index.tsx</code></pre></div>
+<p>Agent Observe 后得到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">ProductAction 很可能是商品详情页操作按钮的实现。
+但是还没有确认具体代码。</code></pre></div>
+<p>于是 Re-plan：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">下一步：
+
+1. read_file(ProductAction)
+2. 获取 Figma Design Context</code></pre></div>
+<p>这两个任务如果不存在依赖，可以并行：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">                 Agent
+                   │
+          ┌────────┴────────┐
+          ▼                 ▼
+ read ProductAction     read Figma
+          │                 │
+          └────────┬────────┘
+                   ▼
+                 Observe</code></pre></div>
+<p>假设代码当前为：</p>
+<div class="code-card"><div class="code-head"><span>css</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-css">.buyButton {
+    height: 40px;
+    border-radius: 4px;
+}</code></pre></div>
+<p>Figma 为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">height: 44px
+border-radius: 8px
+font-size: 16px
+padding: 0 24px</code></pre></div>
+<p>Agent 此时才真正具备修改依据。</p>
+<p>然后进入：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">code_edit</code></pre></div>
+<p>Tool Router 可以动态把当前 Tool Set 调整为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">read_file
+edit_file</code></pre></div>
+<hr>
+<h2 id="section-13" data-section="SECTION 13">13. Capability Planning 不应该变成固定 Workflow</h2>
+<p>一个重要误区是：</p>
+<p>Capability Planner 输出：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-json">{
+  &quot;steps&quot;: [
+    &quot;repository_search&quot;,
+    &quot;code_read&quot;,
+    &quot;design_read&quot;,
+    &quot;code_edit&quot;,
+    &quot;code_validation&quot;
+  ]
+}</code></pre></div>
+<p>然后系统机械执行：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">1 → 2 → 3 → 4 → 5</code></pre></div>
+<p>这会重新退化成传统 Workflow。</p>
+<p>Agent 的优势在于执行过程中可以根据 Observation 动态调整。</p>
+<p>例如读取代码以后发现：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Button 来自 @company/design-system</code></pre></div>
+<p>并且公共 Button 不允许修改。</p>
+<p>那么原计划可能需要调整为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">read dependency
+      ↓
+理解 Design System 使用方式
+      ↓
+确认不能修改公共组件
+      ↓
+寻找业务层扩展方式
+      ↓
+修改 ProductAction className</code></pre></div>
+<p>因此 Capability Planning 更适合回答：</p>
+<blockquote><p><strong>完成当前 Task 可能需要哪些能力？</strong></p></blockquote>
+<p>而不是：</p>
+<blockquote><p><strong>未来必须严格按照哪些步骤执行？</strong></p></blockquote>
+<p>真正执行顺序应该由 Agent Loop 动态决定。</p>
+<hr>
+<h2 id="section-14" data-section="SECTION 14">14. Agent Loop</h2>
+<p>推荐执行模型：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Task
+ │
+ ▼
+Capability Planning
+ │
+ ▼
+Available Capability Scope
+ │
+ ▼
+Agent Reasoning
+ │
+ ▼
+Tool Call
+ │
+ ▼
+Tool Runtime
+ │
+ ▼
+Observe
+ │
+ ▼
+Agent Reasoning
+ │
+ ├── 需要更多信息 → Tool Call
+ │
+ ├── 需要修改 → Tool Call
+ │
+ ├── 验证失败 → Re-plan
+ │
+ └── 满足完成条件 → Done</code></pre></div>
+<p>因此 Function Calling 灵活性的来源其实是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Capability Discovery
+        +
+Dynamic Tool Selection
+        +
+Agent Loop
+        +
+Observation / Re-plan
+        +
+Tool Policy</code></pre></div>
+<p>而不是单纯增加 Function 数量。</p>
+<hr>
+<h2 id="section-15" data-section="SECTION 15">15. 修改代码后必须验证</h2>
+<p>对于：</p>
+<blockquote><p>按照 Figma 修改按钮样式</p></blockquote>
+<p>不能：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">edit_file
+   ↓
+Done</code></pre></div>
+<p>至少应该：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">edit_file
+   ↓
+run_lint
+   ↓
+run_typecheck
+   ↓
+run_test / run_build</code></pre></div>
+<p>但这些只能证明：</p>
+<blockquote><p><strong>代码没有明显坏掉。</strong></p></blockquote>
+<p>不能证明：</p>
+<blockquote><p><strong>页面视觉效果真的和 Figma 一致。</strong></p></blockquote>
+<p>因此更完整的 Fullstack Agent 后续可以加入 Browser Runtime：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">代码修改
+   ↓
+Build
+   ↓
+启动项目
+   ↓
+Browser Open
+   ↓
+Screenshot
+   ↓
+Visual Compare
+   ↓
+Figma Reference
+   ↓
+是否一致？
+   │
+   ├── No → Re-plan → Edit → Validate
+   │
+   └── Yes → Done</code></pre></div>
+<p>这就是 <code>visual_validation</code> Capability 的意义。</p>
+<hr>
+<h2 id="section-16" data-section="SECTION 16">16. Capability 是否还需要分层？</h2>
+<p>当平台规模越来越大时，可以进一步采用三级模型。</p>
+<h3 id="heading-1" data-section="DETAIL">一级：Domain Capability</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository
+design
+knowledge
+code_execution
+browser
+git</code></pre></div>
+<h3 id="heading-2" data-section="DETAIL">二级：Atomic Capability</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository
+├── repository_search
+└── code_read
+
+design
+├── design_read
+└── design_screenshot
+
+code_execution
+├── code_edit
+└── code_validation
+
+browser
+└── visual_validation</code></pre></div>
+<h3 id="heading-3" data-section="DETAIL">三级：Concrete Tool</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search
+        ↓
+search_code()
+
+code_read
+        ↓
+read_file()
+
+design_read
+        ↓
+figma_get_design_context()
+
+code_edit
+        ↓
+edit_file()
+
+code_validation
+        ↓
+run_build()
+
+visual_validation
+        ↓
+browser_screenshot()</code></pre></div>
+<p>完整关系：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Domain Capability
+        ↓
+Atomic Capability
+        ↓
+Concrete Tool</code></pre></div>
+<p>但对于当前 Fullstack Agent，没有必要一开始就过度设计。</p>
+<p>推荐先做到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Capability Planner
+        │
+        ▼
+Atomic Capability
+        │
+        ▼
+Tool Router / Registry
+        │
+        ▼
+Concrete Function / MCP Tool</code></pre></div>
+<p>即可。</p>
+<hr>
+<h2 id="section-17" data-section="SECTION 17">17. MCP / RAG / Code 与 Capability 的关系</h2>
+<p>这两个维度不要混淆。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Capability
+= Agent 认为“自己能做什么”
+
+MCP / RAG / Code
+= 这个能力“通过什么方式实现”</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">design_read
+        ↓
+Figma MCP
+
+knowledge_search
+        ↓
+RAG Runtime
+
+repository_search
+        ↓
+Code Runtime
+
+code_edit
+        ↓
+Code Runtime</code></pre></div>
+<p>因此平台可以保持：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Agent Platform
+      │
+      ▼
+LangGraph / Agent Runtime
+      │
+      ▼
+Capability Layer
+      │
+      ▼
+Tool Router / Registry
+      │
+      ▼
+Tool Runtime
+ /        |        \
+MCP      RAG      Code</code></pre></div>
+<p>Capability 是 Agent 视角。</p>
+<p>MCP / RAG / Code 是 Runtime / Infrastructure 视角。</p>
+<hr>
+<h2 id="section-18" data-section="SECTION 18">18. 推荐的 Fullstack Agent 架构</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">                           User
+                             │
+                             ▼
+                    Task Understanding
+                             │
+                             ▼
+                    Capability Planning
+                             │
+                             ▼
+                      Capability Scope
+                             │
+                             ▼
+                        Tool Router
+                             │
+                             ▼
+                        Tool Registry
+                             │
+             ┌───────────────┼───────────────┐
+             │               │               │
+             ▼               ▼               ▼
+           Code             RAG             MCP
+             │               │               │
+        search_code      search_prd       Figma
+        read_file        search_doc       Jira
+        edit_file                         GitHub
+        run_test
+             │               │               │
+             └───────────────┼───────────────┘
+                             │
+                             ▼
+                        Tool Policy
+                             │
+                             ▼
+                        Tool Runtime
+                             │
+                             ▼
+                          Observe
+                             │
+                             ▼
+                         Agent Loop
+                             │
+                 ┌───────────┴───────────┐
+                 │                       │
+                 ▼                       ▼
+              Re-plan                  Done</code></pre></div>
+<hr>
+<h2 id="section-19" data-section="SECTION 19">19. 各层职责总结</h2>
+<div class="table-wrap"><table><thead><tr><th>层</th><th>核心问题</th><th>商品详情页示例</th></tr></thead><tbody><tr><td>Task Understanding</td><td>用户要干什么？</td><td>修改商品详情页按钮，使其符合 Figma</td></tr><tr><td>Capability Planning</td><td>需要什么能力？</td><td>搜代码、读代码、读设计、改代码、验证</td></tr><tr><td>Capability Catalog</td><td>系统有哪些能力？</td><td>repository_search、design_read 等</td></tr><tr><td>Tool Router</td><td>当前应该开放哪些工具？</td><td>search/read/Figma</td></tr><tr><td>Tool Registry</td><td>哪个 Tool 提供对应能力？</td><td>repository_search → search_code</td></tr><tr><td>Function Calling</td><td>此刻调用什么？参数是什么？</td><td>search_code("ProductDetail")</td></tr><tr><td>Tool Policy</td><td>允许执行吗？</td><td>read 自动允许，write 受限制</td></tr><tr><td>Tool Runtime</td><td>真正执行 Tool</td><td>搜代码、读取 Figma、修改文件</td></tr><tr><td>Observe</td><td>Tool Result 意味着什么？</td><td>找到了 ProductAction</td></tr><tr><td>Re-plan</td><td>接下来应该做什么？</td><td>读代码 + 读取 Figma</td></tr><tr><td>Validation</td><td>修改是否正确？</td><td>build/test/screenshot</td></tr><tr><td>Done</td><td>是否满足完成标准？</td><td>UI 与目标设计一致</td></tr></tbody></table></div>
+<hr>
+<h2 id="section-20" data-section="SECTION 20">20. 最终设计原则</h2>
+<h3 id="principle-1" data-section="DESIGN PRINCIPLE">原则一：Capability ≠ Tool</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Capability：我能做什么
+Tool：具体怎么做</code></pre></div>
+<hr>
+<h3 id="principle-2" data-section="DESIGN PRINCIPLE">原则二：Capability Planner 不感知所有 Function</h3>
+<p>不要：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Capability Planner
+      ↓
+100 个 Function Schema</code></pre></div>
+<p>而应该：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Capability Planner
+      ↓
+10 个左右稳定 Capability
+      ↓
+Tool Router
+      ↓
+当前真正需要的少量 Function</code></pre></div>
+<hr>
+<h3 id="principle-3" data-section="DESIGN PRINCIPLE">原则三：Capability Planning 不是固定 Workflow Planning</h3>
+<p>不要机械地产生：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">A → B → C → D → E</code></pre></div>
+<p>而应该：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Task
+ ↓
+判断可能需要的 Capability
+ ↓
+执行一个/多个 Tool
+ ↓
+Observe
+ ↓
+根据新信息 Re-plan</code></pre></div>
+<hr>
+<h3 id="principle-4" data-section="DESIGN PRINCIPLE">原则四：Capability 稳定，Tool 可替换</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search</code></pre></div>
+<p>底层可以从：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">ripgrep</code></pre></div>
+<p>升级到：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Code Index</code></pre></div>
+<p>甚至：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Codex Search</code></pre></div>
+<p>Agent 上层规划无需变化。</p>
+<hr>
+<h3 id="principle-5" data-section="DESIGN PRINCIPLE">原则五：LLM 决定意图，系统控制执行权限</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">LLM
+ ↓
+Tool Selection
+ ↓
+Policy Engine
+ ↓
+Tool Runtime</code></pre></div>
+<p>即：</p>
+<blockquote><p><strong>LLM 决定“想做什么”，系统决定“允许做什么”。</strong></p></blockquote>
+<hr>
+<h3 id="principle-6" data-section="DESIGN PRINCIPLE">原则六：Function Calling 的灵活性来自整个 Agent Runtime</h3>
+<p>最终可以概括为：</p>
+<blockquote><p><strong>Function Calling 的灵活性，不应该靠给模型更多 Function，而应该靠 Capability Planning + Tool Discovery + Dynamic Tool Selection + Agent Loop + Tool Policy。</strong></p></blockquote>
+<p>这套设计尤其适合 Tool 数量会不断增长的 Fullstack Agent / Agent Platform。</p>
+<hr>
+<h2 id="tool-provider-routing" data-section="EXTENSION">MCP、Function Tool 等如何统一收敛到 Tool Router / Tool Runtime</h2>
+<h3 id="routing-1" data-section="ROUTING 01">1. 核心结论</h3>
+<p>MCP Tool、Function Tool、RAG Tool、Code Runtime、Browser Runtime 等可以统一纳入同一套 Tool 架构，但需要区分“选择”和“执行”两个职责：</p>
+<blockquote><p><strong>Tool Router 统一负责选择具体 Tool；Tool Runtime 根据 Tool 的 Provider / Executor 决定到底通过 MCP、Function、RAG、Code Runtime 还是 Browser Runtime 执行。</strong></p></blockquote>
+<p>业务 Agent 不需要感知“这个工具是 MCP 还是 Function Calling 实现的”。它只需要知道自己拥有哪些 Capability，以及当前应该调用哪个 Tool。</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Fullstack Agent
+      ↓
+Capability Planner
+      ↓
+Tool Registry
+      ↓
+Tool Router
+      ↓
+Tool Policy
+      ↓
+Tool Runtime
+      │
+ ┌────┼────────┬──────┬───────┐
+ ↓    ↓        ↓      ↓       ↓
+MCP Function   RAG    Code   Browser</code></pre></div>
+<hr>
+<h3 id="routing-2" data-section="ROUTING 02">2. Capability、Tool、Provider 三层不要混在一起</h3>
+<p>推荐把系统抽象成三层：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Capability
+“Agent 能做什么？”
+        ↓
+Tool
+“当前具体调用哪个工具？”
+        ↓
+Provider / Executor
+“这个工具实际上怎么执行？”</code></pre></div>
+<p>例如读取 Figma 设计：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">design_read                       ← Capability
+      ↓
+figma_get_design_context          ← Tool
+      ↓
+provider = mcp                    ← Provider
+server = figma
+      ↓
+Figma MCP Server</code></pre></div>
+<p>代码搜索可能是：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search                 ← Capability
+      ↓
+search_code                       ← Tool
+      ↓
+provider = function/runtime       ← Provider
+      ↓
+Code Search Runtime</code></pre></div>
+<p>因此 MCP、Function Calling 本身不应该成为 Capability。</p>
+<p>错误：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">capabilities:
+- mcp
+- function_call
+- rag</code></pre></div>
+<p>推荐：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">capabilities:
+- repository_search
+- code_read
+- design_read
+- knowledge_search
+- code_edit
+- code_validation
+- visual_validation</code></pre></div>
+<hr>
+<h3 id="routing-3" data-section="ROUTING 03">3. Tool Registry 统一注册不同来源的 Tool</h3>
+<p>Tool Registry 可以维护统一 Tool Metadata：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-json">{
+  &quot;search_code&quot;: {
+    &quot;capability&quot;: &quot;repository_search&quot;,
+    &quot;provider&quot;: &quot;function&quot;,
+    &quot;risk&quot;: &quot;read&quot;
+  },
+
+  &quot;read_file&quot;: {
+    &quot;capability&quot;: &quot;code_read&quot;,
+    &quot;provider&quot;: &quot;runtime&quot;,
+    &quot;risk&quot;: &quot;read&quot;
+  },
+
+  &quot;figma_get_design_context&quot;: {
+    &quot;capability&quot;: &quot;design_read&quot;,
+    &quot;provider&quot;: &quot;mcp&quot;,
+    &quot;server&quot;: &quot;figma&quot;,
+    &quot;risk&quot;: &quot;read&quot;
+  },
+
+  &quot;search_prd&quot;: {
+    &quot;capability&quot;: &quot;knowledge_search&quot;,
+    &quot;provider&quot;: &quot;rag&quot;,
+    &quot;risk&quot;: &quot;read&quot;
+  },
+
+  &quot;edit_file&quot;: {
+    &quot;capability&quot;: &quot;code_edit&quot;,
+    &quot;provider&quot;: &quot;runtime&quot;,
+    &quot;risk&quot;: &quot;write&quot;
+  }
+}</code></pre></div>
+<p>这样 Tool Router 面对的是统一 Tool，而不是不同协议。</p>
+<hr>
+<h3 id="routing-4" data-section="ROUTING 04">4. Tool Router 负责“选谁”，而不是“怎么执行”</h3>
+<p>假设用户任务是：</p>
+<blockquote><p>把商品详情页的按钮样式按照 Figma 修改一下。</p></blockquote>
+<p>Capability Planner 得到：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-json">{
+  &quot;capabilities&quot;: [
+    &quot;repository_search&quot;,
+    &quot;code_read&quot;,
+    &quot;design_read&quot;,
+    &quot;code_edit&quot;,
+    &quot;visual_validation&quot;
+  ]
+}</code></pre></div>
+<p>Tool Registry 根据 Capability 找出候选工具：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search
+├── search_code
+├── search_symbol
+└── find_references
+
+design_read
+├── figma_get_design_context
+├── figma_get_screenshot
+└── figma_get_metadata
+
+code_edit
+└── edit_file</code></pre></div>
+<p>Tool Router 根据 Task + Current Agent State + Candidate Tools 做细粒度选择。</p>
+<p>例如当前需要读取设计信息：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Current Capability = design_read
+        ↓
+Candidate Tools
+        ↓
+figma_get_design_context
+figma_get_screenshot
+figma_get_metadata
+        ↓
+Tool Router
+        ↓
+figma_get_design_context</code></pre></div>
+<p>Tool Router 不需要关心它背后使用 MCP。</p>
+<hr>
+<h3 id="routing-5" data-section="ROUTING 05">5. Tool Runtime 再根据 Provider 分发</h3>
+<p>真正决定 MCP / Function / RAG / Code 的地方应该是 Tool Runtime。</p>
+<p>伪代码：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-python">async def execute(tool_call):
+    tool = registry.get(tool_call.name)
+
+    if tool.provider == &quot;function&quot;:
+        return await function_executor.execute(
+            tool,
+            tool_call.arguments
+        )
+
+    if tool.provider == &quot;mcp&quot;:
+        return await mcp_executor.execute(
+            tool,
+            tool_call.arguments
+        )
+
+    if tool.provider == &quot;rag&quot;:
+        return await rag_executor.execute(
+            tool,
+            tool_call.arguments
+        )
+
+    if tool.provider == &quot;runtime&quot;:
+        return await code_runtime.execute(
+            tool,
+            tool_call.arguments
+        )
+
+    if tool.provider == &quot;browser&quot;:
+        return await browser_runtime.execute(
+            tool,
+            tool_call.arguments
+        )</code></pre></div>
+<p>因此职责边界为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Tool Router
+= 用谁？参数是什么？
+
+Tool Policy
+= 允许调用吗？
+
+Tool Runtime
+= 怎么调用？
+
+Provider / Executor
+= 具体通过什么技术执行？</code></pre></div>
+<hr>
+<h3 id="routing-6" data-section="ROUTING 06">6. MCP Server 不应该直接成为 Tool Router 的候选 Tool</h3>
+<p>不要把不同抽象层级混在一起：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">错误候选：
+
+Figma MCP
+Jira MCP
+GitHub MCP
+search_code
+read_file</code></pre></div>
+<p><code>Figma MCP</code> 是 Tool Provider / Server，而 <code>search_code</code> 是具体 Tool，两者不是同一层。</p>
+<p>应该把 MCP Server 暴露出来的具体 Tools 注册到 Registry：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">design_read
+├── figma_get_design_context
+├── figma_get_screenshot
+└── figma_get_metadata
+
+issue_management
+├── jira_get_issue
+├── jira_search_issue
+└── jira_update_issue</code></pre></div>
+<p>然后 Tool Metadata 记录：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">figma_get_design_context
+        ↓
+provider = mcp
+server = figma</code></pre></div>
+<p>因此 Agent / Tool Router 选择的是 <strong>Tool</strong>，不是协议、Server 或 Provider。</p>
+<hr>
+<h3 id="routing-7" data-section="ROUTING 07">7. 这种抽象带来的好处</h3>
+<p>例如今天 Figma 能力通过 MCP 实现：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">design_read
+    ↓
+figma_get_design_context
+    ↓
+MCP</code></pre></div>
+<p>未来如果改成 REST API：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">design_read
+    ↓
+figma_get_design_context
+    ↓
+Function Tool
+    ↓
+Figma REST API</code></pre></div>
+<p>上层无需修改：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Task Understanding
+Capability Planner
+Tool Router
+Agent Loop</code></pre></div>
+<p>变化只发生在 Tool Registry / Tool Runtime / Provider 层。</p>
+<p>这意味着上层 Agent 与具体工具协议实现解耦。</p>
+<hr>
+<h3 id="routing-8" data-section="ROUTING 08">8. 最终推荐架构</h3>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Task Understanding
+        ↓
+Capability Planner
+        │
+        │ 需要什么能力？
+        ↓
+Capability Scope
+        ↓
+Tool Registry
+        │
+        │ 每个 Capability 有哪些 Tool？
+        ↓
+Candidate Tools
+        ↓
+Tool Router
+        │
+        │ 当前状态具体用哪个 Tool？
+        │ 参数是什么？
+        ↓
+Tool Call
+        ↓
+Tool Policy
+        │
+        │ 是否允许执行？
+        ↓
+Tool Runtime
+        │
+        │ 根据 Provider 分发
+        ↓
+ ┌──────────┬──────────┬────────┬────────┬─────────┐
+ ↓          ↓          ↓        ↓        ↓
+MCP      Function     RAG      Code    Browser
+Executor Executor   Executor  Runtime  Runtime
+ ↓          ↓          ↓        ↓        ↓
+Figma    Internal   Vector   File /   Playwright
+Jira     Function     DB     Shell
+GitHub
+        ↓
+     Observe
+        ↓
+Agent State Update
+        ↓
+Tool Router
+        ↓
+下一轮 Tool Selection</code></pre></div>
+<hr>
+<h3 id="routing-9" data-section="ROUTING 09">9. 最终职责定义</h3>
+<h4 id="routing-role-capability-planner" data-section="RESPONSIBILITY">Capability Planner</h4>
+<blockquote><p>负责能力级的粗粒度规划和缩小搜索空间。</p></blockquote>
+<p>回答：</p>
+<blockquote><p><strong>完成任务需要哪些能力？</strong></p></blockquote>
+<h4 id="routing-role-tool-registry" data-section="RESPONSIBILITY">Tool Registry</h4>
+<blockquote><p>负责维护 Capability → Tool，以及 Tool → Provider / Schema / Risk 等 Metadata。</p></blockquote>
+<p>回答：</p>
+<blockquote><p><strong>这些能力下面有哪些可用工具？</strong></p></blockquote>
+<h4 id="routing-role-tool-router" data-section="RESPONSIBILITY">Tool Router</h4>
+<blockquote><p>基于 Task、Current Agent State、Capability Scope 和 Candidate Tools，定位当前最合适的具体 Tool，并生成调用参数。</p></blockquote>
+<p>回答：</p>
+<blockquote><p><strong>现在具体调用哪个 Tool？</strong></p></blockquote>
+<h4 id="routing-role-tool-policy" data-section="RESPONSIBILITY">Tool Policy</h4>
+<blockquote><p>对 Tool Call 做权限、风险、资源和安全校验。</p></blockquote>
+<p>回答：</p>
+<blockquote><p><strong>这个 Tool Call 是否允许执行？</strong></p></blockquote>
+<h4 id="routing-role-tool-runtime" data-section="RESPONSIBILITY">Tool Runtime</h4>
+<blockquote><p>屏蔽 Tool 的底层实现差异，根据 Provider 将调用分发给 MCP、Function、RAG、Code、Browser 等 Executor。</p></blockquote>
+<p>回答：</p>
+<blockquote><p><strong>这个 Tool 到底怎么执行？</strong></p></blockquote>
+<hr>
+<h3 id="routing-10" data-section="ROUTING 10">10. 一句话总结</h3>
+<blockquote><p><strong>Capability Planner 屏蔽“具体有哪些工具”，Tool Router 屏蔽“当前应该选哪个工具”，Tool Runtime 屏蔽“这个工具到底通过 MCP、Function、RAG、Code 还是 Browser 实现”。</strong></p></blockquote>
+<p>因此对于 Fullstack Agent / Agent Platform，上层 Agent 应该面向 Capability 和统一 Tool 抽象编程，而不是直接绑定 MCP、Function Calling 或某个具体工具提供方。</p></article></main>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div><button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+  <footer>Agent Capability Planning · Dynamic Tool Architecture</footer>
+  <script src="../assets/answer-pages.js"></script>
+</body>
+</html>

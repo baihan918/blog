@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="结合 Week 4 项目源码，讲清复杂多跳查询、临时 SOP、DAG 依赖、中途并行、汇合节点与动态 Map 节点。">
+  <title>复杂多跳查询与动态 SOP · 从查询改写到 DAG 并行</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f2e9;
+      --paper: #fffdf8;
+      --paper-strong: #ffffff;
+      --ink: #17202f;
+      --muted: #687182;
+      --line: #dedbd1;
+      --line-soft: #ebe8df;
+      --blue: #3776ab;
+      --blue-deep: #24557d;
+      --blue-soft: #e7f2fb;
+      --yellow: #efbd16;
+      --yellow-deep: #745c00;
+      --yellow-soft: #fff5c7;
+      --mint: #2d8a73;
+      --mint-soft: #e7f5ef;
+      --purple: #8260b3;
+      --purple-soft: #f1ebf8;
+      --coral: #e56b4e;
+      --coral-soft: #fff0eb;
+      --code: #18202c;
+      --code-ink: #e8eef7;
+      --shadow: 0 22px 60px rgba(51, 46, 34, .10);
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page: #121720;
+      --paper: #19212c;
+      --paper-strong: #1f2936;
+      --ink: #edf2f7;
+      --muted: #a8b2c1;
+      --line: #344151;
+      --line-soft: #2b3645;
+      --blue-soft: #172d42;
+      --blue-deep: #78b9ec;
+      --yellow-soft: #3c3517;
+      --yellow-deep: #f6d654;
+      --mint-soft: #17352f;
+      --purple-soft: #2e2540;
+      --coral-soft: #3d2521;
+      --code: #0d1118;
+      --code-ink: #e9eef7;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 7% 2%, color-mix(in srgb, var(--blue) 14%, transparent), transparent 29rem),
+        radial-gradient(circle at 94% 13%, color-mix(in srgb, var(--yellow) 18%, transparent), transparent 27rem),
+        var(--page);
+      font-family: var(--sans);
+      line-height: 1.72;
+    }
+    button { font: inherit; }
+    code { font-family: var(--mono); }
+    ::selection { background: color-mix(in srgb, var(--blue) 23%, transparent); }
+    .skip-link { position: fixed; top: 8px; left: 8px; z-index: 200; transform: translateY(-160%); padding: 9px 13px; color: var(--paper); background: var(--ink); border-radius: 10px; }
+    .skip-link:focus { transform: translateY(0); }
+    .progress-track { position: fixed; inset: 0 0 auto; z-index: 110; height: 4px; }
+    .progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple), var(--yellow)); }
+    .topbar {
+      position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between;
+      min-height: 68px; padding: 10px clamp(16px, 4vw, 42px); border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+      background: color-mix(in srgb, var(--page) 84%, transparent); backdrop-filter: blur(5px);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; font-weight: 850; }
+    .brand span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 auto; border-radius: 13px; color: #fff; background: linear-gradient(135deg, var(--blue), var(--purple)); box-shadow: 0 8px 20px rgba(55, 118, 171, .2); font: 800 9px/1.05 var(--mono); }
+    .icon-button, .button { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 11px; color: var(--ink); background: var(--paper); text-decoration: none; cursor: pointer; transition: transform 140ms ease, border-color 140ms ease, background 140ms ease; }
+    .icon-button { width: 40px; padding: 0; }
+    .icon-button:hover, .button:hover { border-color: var(--blue); transform: translateY(-1px); }
+    .button.primary { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .hero { position: relative; max-width: 1280px; margin: 0 auto; padding: clamp(60px, 8vw, 108px) clamp(20px, 5vw, 70px) 56px; overflow: hidden; }
+    .hero::after { content: "DAG"; position: absolute; right: 2%; top: 7%; color: color-mix(in srgb, var(--blue) 7%, transparent); font: 900 clamp(100px, 20vw, 245px)/1 Georgia, serif; transform: rotate(-7deg); pointer-events: none; }
+    .eyebrow { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; color: var(--blue-deep); font: 800 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 28px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--yellow)); }
+    h1 { position: relative; z-index: 1; max-width: 1000px; margin: 20px 0 0; font-size: clamp(38px, 7vw, 76px); line-height: 1.04; letter-spacing: -.045em; }
+    h1 span { color: var(--blue); }
+    .hero-copy { position: relative; z-index: 1; max-width: 880px; margin: 25px 0 0; color: var(--muted); font-size: clamp(16px, 2vw, 20px); }
+    .hero-copy strong { color: var(--ink); }
+    .hero-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .hero-facts { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 180px)); gap: 12px; margin-top: 34px; }
+    .fact { padding: 15px 17px; border: 1px solid var(--line); border-radius: 15px; background: color-mix(in srgb, var(--paper) 92%, transparent); }
+    .fact b { display: block; color: var(--blue); font: 900 20px/1 var(--mono); }
+    .fact:nth-child(2) b { color: var(--purple); } .fact:nth-child(3) b { color: var(--mint); } .fact:nth-child(4) b { color: var(--coral); }
+    .fact span { display: block; margin-top: 7px; color: var(--muted); font-size: 12px; }
+    .truth-strip { max-width: 1240px; margin: 0 auto; padding: 0 22px 28px; }
+    .truth-grid { display: grid; grid-template-columns: repeat(3, 1fr); overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); box-shadow: var(--shadow); }
+    .truth { padding: 20px 22px; border-right: 1px solid var(--line-soft); }
+    .truth:last-child { border-right: 0; }
+    .truth b, .truth span { display: block; }
+    .truth b { color: var(--blue-deep); }
+    .truth:nth-child(2) b { color: var(--purple); } .truth:nth-child(3) b { color: var(--mint); }
+    .truth span { margin-top: 5px; color: var(--muted); font-size: 13px; }
+    .layout { display: grid; grid-template-columns: 224px minmax(0, 1fr); gap: clamp(28px, 5vw, 70px); max-width: 1240px; margin: 0 auto; padding: 62px 22px 100px; }
+    .toc { position: sticky; top: 88px; max-height: calc(100vh - 110px); padding: 17px; overflow-y: auto; border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--paper) 93%, transparent); box-shadow: 0 12px 32px rgba(45, 40, 28, .06); }
+    .toc-title { margin: 0 0 10px; color: var(--muted); font: 800 11px/1 var(--mono); letter-spacing: .1em; }
+    .toc a { display: block; margin: 2px 0; padding: 7px 9px; border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 12px; line-height: 1.4; }
+    .toc a:hover, .toc a.active { color: var(--blue-deep); background: var(--blue-soft); }
+    .toc-status { margin-top: 14px; padding: 11px; border-radius: 11px; color: var(--mint); background: var(--mint-soft); font-size: 11px; }
+    .content { min-width: 0; }
+    .section { margin-top: 88px; scroll-margin-top: 94px; }
+    .section:first-child { margin-top: 0; }
+    .section-kicker { color: var(--blue-deep); font: 800 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+    h2 { margin: 12px 0 9px; font-size: clamp(27px, 4vw, 43px); line-height: 1.15; letter-spacing: -.028em; }
+    h3 { margin: 0; font-size: 18px; line-height: 1.35; }
+    .section-lead { max-width: 850px; margin: 0 0 26px; color: var(--muted); }
+    .card, .concept, .code-card, .scheduler, .quiz-card, .compare-wrap { border: 1px solid var(--line); border-radius: 19px; background: var(--paper); box-shadow: 0 12px 30px rgba(45, 40, 28, .055); }
+    .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+    .three-col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .concept { padding: 21px; }
+    .concept p { margin: 9px 0 0; color: var(--muted); font-size: 13px; }
+    .concept ul { margin: 12px 0 0; padding-left: 19px; color: var(--muted); font-size: 13px; }
+    .concept li + li { margin-top: 6px; }
+    .concept .icon { display: grid; place-items: center; width: 38px; height: 38px; margin-bottom: 13px; border-radius: 12px; background: var(--blue-soft); font-size: 20px; }
+    .plain-box, .insight, .warning { margin-top: 16px; padding: 18px 20px; border-radius: 16px; font-size: 13px; }
+    .plain-box { border: 1px solid color-mix(in srgb, var(--yellow) 44%, var(--line)); background: linear-gradient(105deg, var(--yellow-soft), var(--paper)); }
+    .plain-box strong { color: var(--yellow-deep); }
+    .insight { border: 1px solid color-mix(in srgb, var(--mint) 34%, var(--line)); background: var(--mint-soft); }
+    .insight strong { color: var(--mint); }
+    .warning { border: 1px solid color-mix(in srgb, var(--coral) 34%, var(--line)); background: var(--coral-soft); }
+    .warning strong { color: var(--coral); }
+    .compare-wrap { margin-top: 18px; overflow-x: auto; }
+    .compare-table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 12px; }
+    .compare-table th, .compare-table td { padding: 14px 15px; border-bottom: 1px solid var(--line-soft); vertical-align: top; text-align: left; }
+    .compare-table th { color: var(--blue-deep); background: var(--blue-soft); font-size: 11px; }
+    .compare-table td:first-child { font-weight: 850; }
+    .compare-table tr:last-child td { border-bottom: 0; }
+    .code-card { margin-top: 16px; overflow: hidden; border-color: #303a48; background: var(--code); }
+    .code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #303a48; color: #bfc9d8; background: var(--code); font: 700 11px/1 var(--mono); }
+    pre { margin: 0; padding: 18px; overflow-x: auto; color: var(--code-ink); background: var(--code); font: 12px/1.72 var(--mono); tab-size: 4; }
+    .cm { color: #8996a8; } .kw { color: #f08d81; } .fn { color: #82c7f3; } .st { color: #b7dc8a; } .num { color: #d8b5ff; }
+    .flow { display: grid; gap: 12px; margin-top: 18px; }
+    .flow-row { display: flex; justify-content: center; gap: 12px; position: relative; }
+    .flow-row + .flow-row::before { content: "↓"; position: absolute; top: -24px; left: 50%; color: var(--muted); font-weight: 900; }
+    .flow-node { min-width: 150px; padding: 14px 15px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); text-align: center; }
+    .flow-node b, .flow-node small { display: block; }
+    .flow-node b { color: var(--blue-deep); font-size: 12px; }
+    .flow-node small { margin-top: 5px; color: var(--muted); font-size: 10px; }
+    .flow-node.parallel { border-top: 4px solid var(--purple); }
+    .flow-node.merge { border-top: 4px solid var(--mint); }
+    .scheduler { padding: 22px; }
+    .scheduler-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .scheduler-head p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+    .scheduler-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+    .stage-label { margin: 20px 0 10px; color: var(--purple); font: 850 11px/1 var(--mono); letter-spacing: .08em; }
+    .dag-canvas { display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(4, auto); gap: 16px 10px; min-height: 365px; padding: 18px; border: 1px dashed var(--line); border-radius: 16px; background: color-mix(in srgb, var(--paper-strong) 78%, transparent); }
+    .dag-node { position: relative; display: grid; place-items: center; min-height: 76px; padding: 10px; border: 1px solid var(--line); border-radius: 13px; color: var(--muted); background: var(--paper); text-align: center; transition: transform 180ms ease, border-color 180ms ease, background 180ms ease; }
+    .dag-node b, .dag-node small { display: block; }
+    .dag-node b { color: var(--ink); font-size: 12px; }
+    .dag-node small { margin-top: 4px; font: 700 9px/1.3 var(--mono); }
+    .dag-node.pending { opacity: .55; }
+    .dag-node.ready { color: var(--purple); border-color: var(--purple); background: var(--purple-soft); transform: translateY(-2px); box-shadow: 0 8px 20px color-mix(in srgb, var(--purple) 20%, transparent); }
+    .dag-node.done { color: var(--mint); border-color: var(--mint); background: var(--mint-soft); }
+    .dag-node.scope { grid-column: 3 / 5; grid-row: 1; }
+    .dag-node.market { grid-column: 1 / 3; grid-row: 2; }
+    .dag-node.competitors { grid-column: 3 / 5; grid-row: 2; }
+    .dag-node.policy { grid-column: 5 / 7; grid-row: 2; }
+    .dag-node.synthesis { grid-column: 2 / 6; grid-row: 3; }
+    .dag-node.review { grid-column: 3 / 5; grid-row: 4; }
+    .batch-log { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: start; margin-top: 14px; padding: 14px 16px; border-radius: 13px; background: var(--blue-soft); font-size: 12px; }
+    .batch-log b { color: var(--blue-deep); }
+    .batch-log span { color: var(--muted); }
+    .dependency-list { display: grid; gap: 9px; margin-top: 18px; }
+    .dependency-row { display: grid; grid-template-columns: 160px 1fr auto; gap: 14px; align-items: center; padding: 14px 16px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper); }
+    .dependency-row b { color: var(--blue-deep); font: 800 12px/1.3 var(--mono); }
+    .dependency-row span { color: var(--muted); font-size: 12px; }
+    .dependency-row em { color: var(--purple); font: normal 800 10px/1 var(--mono); }
+    .source-map { display: grid; gap: 10px; margin-top: 18px; }
+    .source-row { display: grid; grid-template-columns: 190px 1fr; gap: 14px; padding: 15px 17px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+    .source-row code { color: var(--blue-deep); font-size: 11px; font-weight: 800; }
+    .source-row p { margin: 0; color: var(--muted); font-size: 12px; }
+    .quiz-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .quiz-card { padding: 19px; }
+    .quiz-card h3 { font-size: 14px; }
+    .quiz-options { display: grid; gap: 7px; margin-top: 13px; }
+    .quiz-option { padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: var(--paper-strong); cursor: pointer; text-align: left; font-size: 12px; }
+    .quiz-option:hover { border-color: var(--blue); }
+    .quiz-option.correct { color: var(--mint); border-color: var(--mint); background: var(--mint-soft); }
+    .quiz-option.wrong { color: var(--coral); border-color: var(--coral); background: var(--coral-soft); }
+    .quiz-explain { display: none; margin-top: 10px; color: var(--muted); font-size: 11px; }
+    footer { padding: 34px 20px 58px; color: var(--muted); text-align: center; font-size: 12px; }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .toc { display: none; }
+      .three-col { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .hero { padding-inline: 18px; }
+      .eyebrow { flex-wrap: wrap; overflow-wrap: anywhere; font-size: 10px; line-height: 1.5; }
+      h1 { font-size: clamp(32px, 10vw, 40px); overflow-wrap: anywhere; }
+      .hero-copy, .fact, .truth, .concept { overflow-wrap: anywhere; }
+      .hero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .truth-grid, .two-col, .quiz-grid { grid-template-columns: minmax(0, 1fr); width: 100%; }
+      .truth { border-right: 0; border-bottom: 1px solid var(--line-soft); }
+      .truth:last-child { border-bottom: 0; }
+      .flow-row { flex-direction: column; }
+      .flow-node { min-width: 0; }
+      .scheduler-head { align-items: flex-start; flex-direction: column; }
+      .dag-canvas { display: flex; flex-direction: column; min-height: 0; }
+      .dependency-row, .source-row, .batch-log { grid-template-columns: 1fr; gap: 6px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">HOP<br>DAG</div><span>复杂多跳查询与动态 SOP</span></div>
+    <button class="icon-button" id="themeButton" type="button" aria-label="切换深浅主题" title="切换深浅主题">◐</button>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">Week 04 · Agent Planning & Orchestration</div>
+    <h1>不是把问题搜三遍，<br>而是让证据<span>一跳接一跳</span></h1>
+    <p class="hero-copy">沿着当前项目的真实代码，分清<strong>查询改写、多跳推理、临时 SOP、DAG 中途并行</strong>与<strong>运行时动态分支</strong>。最终你会知道：什么时候只需要一条搜索链，什么时候必须构造一张任务图。</p>
+    <div class="hero-actions">
+      <a class="button primary" href="#multi-hop">从多跳定义开始</a>
+      <a class="button" href="#scheduler">体验中途并行</a>
+    </div>
+    <div class="hero-facts">
+      <div class="fact"><b>Hop</b><span>后一跳依赖前一跳事实</span></div>
+      <div class="fact"><b>DAG</b><span>表达串行、并行与汇合</span></div>
+      <div class="fact"><b>ready</b><span>依赖满足即可调度</span></div>
+      <div class="fact"><b>Map</b><span>运行时展开未知分支</span></div>
+    </div>
+  </section>
+
+  <section class="truth-strip" aria-label="核心结论">
+    <div class="truth-grid">
+      <div class="truth"><b>一个 SOP 就够</b><span>中途并行不是拆成两个 SOP，而是一个 DAG 在某个节点后扇出。</span></div>
+      <div class="truth"><b>依赖决定并行</b><span>不必额外标记 parallel；同一时刻依赖都满足的节点自然并行。</span></div>
+      <div class="truth"><b>动态数量另处理</b><span>上游完成后才知道分支数量时，需要动态扩图或 Map 节点。</span></div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <aside>
+      <nav class="toc" aria-label="页面目录">
+        <p class="toc-title">LEARNING PATH</p>
+        <a href="#multi-hop">01 什么是多跳查询</a>
+        <a href="#project-now">02 当前项目做到了哪</a>
+        <a href="#hop-orchestration">03 LLM、DAG、检索器分工</a>
+        <a href="#temporary-sop">04 临时 SOP 怎么表达</a>
+        <a href="#mid-parallel">05 中途并行与汇合</a>
+        <a href="#scheduler">06 调度器逐批执行</a>
+        <a href="#dynamic-map">07 动态 Map 分支</a>
+        <a href="#production-choice">08 真实项目如何取舍</a>
+        <a href="#upgrade">09 项目升级边界</a>
+        <a href="#quiz">10 自测与面试表达</a>
+        <div class="toc-status" id="tocStatus">已完成自测 0 / 6</div>
+      </nav>
+    </aside>
+
+    <main class="content" id="main">
+      <section class="section" id="multi-hop">
+        <div class="section-kicker">01 · Mental Model</div>
+        <h2>多跳的关键：下一问由上一问决定</h2>
+        <p class="section-lead">复杂问题通常无法用一次检索直接命中答案。系统需要取得中间事实，再把中间事实带入下一次查询。这里的“跳”指证据依赖，不是循环次数。</p>
+        <div class="flow" aria-label="多跳查询示例">
+          <div class="flow-row"><div class="flow-node"><b>原始问题</b><small>OpenAI CEO 出生城市所在州的州长是谁？</small></div></div>
+          <div class="flow-row"><div class="flow-node"><b>Hop 1</b><small>查 CEO 是谁</small></div></div>
+          <div class="flow-row"><div class="flow-node"><b>Hop 2</b><small>查他的出生城市</small></div></div>
+          <div class="flow-row"><div class="flow-node"><b>Hop 3</b><small>查城市属于哪个州</small></div></div>
+          <div class="flow-row"><div class="flow-node merge"><b>Hop 4</b><small>查该州当前州长并回溯证据</small></div></div>
+        </div>
+        <div class="compare-wrap">
+          <table class="compare-table">
+            <thead><tr><th>模式</th><th>查询之间的关系</th><th>典型结构</th><th>是不是多跳</th></tr></thead>
+            <tbody>
+              <tr><td>重复搜索</td><td>每次都搜索同一句话</td><td>Q → Q → Q</td><td>不是</td></tr>
+              <tr><td>查询改写</td><td>根据结果换一个更好的搜索词</td><td>Q₁ → Q₂ → Q₃</td><td>轻量级</td></tr>
+              <tr><td>事实多跳</td><td>下一问必须使用上一跳抽取的事实</td><td>事实 A → 查询 B → 事实 C</td><td>是</td></tr>
+              <tr><td>DAG 多跳</td><td>多个依赖分支并行，之后汇合验证</td><td>A → {B,C,D} → E</td><td>完整版</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="project-now">
+        <div class="section-kicker">02 · Repository Reality</div>
+        <h2>当前项目：有迭代搜索，还没有原子子问题 DAG</h2>
+        <p class="section-lead">Researcher 已经形成“搜索—判断充足度—生成新查询—再次搜索”的闭环，所以可以称为简化版多跳搜索；Memory 的向量加关键词融合则是 Hybrid Retrieval，不是多跳。</p>
+        <div class="two-col">
+          <article class="concept">
+            <div class="icon">✓</div>
+            <h3>已经实现</h3>
+            <ul>
+              <li><code>max_iterations</code> 控制最大搜索轮数</li>
+              <li>LLM 根据本轮结果判断 <code>is_sufficient</code></li>
+              <li>信息不足时生成 <code>new_query</code></li>
+              <li>所有轮次结果去重后生成带来源报告</li>
+            </ul>
+          </article>
+          <article class="concept">
+            <div class="icon">△</div>
+            <h3>还没有实现</h3>
+            <ul>
+              <li>把复杂问题拆成可验证的原子子问题</li>
+              <li>显式保存每一跳的事实与证据</li>
+              <li>对子问题建立依赖图并分别追踪完成度</li>
+              <li>运行时根据上游结果动态增加分支</li>
+            </ul>
+          </article>
+        </div>
+        <div class="code-card">
+          <div class="code-head"><span>core/agents/researcher.py · 当前主链路</span><span>ITERATIVE SEARCH</span></div>
+          <pre><code><span class="kw">for</span> i <span class="kw">in</span> range(max_iterations):
+    results = <span class="kw">await</span> web_search.<span class="fn">search</span>(current_query)
+
+    is_sufficient, new_query = <span class="kw">await</span> <span class="fn">evaluate_and_refine</span>(
+        original_query=query,
+        current_query=current_query,
+        results=results,
+    )
+
+    <span class="kw">if</span> is_sufficient:
+        <span class="kw">break</span>
+    current_query = new_query</code></pre>
+        </div>
+        <div class="insight"><strong>准确定位：</strong>项目目前是“单链迭代查询 + 固定/临时 Agent 工作流”，还不是“原子子问题 + 事实状态 + 动态 DAG”的复杂多跳系统。</div>
+      </section>
+
+      <section class="section" id="hop-orchestration">
+        <div class="section-kicker">03 · Planning vs Retrieval</div>
+        <h2>LLM 负责理解和规划，DAG 负责调度，检索器负责真正查资料</h2>
+        <p class="section-lead">可以把复杂多跳理解成“语义规划 + 任务调度 + 信息获取”，但不能说“DAG 做检索”。DAG 只表达哪些任务先做、哪些可以并行、哪些必须等待汇合；Web Search、向量数据库或业务数据库才是真正执行检索的组件。</p>
+
+        <div class="flow" aria-label="复杂多跳系统分层流程">
+          <div class="flow-row"><div class="flow-node"><b>用户问题</b><small>自然语言复杂目标</small></div></div>
+          <div class="flow-row"><div class="flow-node parallel"><b>LLM Planner</b><small>识别语义、实体、子问题与依赖</small></div></div>
+          <div class="flow-row"><div class="flow-node merge"><b>DAG / Scheduler</b><small>按依赖调度串行、并行与汇合节点</small></div></div>
+          <div class="flow-row">
+            <div class="flow-node parallel"><b>Web Search</b><small>联网搜索</small></div>
+            <div class="flow-node parallel"><b>Vector Store</b><small>语义召回</small></div>
+            <div class="flow-node parallel"><b>Database</b><small>结构化查询</small></div>
+          </div>
+          <div class="flow-row"><div class="flow-node merge"><b>Synthesizer + Critic</b><small>汇总证据、检查遗漏与冲突</small></div></div>
+        </div>
+
+        <div class="compare-wrap">
+          <table class="compare-table">
+            <thead><tr><th>组件</th><th>核心职责</th><th>不负责什么</th></tr></thead>
+            <tbody>
+              <tr><td>LLM Planner</td><td>理解问题、拆子问题、生成依赖、必要时规划下一跳</td><td>不直接替代搜索引擎或数据库</td></tr>
+              <tr><td>DAG</td><td>表达子问题之间的串行、并行和汇合关系</td><td>不读取网页，也不计算向量相似度</td></tr>
+              <tr><td>Scheduler</td><td>寻找 ready 节点、控制并发、重试、超时和状态</td><td>不决定搜索结果是否真实</td></tr>
+              <tr><td>Retriever / Search</td><td>执行关键词、向量、Web 或数据库检索</td><td>通常不负责完整任务规划</td></tr>
+              <tr><td>Researcher LLM</td><td>生成搜索词、抽取事实、判断信息是否充足</td><td>不应该绕过来源直接编造事实</td></tr>
+              <tr><td>Synthesizer / Critic</td><td>合并分支结果、验证证据覆盖和冲突</td><td>不应把缺失证据包装成确定结论</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="two-col">
+          <article class="concept">
+            <div class="icon">A</div>
+            <h3>先拆解，再用 DAG 调度</h3>
+            <p>适合子问题能提前明确，并且存在并行和汇合关系的任务。</p>
+            <ul>
+              <li>LLM 一次生成子问题和 dependencies</li>
+              <li>Scheduler 执行完整任务图</li>
+              <li>适合公司对比、产业研究、跨来源核验</li>
+            </ul>
+          </article>
+          <article class="concept">
+            <div class="icon">B</div>
+            <h3>边检索，边生成下一跳</h3>
+            <p>适合下一问必须看到本轮事实后才能确定的链式问题。</p>
+            <ul>
+              <li>搜索当前 query</li>
+              <li>LLM 抽取事实并判断缺失信息</li>
+              <li>生成 new_query，循环直到充足</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><span>当前项目的真实嵌套关系</span><span>OUTER DAG + INNER LOOP</span></div>
+          <pre><code>CEO 的 SOP DAG
+│
+├── Researcher 节点
+│      └── <span class="kw">for</span> iteration <span class="kw">in</span> max_iterations:
+│             results = <span class="kw">await</span> search(current_query)
+│             sufficient, new_query = <span class="kw">await</span> evaluate(results)
+│             <span class="kw">if</span> sufficient: <span class="kw">break</span>
+│
+├── Analyst 节点
+└── Critic 节点</code></pre>
+        </div>
+
+        <div class="plain-box"><strong>当前项目的结论：</strong>DAG 调度的是 Researcher、Analyst、Critic 等 SOP 节点；Researcher 内部每一跳搜索由 <code>for</code> 循环控制，并没有把 Query 1、Query 2、Query 3 分别建成 DAG 节点。</div>
+        <div class="insight"><strong>真实项目常用组合：</strong>外层 SOP DAG 管理稳定阶段，中层 Map 展开未知数量对象，内层 Researcher 循环生成下一跳；只有异常结果改变任务结构时，才触发局部重规划。</div>
+      </section>
+
+      <section class="section" id="temporary-sop">
+        <div class="section-kicker">04 · Temporary Plan</div>
+        <h2>复杂问题可以临时生成一个 SOPDefinition</h2>
+        <p class="section-lead"><code>get_market_research_sop()</code> 是代码中预定义的固定模板；当调用者没有传入 SOP 时，CEO 的 <code>_generate_sop()</code> 会让 LLM 为本次任务临时生成同结构的 DAG。</p>
+        <div class="three-col">
+          <article class="concept"><div class="icon">📦</div><h3>固定 SOP</h3><p>流程提前写进代码，适合稳定、重复、合规要求明确的业务。</p></article>
+          <article class="concept"><div class="icon">⚡</div><h3>临时 SOP</h3><p>Planner 根据当前问题生成，适合开放式研究与未知查询结构。</p></article>
+          <article class="concept"><div class="icon">🧩</div><h3>混合模式</h3><p>固定骨架约束角色和质量门，临时节点负责拆解具体子问题。</p></article>
+        </div>
+        <div class="code-card">
+          <div class="code-head"><span>core/agents/ceo.py · 获取或生成 SOP</span><span>RUNTIME</span></div>
+          <pre><code>sop = context.<span class="fn">get</span>(<span class="st">"sop"</span>)
+<span class="kw">if not</span> sop:
+    sop = <span class="kw">await</span> self.<span class="fn">_generate_sop</span>(task, context)
+
+<span class="cm"># SOPNode 的 dependencies 形成 DAG</span>
+SOPNode(
+    id=<span class="st">"market_size"</span>,
+    agent_type=<span class="st">"researcher"</span>,
+    task_template=<span class="st">"根据范围查询市场规模：{{results.scope}}"</span>,
+    dependencies=[<span class="st">"scope"</span>],
+)</code></pre>
+        </div>
+        <div class="plain-box"><strong>临时不等于无治理：</strong>生产环境通常仍要校验节点 ID、依赖是否存在、是否有环、允许使用哪些 Agent、最大节点数、最大并发数和预算。</div>
+      </section>
+
+      <section class="section" id="mid-parallel">
+        <div class="section-kicker">05 · Fan-out / Fan-in</div>
+        <h2>中途并行：一个 SOP 先串行，再分叉，再汇合</h2>
+        <p class="section-lead">并行不是从入口就拆成两个 SOP。只要多个节点依赖同一个已完成节点，它们就会同时进入 ready 集合；下游节点依赖所有分支时，就会等待它们全部完成。</p>
+        <div class="flow" aria-label="一个 SOP 中途并行流程">
+          <div class="flow-row"><div class="flow-node"><b>scope</b><small>确定研究范围</small></div></div>
+          <div class="flow-row">
+            <div class="flow-node parallel"><b>market_size</b><small>依赖 scope</small></div>
+            <div class="flow-node parallel"><b>competitors</b><small>依赖 scope</small></div>
+            <div class="flow-node parallel"><b>policy</b><small>依赖 scope</small></div>
+          </div>
+          <div class="flow-row"><div class="flow-node merge"><b>synthesis</b><small>等待三个分支全部完成</small></div></div>
+          <div class="flow-row"><div class="flow-node"><b>final_review</b><small>审核综合结论与证据</small></div></div>
+        </div>
+        <div class="dependency-list">
+          <div class="dependency-row"><b>scope</b><span>没有前置依赖</span><em>BATCH 1</em></div>
+          <div class="dependency-row"><b>market / competitor / policy</b><span>都只依赖 scope，因此同批就绪</span><em>BATCH 2 · PARALLEL</em></div>
+          <div class="dependency-row"><b>synthesis</b><span>依赖三个研究分支，必须等待全部完成</span><em>BATCH 3 · JOIN</em></div>
+          <div class="dependency-row"><b>final_review</b><span>依赖 synthesis</span><em>BATCH 4</em></div>
+        </div>
+        <div class="warning"><strong>不要人为写 parallel: true：</strong>并行性最好从依赖图推导。否则“声明并行”与真实依赖冲突时，调度器很难判断该相信谁。</div>
+      </section>
+
+      <section class="section" id="scheduler">
+        <div class="section-kicker">06 · Interactive Scheduler</div>
+        <h2>点一次“执行下一批”，看 ready 集合怎样变化</h2>
+        <p class="section-lead">调度器不是预先决定第几步，而是每轮扫描 pending 节点：只要所有依赖都在 executed 集合中，该节点就进入 ready；同一轮的 ready 节点使用 <code>asyncio.gather()</code> 并行执行。</p>
+        <div class="scheduler">
+          <div class="scheduler-head">
+            <div><h3>DAG 执行模拟器</h3><p>紫色 = 本批可并行执行，绿色 = 已完成，灰色 = 依赖未满足。</p></div>
+            <div class="scheduler-actions">
+              <button class="button" id="resetDag" type="button">重置</button>
+              <button class="button primary" id="nextBatch" type="button">执行下一批</button>
+            </div>
+          </div>
+          <div class="stage-label" id="stageLabel">准备执行 · Batch 1</div>
+          <div class="dag-canvas" id="dagCanvas">
+            <div class="dag-node scope" data-node="scope"><div><b>scope</b><small>deps: []</small></div></div>
+            <div class="dag-node market" data-node="market"><div><b>market_size</b><small>deps: [scope]</small></div></div>
+            <div class="dag-node competitors" data-node="competitors"><div><b>competitors</b><small>deps: [scope]</small></div></div>
+            <div class="dag-node policy" data-node="policy"><div><b>policy</b><small>deps: [scope]</small></div></div>
+            <div class="dag-node synthesis" data-node="synthesis"><div><b>synthesis</b><small>deps: [market, competitors, policy]</small></div></div>
+            <div class="dag-node review" data-node="review"><div><b>final_review</b><small>deps: [synthesis]</small></div></div>
+          </div>
+          <div class="batch-log"><b id="batchName">Ready</b><span id="batchDetail">scope 没有依赖，所以首先进入 ready。</span></div>
+        </div>
+        <div class="code-card">
+          <div class="code-head"><span>core/agents/ceo.py · 项目已有的批次调度</span><span>TOPOLOGICAL EXECUTION</span></div>
+          <pre><code><span class="kw">while</span> pending:
+    ready = [
+        node_id <span class="kw">for</span> node_id, node <span class="kw">in</span> pending.<span class="fn">items</span>()
+        <span class="kw">if all</span>(dep <span class="kw">in</span> executed <span class="kw">for</span> dep <span class="kw">in</span> node.dependencies)
+    ]
+
+    results = <span class="kw">await</span> asyncio.<span class="fn">gather</span>(
+        *[<span class="fn">execute_and_track</span>(node_id) <span class="kw">for</span> node_id <span class="kw">in</span> ready]
+    )</code></pre>
+        </div>
+      </section>
+
+      <section class="section" id="dynamic-map">
+        <div class="section-kicker">07 · Runtime Expansion</div>
+        <h2>如果分支数量事先不知道，就需要 Map 或动态扩图</h2>
+        <p class="section-lead">“研究市场、竞品、政策”在规划时已经知道三个分支，普通 DAG 足够；“先找出所有目标公司，再逐家公司调研”要等上游返回列表后才知道分支数量，静态 SOP 无法提前写完整。</p>
+        <div class="two-col">
+          <article class="concept">
+            <div class="icon">①</div>
+            <h3>动态扩展 DAG</h3>
+            <p><code>discover_companies</code> 完成后，调度器插入 <code>research_company_1...N</code>，再补一个依赖全部分支的汇合节点。</p>
+            <ul><li>可观察性最清楚</li><li>图校验和恢复更复杂</li><li>适合长任务平台</li></ul>
+          </article>
+          <article class="concept">
+            <div class="icon">②</div>
+            <h3>Map 节点</h3>
+            <p>SOP 只保留一个逻辑节点，执行器对上游列表中的每个 item 并发调用同一 Agent，最后收集数组结果。</p>
+            <ul><li>SOP 更紧凑</li><li>容易限制并发与失败比例</li><li>适合批量同构任务</li></ul>
+          </article>
+        </div>
+        <div class="code-card">
+          <div class="code-head"><span>建议扩展的 Map 节点协议</span><span>NOT YET IMPLEMENTED</span></div>
+          <pre><code>{
+  <span class="st">"id"</span>: <span class="st">"research_companies"</span>,
+  <span class="st">"type"</span>: <span class="st">"map"</span>,
+  <span class="st">"items_from"</span>: <span class="st">"results.discover_companies.companies"</span>,
+  <span class="st">"agent_type"</span>: <span class="st">"researcher"</span>,
+  <span class="st">"task_template"</span>: <span class="st">"研究公司：{{item}}"</span>,
+  <span class="st">"dependencies"</span>: [<span class="st">"discover_companies"</span>],
+  <span class="st">"max_concurrency"</span>: <span class="num">5</span>,
+  <span class="st">"failure_policy"</span>: <span class="st">"allow_partial"</span>
+}</code></pre>
+        </div>
+        <div class="plain-box"><strong>生产级还要回答：</strong>某个 item 失败是否重试？允许多少失败？结果顺序如何保持？怎样做超时、取消、限流、断点恢复和来源去重？</div>
+      </section>
+
+      <section class="section" id="production-choice">
+        <div class="section-kicker">08 · Production Choice</div>
+        <h2>“稳定骨架 + 受控展开 + 局部重规划”不等于只有 Map</h2>
+        <p class="section-lead">Map 只是中间那段“受控展开”的常用实现。真实项目通常把三种能力组合起来：骨架决定必须经过哪些质量阶段，Map 处理数量未知但结构相同的批量任务，局部重规划处理少数无法套用统一模板的异常对象。</p>
+        <div class="flow" aria-label="真实项目推荐执行结构">
+          <div class="flow-row"><div class="flow-node"><b>稳定骨架</b><small>发现 → 校验 → 研究 → 汇总 → 审核</small></div></div>
+          <div class="flow-row"><div class="flow-node merge"><b>discover + validate</b><small>去重、过滤、排序、限制 Top-N</small></div></div>
+          <div class="flow-row">
+            <div class="flow-node parallel"><b>Map: company A</b><small>统一研究模板</small></div>
+            <div class="flow-node parallel"><b>Map: company B</b><small>统一研究模板</small></div>
+            <div class="flow-node parallel"><b>Map: company C</b><small>发现特殊情况</small></div>
+          </div>
+          <div class="flow-row"><div class="flow-node"><b>局部重规划 C</b><small>只替换异常分支，不推翻整张 SOP</small></div></div>
+          <div class="flow-row"><div class="flow-node merge"><b>synthesis + review</b><small>汇总结构化结果，检查证据与缺失项</small></div></div>
+        </div>
+
+        <div class="compare-wrap">
+          <table class="compare-table">
+            <thead><tr><th>能力</th><th>解决的问题</th><th>什么时候使用</th><th>是否等于 Map</th></tr></thead>
+            <tbody>
+              <tr><td>稳定骨架</td><td>整体必须经过哪些阶段和质量门</td><td>流程稳定、需要审计和恢复</td><td>不是</td></tr>
+              <tr><td>Map</td><td>对未知数量对象执行相同任务</td><td>逐家公司、逐篇论文、逐个文件处理</td><td>就是 Map 本身</td></tr>
+              <tr><td>条件分支</td><td>有限类型采用不同固定流程</td><td>上市公司查财报，创业公司查融资</td><td>不是</td></tr>
+              <tr><td>局部重规划</td><td>执行结果改变某个分支的后续结构</td><td>发现收购、实体冲突或证据不足</td><td>不是</td></tr>
+              <tr><td>全程动态规划</td><td>每一步之后才决定下一步</td><td>高度开放、路径完全未知的探索</td><td>不是，且不应默认使用</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="two-col">
+          <article class="concept">
+            <div class="icon">🧭</div>
+            <h3>默认选型</h3>
+            <p>大多数业务任务先使用“固定骨架 + Map + 重试/失败策略”。等真实需求证明统一模板处理不了少数对象，再加入局部重规划。</p>
+            <ul>
+              <li>已知固定分支：普通 DAG dependencies</li>
+              <li>未知数量、同构处理：Map</li>
+              <li>有限类型差异：条件路由</li>
+              <li>结构被结果改变：局部重规划</li>
+            </ul>
+          </article>
+          <article class="concept">
+            <div class="icon">🚧</div>
+            <h3>为什么不默认一步一规划</h3>
+            <p>全动态规划虽然灵活，但 LLM 调用、延迟和不可预测性都会增加，容易重复搜索、无限规划，也更难做测试、成本控制和断点恢复。</p>
+            <ul>
+              <li>只允许特定节点或 Critic 触发重规划</li>
+              <li>只替换尚未执行的局部子图</li>
+              <li>已完成且证据有效的节点继续复用</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><span>低空经济公司研究 · 推荐的一次性 SOP 骨架</span><span>MAP INSIDE SOP</span></div>
+          <pre><code>{
+  <span class="st">"nodes"</span>: [
+    {<span class="st">"id"</span>: <span class="st">"discover_companies"</span>, <span class="st">"type"</span>: <span class="st">"task"</span>},
+    {<span class="st">"id"</span>: <span class="st">"validate_companies"</span>, <span class="st">"dependencies"</span>: [<span class="st">"discover_companies"</span>]},
+    {
+      <span class="st">"id"</span>: <span class="st">"research_companies"</span>,
+      <span class="st">"type"</span>: <span class="st">"map"</span>,
+      <span class="st">"items_from"</span>: <span class="st">"results.validate_companies.items"</span>,
+      <span class="st">"max_items"</span>: <span class="num">10</span>,
+      <span class="st">"max_concurrency"</span>: <span class="num">3</span>,
+      <span class="st">"failure_policy"</span>: <span class="st">"minimum_success_rate"</span>,
+      <span class="st">"minimum_success_rate"</span>: <span class="num">0.8</span>
+    },
+    {<span class="st">"id"</span>: <span class="st">"synthesis"</span>, <span class="st">"dependencies"</span>: [<span class="st">"research_companies"</span>]},
+    {<span class="st">"id"</span>: <span class="st">"final_review"</span>, <span class="st">"dependencies"</span>: [<span class="st">"synthesis"</span>]}
+  ]
+}</code></pre>
+        </div>
+
+        <div class="three-col">
+          <article class="concept"><div class="icon">⏱</div><h3>资源边界</h3><p><code>max_items</code>、<code>max_concurrency</code>、单项超时和总预算必须由执行器强制执行，不能只写进 Prompt。</p></article>
+          <article class="concept"><div class="icon">↻</div><h3>失败边界</h3><p>按任务选择 <code>fail_fast</code>、<code>allow_partial</code> 或最低成功率，并把失败对象明确写进报告。</p></article>
+          <article class="concept"><div class="icon">▦</div><h3>数据边界</h3><p>Map 子任务返回统一 JSON：业务、融资、证据、置信度和缺失字段，避免汇合节点解析自由文本。</p></article>
+        </div>
+
+        <div class="warning"><strong>当前项目的并行风险：</strong><code>_execute_sop()</code> 会把同一个 <code>context</code> 字典传给并行节点，而审核流程又会写入 <code>review_feedback</code>、<code>content</code> 等字段。扩展 Map 前应为每个节点复制隔离的 <code>node_context</code>，并行任务只通过返回值汇合，不能直接修改共享上下文。</div>
+        <div class="insight"><strong>一句话判断：</strong>全部对象走相同流程，用 Map；对象只有几种已知类型，用条件分支；某个对象在执行中暴露了新的未知流程，才对该分支局部重规划。</div>
+      </section>
+
+      <section class="section" id="upgrade">
+        <div class="section-kicker">09 · Project Boundary</div>
+        <h2>项目基础设施已经能跑静态 DAG，缺的是规划协议与动态节点</h2>
+        <p class="section-lead">不要把所有能力都塞进 Researcher 的搜索循环。Planner 负责拆题与依赖，Scheduler 负责调度，Researcher 负责单个研究节点，Synthesizer 负责汇合，Critic 负责证据与完成度检查。</p>
+        <div class="source-map">
+          <div class="source-row"><code>CEO._generate_sop()</code><p>已经能让 LLM 临时生成 SOP，但 Prompt 尚未强制“原子子问题、证据产物、完成条件”。</p></div>
+          <div class="source-row"><code>CEO._execute_sop()</code><p>已经通过 dependencies 找 ready 节点，并用 asyncio.gather 执行同一批节点，支持规划时已知的中途并行。</p></div>
+          <div class="source-row"><code>CEO._render_template()</code><p>已经支持 <code>{{results.node_id}}</code> 引用上游结果，但目前主要抽取 summary 或截断后的字符串。</p></div>
+          <div class="source-row"><code>Researcher._iterative_research()</code><p>已经支持单个研究节点内部的迭代查询改写，可以作为 DAG 中每个 Researcher 节点的执行器。</p></div>
+          <div class="source-row"><code>待新增 MapNode</code><p>用于根据上游列表运行时展开并行任务，并配置最大并发、失败策略、重试和结果汇合。</p></div>
+        </div>
+        <div class="compare-wrap">
+          <table class="compare-table">
+            <thead><tr><th>能力层级</th><th>结构</th><th>当前状态</th><th>下一步</th></tr></thead>
+            <tbody>
+              <tr><td>查询改写</td><td>Q₁ → Q₂ → Q₃</td><td>已实现</td><td>记录每轮缺失信息与事实</td></tr>
+              <tr><td>静态 DAG</td><td>A → {B,C} → D</td><td>调度器已支持</td><td>强化 Planner 拆题协议</td></tr>
+              <tr><td>中途并行</td><td>共享前置依赖后扇出</td><td>已支持</td><td>补并发限制和隔离上下文</td></tr>
+              <tr><td>动态分支</td><td>A → Map(items) → D</td><td>未实现</td><td>增加 MapNode 或动态图扩展</td></tr>
+              <tr><td>证据级多跳</td><td>事实状态 + 引用 + 完成条件</td><td>未完整实现</td><td>引入结构化 Fact/Evidence 输出</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="insight"><strong>推荐架构：</strong>固定 SOP 骨架约束质量门，Planner 在骨架内部生成临时子问题 DAG；已知分支用 dependencies，自发现列表用 Map；所有汇合节点只消费结构化结果和可追溯证据。</div>
+      </section>
+
+      <section class="section" id="quiz">
+        <div class="section-kicker">10 · Checkpoint</div>
+        <h2>用六个问题检验是否真正理解</h2>
+        <p class="section-lead">答完后，你应该能在面试中清楚解释：为什么复杂多跳不是简单循环，以及 DAG 怎样自然表达中途并行。</p>
+        <div class="quiz-grid">
+          <article class="quiz-card" data-quiz>
+            <h3>1. 同一句 query 搜索三次，算多跳吗？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" type="button" data-correct="false">算，只要次数大于一次</button>
+              <button class="quiz-option" type="button" data-correct="true">不算，下一跳必须依赖上一跳信息</button>
+            </div>
+            <div class="quiz-explain">多跳的本质是信息依赖，不是调用次数。</div>
+          </article>
+          <article class="quiz-card" data-quiz>
+            <h3>2. 一个 SOP 中三个节点都只依赖 scope，会怎样？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" type="button" data-correct="true">scope 完成后，三个节点进入同一 ready 批次</button>
+              <button class="quiz-option" type="button" data-correct="false">必须按 SOP 数组顺序逐个执行</button>
+            </div>
+            <div class="quiz-explain">项目调度器根据 dependencies 推导 ready，而不是只看数组顺序。</div>
+          </article>
+          <article class="quiz-card" data-quiz>
+            <h3>3. 什么时候必须引入 Map 节点？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" type="button" data-correct="false">只要存在两个并行节点</button>
+              <button class="quiz-option" type="button" data-correct="true">分支数量要等上游返回列表后才知道</button>
+            </div>
+            <div class="quiz-explain">规划时已知的并行分支，普通 dependencies 已经足够。</div>
+          </article>
+          <article class="quiz-card" data-quiz>
+            <h3>4. 当前项目的 Memory Hybrid Search 是多跳吗？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" type="button" data-correct="false">是，向量和关键词就是两跳</button>
+              <button class="quiz-option" type="button" data-correct="true">不是，它是同一查询的多路召回与融合</button>
+            </div>
+            <div class="quiz-explain">Hybrid Retrieval 描述检索通道组合；Multi-hop 描述前后事实依赖。</div>
+          </article>
+          <article class="quiz-card" data-quiz>
+            <h3>5. “稳定骨架 + 受控展开 + 局部重规划”等于 Map 吗？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" type="button" data-correct="false">等于，三部分都是 Map 的内部能力</button>
+              <button class="quiz-option" type="button" data-correct="true">不等于，Map 只是受控展开的一种实现</button>
+            </div>
+            <div class="quiz-explain">骨架负责阶段和质量门，Map 负责同构批量任务，局部重规划负责特殊分支的结构变化。</div>
+          </article>
+          <article class="quiz-card" data-quiz>
+            <h3>6. 多跳系统中的 DAG 会直接执行检索吗？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" type="button" data-correct="false">会，DAG 本身负责读取网页和向量搜索</button>
+              <button class="quiz-option" type="button" data-correct="true">不会，DAG 表达依赖，调度器调用检索工具执行任务</button>
+            </div>
+            <div class="quiz-explain">LLM 负责理解和规划，DAG 表达依赖，Scheduler 调度，Retriever 或 Search 才执行真正的信息查询。</div>
+          </article>
+        </div>
+        <div class="plain-box"><strong>面试一句话：</strong>“我会把复杂查询规划成一个临时 DAG：有依赖的节点串行，无依赖且同时 ready 的节点并行，汇合节点等待所有上游；如果分支数量运行时才确定，则用 Map 节点或动态扩图。”</div>
+      </section>
+    </main>
+  </div>
+
+  <footer>复杂多跳查询与动态 SOP · 基于 BIG-GROUP Week 4 项目真实代码路径整理</footer>
+
+  <script>
+    const themeButton = document.getElementById("themeButton");
+    const savedTheme = localStorage.getItem("multi-hop-sop-theme");
+    if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+    themeButton.addEventListener("click", () => {
+      const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem("multi-hop-sop-theme", next);
+    });
+
+    const progressBar = document.getElementById("progressBar");
+    const updateProgress = () => {
+      const total = document.documentElement.scrollHeight - innerHeight;
+      progressBar.style.width = `${total > 0 ? scrollY / total * 100 : 0}%`;
+    };
+    addEventListener("scroll", updateProgress, { passive: true });
+    updateProgress();
+
+    const sections = [...document.querySelectorAll("main .section")];
+    const tocLinks = [...document.querySelectorAll(".toc a")];
+    const sectionObserver = new IntersectionObserver(entries => {
+      const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      tocLinks.forEach(link => link.classList.toggle("active", link.getAttribute("href") === `#${visible.target.id}`));
+    }, { rootMargin: "-18% 0px -68% 0px", threshold: [0, .2, .6] });
+    sections.forEach(section => sectionObserver.observe(section));
+
+    const dagBatches = [
+      { ready: ["scope"], detail: "scope 没有依赖，所以首先进入 ready。" },
+      { ready: ["market", "competitors", "policy"], detail: "三个节点的唯一依赖 scope 已完成，因此同批并行。" },
+      { ready: ["synthesis"], detail: "market、competitors、policy 全部完成，汇合节点现在就绪。" },
+      { ready: ["review"], detail: "synthesis 已完成，最终审核节点就绪。" }
+    ];
+    let dagBatchIndex = 0;
+    const nodeElements = [...document.querySelectorAll(".dag-node")];
+    const stageLabel = document.getElementById("stageLabel");
+    const batchName = document.getElementById("batchName");
+    const batchDetail = document.getElementById("batchDetail");
+    const nextBatch = document.getElementById("nextBatch");
+
+    function renderDag() {
+      const completed = dagBatches.slice(0, dagBatchIndex).flatMap(batch => batch.ready);
+      const current = dagBatches[dagBatchIndex];
+      nodeElements.forEach(node => {
+        const id = node.dataset.node;
+        node.classList.remove("done", "ready", "pending");
+        if (completed.includes(id)) node.classList.add("done");
+        else if (current && current.ready.includes(id)) node.classList.add("ready");
+        else node.classList.add("pending");
+      });
+      if (current) {
+        stageLabel.textContent = `准备执行 · Batch ${dagBatchIndex + 1}`;
+        batchName.textContent = `Ready × ${current.ready.length}`;
+        batchDetail.textContent = current.detail;
+        nextBatch.disabled = false;
+        nextBatch.textContent = "执行下一批";
+      } else {
+        stageLabel.textContent = "执行完成 · 所有节点已退出 pending";
+        batchName.textContent = "Completed";
+        batchDetail.textContent = "final_review 完成，SOP 可以返回 final_output_node 的结果。";
+        nextBatch.disabled = true;
+        nextBatch.textContent = "已完成";
+      }
+    }
+    nextBatch.addEventListener("click", () => {
+      if (dagBatchIndex < dagBatches.length) dagBatchIndex += 1;
+      renderDag();
+    });
+    document.getElementById("resetDag").addEventListener("click", () => {
+      dagBatchIndex = 0;
+      renderDag();
+    });
+    renderDag();
+
+    const answered = new Set();
+    const quizzes = [...document.querySelectorAll("[data-quiz]")];
+    quizzes.forEach((quiz, quizIndex) => {
+      const options = [...quiz.querySelectorAll(".quiz-option")];
+      const explain = quiz.querySelector(".quiz-explain");
+      options.forEach(option => option.addEventListener("click", () => {
+        options.forEach(item => item.classList.remove("correct", "wrong"));
+        option.classList.add(option.dataset.correct === "true" ? "correct" : "wrong");
+        if (option.dataset.correct === "true") answered.add(quizIndex);
+        explain.style.display = "block";
+        document.getElementById("tocStatus").textContent = `已完成自测 ${answered.size} / ${quizzes.length}`;
+      }));
+    });
+  </script>
+</body>
+</html>

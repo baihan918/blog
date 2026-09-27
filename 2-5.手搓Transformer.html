@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="把手搓transformer.ipynb 整理成通俗易懂的中文图解页面：BPE、Embedding、位置编码、多头注意力、FFN、残差与输出概率。">
+  <meta name="theme-color" content="#f5f2e9">
+  <link rel="icon" href="data:,">
+  <title>手搓 Transformer · 从代码到数据流</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f2e9;
+      --paper: #fffdf8;
+      --paper-strong: #ffffff;
+      --ink: #17202f;
+      --muted: #687182;
+      --line: #dedbd1;
+      --line-soft: #ebe8df;
+      --blue: #3776ab;
+      --blue-deep: #24557d;
+      --blue-soft: #e7f2fb;
+      --yellow: #efbd16;
+      --yellow-deep: #745c00;
+      --yellow-soft: #fff5c7;
+      --mint: #2d8a73;
+      --mint-soft: #e7f5ef;
+      --purple: #8260b3;
+      --purple-soft: #f1ebf8;
+      --coral: #e56b4e;
+      --coral-soft: #fff0eb;
+      --code: #18202c;
+      --code-ink: #e8eef7;
+      --shadow: 0 22px 60px rgba(51, 46, 34, .10);
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page: #121720;
+      --paper: #19212c;
+      --paper-strong: #1f2936;
+      --ink: #edf2f7;
+      --muted: #a8b2c1;
+      --line: #344151;
+      --line-soft: #2b3645;
+      --blue-soft: #172d42;
+      --blue-deep: #78b9ec;
+      --yellow-soft: #3c3517;
+      --yellow-deep: #f6d654;
+      --mint-soft: #17352f;
+      --purple-soft: #2e2540;
+      --coral-soft: #3d2521;
+      --code: #0d1118;
+      --code-ink: #e9eef7;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 86px; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 7% 2%, color-mix(in srgb, var(--blue) 14%, transparent), transparent 29rem),
+        radial-gradient(circle at 94% 13%, color-mix(in srgb, var(--yellow) 18%, transparent), transparent 27rem),
+        var(--page);
+      font-family: var(--sans);
+      line-height: 1.78;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::selection { background: color-mix(in srgb, var(--blue) 23%, transparent); }
+    a { color: inherit; }
+    button { color: inherit; font: inherit; }
+    code { font-family: var(--mono); }
+    .skip-link { position: fixed; top: 8px; left: 8px; z-index: 200; transform: translateY(-150%); padding: 9px 13px; color: var(--paper); background: var(--ink); border-radius: 10px; }
+    .skip-link:focus { transform: none; }
+    .progress-track { position: fixed; inset: 0 0 auto; z-index: 110; height: 4px; }
+    .progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple), var(--yellow)); }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 68px;
+      padding: 0 clamp(15px, 4vw, 58px);
+      border-bottom: 1px solid rgba(255, 255, 255, .58);
+      background: linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(245, 242, 233, .56));
+      box-shadow: inset 0 -1px 0 rgba(23, 32, 47, .05), 0 10px 32px rgba(31, 38, 50, .07);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      backdrop-filter: saturate(180%) blur(20px);
+    }
+    [data-theme="dark"] .topbar {
+      border-bottom-color: rgba(255, 255, 255, .12);
+      background: linear-gradient(180deg, rgba(31, 41, 54, .72), rgba(18, 23, 32, .58));
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .035), 0 12px 34px rgba(0, 0, 0, .22);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 800; letter-spacing: -.02em; }
+    .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px; color: #fff; background: linear-gradient(135deg, var(--blue), var(--purple)); box-shadow: 0 8px 20px rgba(55, 118, 171, .2); font: 800 11px/1 var(--mono); }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-button, .source-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper);
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 760;
+    }
+    .icon-button:hover, .source-link:hover { border-color: var(--blue); transform: translateY(-1px); }
+    .source-link.primary { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .hero { position: relative; max-width: 1280px; margin: 0 auto; padding: clamp(60px, 8vw, 108px) clamp(20px, 5vw, 70px) 52px; overflow: hidden; }
+    .hero::after { content: "T"; position: absolute; right: 5%; top: 6%; color: color-mix(in srgb, var(--blue) 8%, transparent); font: 900 clamp(150px, 27vw, 330px)/1 Georgia, serif; transform: rotate(-8deg); pointer-events: none; }
+    .eyebrow { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; color: var(--blue-deep); font: 800 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 28px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--yellow)); }
+    h1 { position: relative; z-index: 1; max-width: 940px; margin: 18px 0 0; font-size: clamp(43px, 7vw, 82px); line-height: 1.04; letter-spacing: -.055em; }
+    h1 span { color: var(--blue); }
+    .hero-copy { position: relative; z-index: 1; max-width: 850px; margin: 25px 0 0; color: var(--muted); font-size: clamp(16px, 2vw, 20px); }
+    .hero-copy strong { color: var(--ink); }
+    .hero-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .hero-facts { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 165px)); gap: 12px; margin-top: 34px; }
+    .fact { padding: 15px 17px; border: 1px solid var(--line); border-radius: 15px; background: color-mix(in srgb, var(--paper) 92%, transparent); }
+    .fact b { display: block; color: var(--blue); font: 900 24px/1 var(--mono); }
+    .fact span { display: block; margin-top: 7px; color: var(--muted); font-size: 12px; }
+    .truth-strip { max-width: 1170px; margin: 0 auto 72px; padding: 0 22px; }
+    .truth-grid { display: grid; grid-template-columns: repeat(3, 1fr); overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); box-shadow: var(--shadow); }
+    .truth { padding: 20px 22px; border-right: 1px solid var(--line-soft); }
+    .truth:last-child { border-right: 0; }
+    .truth b { display: block; margin-bottom: 6px; }
+    .truth span { color: var(--muted); font-size: 13px; }
+    .truth:nth-child(1) b { color: var(--coral); }
+    .truth:nth-child(2) b { color: var(--purple); }
+    .truth:nth-child(3) b { color: var(--mint); }
+    .layout { display: grid; grid-template-columns: 245px minmax(0, 920px); gap: clamp(28px, 4vw, 54px); align-items: start; max-width: 1240px; margin: 0 auto; padding: 0 22px 110px; }
+    .toc { position: sticky; top: 88px; max-height: calc(100vh - 110px); padding: 17px; overflow-y: auto; border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--paper) 93%, transparent); box-shadow: 0 12px 32px rgba(45, 40, 28, .06); }
+    .toc-title { margin: 0 0 10px; color: var(--muted); font: 800 11px/1 var(--mono); letter-spacing: .1em; }
+    .toc a { display: block; margin: 2px 0; padding: 7px 9px; border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 12px; line-height: 1.4; }
+    .toc a:hover, .toc a.active { color: var(--blue-deep); background: var(--blue-soft); }
+    .content { min-width: 0; }
+    .section { margin-top: 82px; }
+    .section:first-child { margin-top: 0; }
+    .section-kicker { color: var(--blue-deep); font: 800 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+    h2 { margin: 10px 0 10px; font-size: clamp(29px, 4vw, 43px); line-height: 1.18; letter-spacing: -.04em; }
+    h3 { margin: 0; font-size: 20px; line-height: 1.35; letter-spacing: -.02em; }
+    h4 { margin: 0 0 8px; font-size: 15px; }
+    p { margin: 9px 0; }
+    .section-lead { max-width: 780px; margin: 0 0 26px; color: var(--muted); }
+    .card, .figure, .code-card, .concept, .shape-lab { border: 1px solid var(--line); border-radius: 19px; background: var(--paper); box-shadow: 0 12px 30px rgba(45, 40, 28, .055); }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
+    .summary-card { padding: 19px; }
+    .summary-card b { display: block; color: var(--blue); font: 900 24px/1 var(--mono); }
+    .summary-card:nth-child(2) b { color: var(--purple); }
+    .summary-card:nth-child(3) b { color: var(--mint); }
+    .summary-card span { display: block; margin-top: 9px; color: var(--muted); font-size: 12px; }
+    .shape-lab { margin-top: 16px; padding: 22px; }
+    .shape-buttons { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
+    .shape-button { padding: 8px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); cursor: pointer; font-size: 12px; font-weight: 800; }
+    .shape-button.active { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .shape-flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: center; }
+    .shape-stage { min-width: 0; padding: 14px 8px; border-radius: 12px; color: var(--muted); text-align: center; font-size: 12px; }
+    .shape-stage.active { color: var(--ink); background: var(--blue-soft); }
+    .shape-stage b, .shape-stage code { display: block; }
+    .shape-stage code { margin-top: 4px; color: var(--blue-deep); white-space: nowrap; }
+    .shape-detail { margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--line-soft); color: var(--muted); text-align: center; font-size: 13px; }
+    .shape-detail code { margin-left: 6px; color: var(--blue-deep); }
+    .plain-box, .insight, .warning { margin-top: 17px; padding: 18px 20px; border-radius: 16px; }
+    .plain-box { border: 1px solid color-mix(in srgb, var(--yellow) 44%, var(--line)); background: linear-gradient(105deg, var(--yellow-soft), var(--paper)); }
+    .plain-box strong { color: var(--yellow-deep); }
+    .insight { border: 1px solid color-mix(in srgb, var(--mint) 34%, var(--line)); background: var(--mint-soft); }
+    .insight strong { color: var(--mint); }
+    .warning { border: 1px solid color-mix(in srgb, var(--coral) 34%, var(--line)); background: var(--coral-soft); }
+    .warning strong { color: var(--coral); }
+    .two-col { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; align-items: start; }
+    .two-col > *, .review-grid > *, .encoder-stack > * { min-width: 0; }
+    .figure { margin: 0; overflow: hidden; }
+    .figure img { display: block; width: 100%; height: auto; background: var(--paper-strong); }
+    .figure.pos img { height: 260px; object-fit: cover; object-position: center top; }
+    .figure figcaption { padding: 11px 15px; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 11px; }
+    .concept { padding: 20px; }
+    .concept p { color: var(--muted); font-size: 13px; }
+    .formula { margin: 14px 0; padding: 14px 16px; overflow-x: auto; border-radius: 12px; color: var(--blue-deep); background: var(--blue-soft); font: 750 13px/1.6 var(--mono); white-space: nowrap; }
+    .code-card { margin-top: 16px; overflow: hidden; }
+    .code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #303a48; color: #bfc9d8; background: var(--code); font: 700 11px/1 var(--mono); }
+    pre { margin: 0; padding: 18px; overflow-x: auto; color: var(--code-ink); background: var(--code); font: 12px/1.7 var(--mono); tab-size: 4; }
+    .kw { color: #d7a8ff; } .fn { color: #79c0ff; } .st { color: #a5d6a7; } .cm { color: #8b98a9; } .num { color: #f2cc60; }
+    details.code-details { margin-top: 13px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper); }
+    details.code-details summary { padding: 12px 15px; cursor: pointer; font-size: 13px; font-weight: 800; }
+    details.code-details .code-card { margin: 0; border: 0; border-radius: 0 0 12px 12px; box-shadow: none; }
+    .token-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 17px 0; }
+    .token { display: grid; place-items: center; min-width: 48px; min-height: 52px; padding: 7px; border: 1px solid color-mix(in srgb, var(--blue) 26%, var(--line)); border-radius: 12px; background: var(--blue-soft); }
+    .token b { color: var(--blue-deep); font: 850 18px/1 var(--mono); }
+    .token span { margin-top: 5px; color: var(--muted); font: 700 9px/1 var(--mono); }
+    .attention-shapes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; margin: 18px 0; }
+    .attn-step { position: relative; min-width: 0; padding: 14px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); text-align: center; }
+    .attn-step:not(:last-child)::after { content: "→"; position: absolute; right: -10px; top: 50%; z-index: 2; color: var(--muted); transform: translateY(-50%); }
+    .attn-step b, .attn-step code { display: block; }
+    .attn-step b { font-size: 11px; }
+    .attn-step code { margin-top: 5px; color: var(--blue-deep); font-size: 9px; white-space: nowrap; }
+    .attention-demo { margin-top: 18px; padding: 19px; border: 1px solid var(--line); border-radius: 18px; background: var(--paper); }
+    .demo-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+    .control-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--muted); font-size: 11px; }
+    .demo-button { min-width: 34px; height: 34px; padding: 0 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); cursor: pointer; font: 750 11px/1 var(--mono); }
+    .demo-button.active { color: #fff; border-color: var(--purple); background: var(--purple); }
+    .attention-matrix { display: grid; grid-template-columns: repeat(9, minmax(25px, 1fr)); gap: 4px; margin-top: 15px; }
+    .attention-cell { aspect-ratio: 1; display: grid; place-items: center; border-radius: 6px; color: var(--muted); background: color-mix(in srgb, var(--blue) 8%, var(--paper)); font: 700 9px/1 var(--mono); }
+    .attention-cell.query { color: var(--ink); background: color-mix(in srgb, var(--purple) 27%, var(--paper)); }
+    .attention-cell.diagonal { box-shadow: inset 0 0 0 2px var(--yellow); }
+    .demo-reading { margin-top: 12px; color: var(--muted); font-size: 12px; }
+    .encoder-stack { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 10px; align-items: center; margin-top: 17px; }
+    .encoder-block { padding: 17px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); text-align: center; }
+    .encoder-block b, .encoder-block code { display: block; }
+    .encoder-block code { margin-top: 6px; color: var(--blue-deep); font-size: 11px; }
+    .arrow { color: var(--muted); font-size: 23px; font-weight: 900; text-align: center; }
+    .prob-bars { display: grid; gap: 11px; margin-top: 18px; }
+    .prob-row { display: grid; grid-template-columns: 58px 1fr 62px; gap: 10px; align-items: center; font-size: 12px; }
+    .prob-track { height: 12px; overflow: hidden; border-radius: 999px; background: var(--line-soft); }
+    .prob-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--purple)); }
+    .prob-row strong { color: var(--blue-deep); font-family: var(--mono); text-align: right; }
+    .review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .review-card { padding: 20px; }
+    .review-card ul { margin: 13px 0 0; padding-left: 20px; color: var(--muted); font-size: 13px; }
+    .review-card li + li { margin-top: 8px; }
+    .review-card.good h3 { color: var(--mint); }
+    .review-card.limit h3 { color: var(--coral); }
+    .glossary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 18px; margin: 18px 0 0; }
+    .glossary div { padding: 13px 0; border-bottom: 1px solid var(--line-soft); }
+    .glossary dt { font-weight: 850; }
+    .glossary dd { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    footer { max-width: 1240px; margin: 0 auto; padding: 0 22px 48px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .toc { display: none; }
+      .attention-shapes { grid-template-columns: repeat(3, 1fr); }
+      .attn-step:nth-child(3)::after { display: none; }
+    }
+    @media (max-width: 720px) {
+      .topbar { min-height: 60px; }
+      .brand span:last-child, .source-link.top-source { display: none; }
+      .hero-facts, .truth-grid, .summary-grid, .two-col, .review-grid, .glossary { grid-template-columns: 1fr; }
+      .truth { border-right: 0; border-bottom: 1px solid var(--line-soft); }
+      .truth:last-child { border-bottom: 0; }
+      .shape-flow { grid-template-columns: 1fr; }
+      .shape-stage { display: grid; grid-template-columns: 1fr 1fr; text-align: left; }
+      .shape-stage code { margin: 0; text-align: right; }
+      .attention-shapes { grid-template-columns: repeat(2, 1fr); }
+      .attn-step:nth-child(3)::after { display: block; }
+      .attn-step:nth-child(2n)::after { display: none; }
+      .encoder-stack { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); }
+      .figure.pos img { height: 180px; }
+      .layout { padding-inline: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">TF</span><span>手搓 Transformer · Notebook 图解</span></div>
+    <div class="top-actions">
+      <a class="source-link top-source" href="../第1课-Transformer/手搓transformer.ipynb">源 Notebook</a>
+      <button class="icon-button" id="themeButton" type="button" aria-label="切换深浅色">◐</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">FROM NOTEBOOK TO MENTAL MODEL</div>
+    <h1>手搓 Transformer：<span>代码跑通了，脑子也要跑通</span></h1>
+    <p class="hero-copy">这份 Notebook 用不到 200 行 PyTorch，串起了分词、Embedding、位置编码、多头注意力、FFN、残差连接、LayerNorm 和输出概率。下面不按“代码从上往下”讲，而是按<strong>一条数据怎样穿过模型</strong>来讲。</p>
+    <div class="hero-actions">
+      <a class="source-link primary" href="#overview">先看全流程</a>
+      <a class="source-link" href="../第1课-Transformer/手搓transformer.ipynb">下载 .ipynb</a>
+    </div>
+    <div class="hero-facts">
+      <div class="fact"><b>9</b><span>输入字符 token</span></div>
+      <div class="fact"><b>64</b><span>d_model</span></div>
+      <div class="fact"><b>4 × 16</b><span>heads × d_k</span></div>
+      <div class="fact"><b>2</b><span>Encoder Layers</span></div>
+    </div>
+  </section>
+
+  <section class="truth-strip" aria-label="阅读前的三个结论">
+    <div class="truth-grid">
+      <div class="truth"><b>它是 Encoder-only</b><span>没有 Decoder、交叉注意力和自回归生成循环，结构更接近一个迷你 BERT 编码器。</span></div>
+      <div class="truth"><b>它只做前向传播</b><span>没有训练数据、损失函数和反向传播，所以输出概率只是随机初始化模型的演示值。</span></div>
+      <div class="truth"><b>BPE 是教学简化版</b><span>当前 encode 实际按字符查表，没有真正应用训练阶段学到的 merge 规则。</span></div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <nav class="toc" aria-label="页面目录">
+      <div class="toc-title">CONTENTS</div>
+      <a href="#overview">00 · 一眼看全流程</a>
+      <a href="#tokenizer">01 · 简化 BPE 分词</a>
+      <a href="#embedding">02 · Embedding</a>
+      <a href="#position">03 · 位置编码</a>
+      <a href="#attention">04 · 多头注意力</a>
+      <a href="#encoder">05 · FFN 与 Encoder</a>
+      <a href="#output">06 · 输出概率</a>
+      <a href="#review">07 · 代码边界与改进</a>
+    </nav>
+
+    <main class="content" id="main">
+      <section class="section" id="overview">
+        <div class="section-kicker">00 · OVERVIEW</div>
+        <h2>先记住一条主线：文字不断换“表示方式”</h2>
+        <p class="section-lead">Transformer 不是把一句话丢进一个黑盒。它先把文字变成编号，再变成向量，让 token 互相交换信息，最后把每个位置映射成词表概率。</p>
+        <div class="summary-grid">
+          <article class="card summary-card"><b>[1, 9]</b><span>输入：1 个 batch，9 个 token ID</span></article>
+          <article class="card summary-card"><b>[1, 9, 64]</b><span>主干：每个 token 用 64 个数字表示</span></article>
+          <article class="card summary-card"><b>[1, 9, 20]</b><span>输出：每个位置对应 20 个词表分数</span></article>
+        </div>
+        <div class="shape-lab" aria-label="Transformer 形状流转交互图">
+          <div class="shape-buttons" id="shapeButtons"></div>
+          <div class="shape-flow" id="shapeFlow"></div>
+          <div class="shape-detail" id="shapeDetail" aria-live="polite"></div>
+        </div>
+        <div class="plain-box"><strong>通俗类比：</strong>Token ID 像学生证号；Embedding 是学生的 64 项档案；Attention 是一场小组讨论；FFN 是每个人独立消化；最后的 Linear + Softmax 是根据讨论结果做 20 选 1。</div>
+      </section>
+
+      <section class="section" id="tokenizer">
+        <div class="section-kicker">01 · TOKENIZER</div>
+        <h2>第一步：把“我爱学习大语言模型”变成数字</h2>
+        <p class="section-lead">神经网络不认识汉字，只认识数字。Notebook 先用语料构造词表，再把每个字符映射为 token ID。</p>
+        <div class="token-row" aria-label="分词结果">
+          <div class="token"><b>我</b><span>ID 15</span></div><div class="token"><b>爱</b><span>ID 17</span></div><div class="token"><b>学</b><span>ID 14</span></div><div class="token"><b>习</b><span>ID 11</span></div><div class="token"><b>大</b><span>ID 13</span></div><div class="token"><b>语</b><span>ID 19</span></div><div class="token"><b>言</b><span>ID 18</span></div><div class="token"><b>模</b><span>ID 16</span></div><div class="token"><b>型</b><span>ID 12</span></div>
+        </div>
+        <div class="two-col">
+          <article class="concept">
+            <h3>代码做了什么？</h3>
+            <p><code>token_to_id</code> 是“字符 → 编号”的字典，<code>id_to_token</code> 则负责反查。输入最终变成形状为 <code>[1, 9]</code> 的整数张量。</p>
+            <div class="formula">文字 → token → token ID → torch.tensor</div>
+            <div class="warning"><strong>别被类名骗了：</strong>这里虽然叫 <code>SimpleBPE</code>，但 <code>encode()</code> 没有使用训练出的 merge 规则，所以当前示例更接近“字符级 tokenizer”。</div>
+          </article>
+          <div class="code-card">
+            <div class="code-head"><span>SimpleBPE.encode</span><span>[1, 9]</span></div>
+            <pre><code><span class="kw">def</span> <span class="fn">encode</span>(self, text):
+    tokens = [<span class="st">'▁'</span>]
+    <span class="kw">for</span> char <span class="kw">in</span> text:
+        <span class="kw">if</span> char <span class="kw">in</span> self.token_to_id:
+            tokens.append(char)
+        <span class="kw">else</span>:
+            tokens.extend([<span class="st">'&lt;unk&gt;'</span>, char])
+    <span class="kw">return</span> [self.token_to_id[t]
+            <span class="kw">for</span> t <span class="kw">in</span> tokens
+            <span class="kw">if</span> t <span class="kw">in</span> self.token_to_id]</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="embedding">
+        <div class="section-kicker">02 · EMBEDDING</div>
+        <h2>Embedding：把一个编号翻译成 64 个可学习的数字</h2>
+        <p class="section-lead">ID 只表示“是谁”，没有语义距离。Embedding 查表后，每个 token 变成 64 维向量；训练时，相似 token 的向量会逐渐靠近。</p>
+        <div class="two-col">
+          <figure class="figure">
+            <img src="assets/handmade-transformer/01-embedding.png" alt="单词被映射为高维向量的示意图">
+            <figcaption>Notebook 原图：一个 token 对应一根高维向量。图中 12,288 是示例维度；本 Notebook 使用 64 维。</figcaption>
+          </figure>
+          <article class="concept">
+            <h3>为什么还要乘 √64？</h3>
+            <p>位置编码的数值大约落在 -1 到 1。Embedding 乘上 <code>√d_model = 8</code> 后，词向量不会被位置信号淹没。</p>
+            <div class="formula">X = Embedding(token_ids) × √64</div>
+            <p>形状变化：<code>[1, 9] → [1, 9, 64]</code>。序列长度仍是 9，只是每个位置从 1 个编号变成 64 个特征。</p>
+          </article>
+        </div>
+        <details class="code-details"><summary>查看 Embedding 对应代码</summary><div class="code-card"><div class="code-head"><span>Embedding.forward</span><span>PyTorch</span></div><pre><code><span class="kw">class</span> <span class="fn">Embedding</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, vocab_size, d_model):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, d_model)
+        self.d_model = d_model
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        output = self.embedding(x) * math.sqrt(self.d_model)
+        <span class="kw">return</span> output</code></pre></div></details>
+      </section>
+
+      <section class="section" id="position">
+        <div class="section-kicker">03 · POSITIONAL ENCODING</div>
+        <h2>位置编码：让模型知道“谁在前、谁在后”</h2>
+        <p class="section-lead">Self-Attention 本身不带顺序感。“我爱你”和“你爱我”如果没有位置编码，只是一组相同 token。Notebook 用不同频率的 sin/cos 波给每个位置盖章。</p>
+        <figure class="figure pos">
+          <img src="assets/handmade-transformer/02-positional-encoding.png" alt="正弦和余弦位置编码随位置变化的曲线">
+          <figcaption>Notebook 原图（已聚焦核心曲线）：不同维度使用不同频率，所以每个位置都能得到独特组合。</figcaption>
+        </figure>
+        <div class="two-col" style="margin-top:16px">
+          <article class="concept">
+            <h3>偶数维用 sin，奇数维用 cos</h3>
+            <div class="formula">PE(pos, 2i) = sin(pos / 10000^(2i/d))</div>
+            <div class="formula">PE(pos, 2i+1) = cos(pos / 10000^(2i/d))</div>
+            <p>最终不是替换词向量，而是直接相加：<code>x + pe</code>。形状仍然是 <code>[1, 9, 64]</code>。</p>
+          </article>
+          <article class="concept">
+            <h3>为什么需要很多频率？</h3>
+            <p>高频维度擅长区分邻近位置，低频维度能表达更长距离。把它们组合起来，就像用“时针 + 分针 + 秒针”共同描述时间。</p>
+            <div class="insight"><strong>关键点：</strong><code>register_buffer('pe', pe)</code> 表示位置编码跟模型一起移动到 CPU/GPU，但它不是需要训练的参数。</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="attention">
+        <div class="section-kicker">04 · MULTI-HEAD ATTENTION</div>
+        <h2>多头注意力：让每个 token 去“问”其他 token</h2>
+        <p class="section-lead">Q 是“我想找什么”，K 是“我能提供什么标签”，V 是“真正要汇总的内容”。每个 Query 和所有 Key 做相似度计算，再用权重对 Value 加权求和。</p>
+        <div class="attention-shapes" aria-label="注意力张量形状变化">
+          <div class="attn-step"><b>输入</b><code>[1,9,64]</code></div>
+          <div class="attn-step"><b>Q/K/V 线性层</b><code>[1,9,64]</code></div>
+          <div class="attn-step"><b>拆成 4 头</b><code>[1,4,9,16]</code></div>
+          <div class="attn-step"><b>分数矩阵</b><code>[1,4,9,9]</code></div>
+          <div class="attn-step"><b>加权 V</b><code>[1,4,9,16]</code></div>
+          <div class="attn-step"><b>合并 + Wo</b><code>[1,9,64]</code></div>
+        </div>
+        <div class="two-col">
+          <figure class="figure">
+            <img src="assets/handmade-transformer/03-attention-overview.png" alt="多个注意力头分别处理输入再拼接的示意图">
+            <figcaption>Notebook 原图：多个 head 并行观察输入，输出拼接后再乘输出矩阵。</figcaption>
+          </figure>
+          <article class="concept">
+            <h3>这份代码如何拆头？</h3>
+            <p><code>d_model = 64</code>，<code>num_heads = 4</code>，所以每个 head 的维度 <code>d_k = 16</code>。</p>
+            <div class="formula">64 维 = 4 个 head × 每头 16 维</div>
+            <p><code>view(..., 4, 16)</code> 负责拆分，<code>transpose(1, 2)</code> 把 head 维提前，便于并行矩阵乘法。</p>
+          </article>
+        </div>
+        <div class="attention-demo">
+          <div class="demo-controls">
+            <div class="control-group"><span>选择 Head</span><div id="headControls"></div></div>
+            <div class="control-group"><span>选择 Query</span><div id="queryControls"></div></div>
+          </div>
+          <div class="attention-matrix" id="attentionMatrix" role="img" aria-label="9 个 Query 对 9 个 Key 的注意力结构示意"></div>
+          <div class="demo-reading" id="attentionDemoReading" aria-live="polite"></div>
+        </div>
+        <div class="warning"><strong>这个格子图只展示结构，不是假装还原真实权重。</strong>Notebook 只打印了 <code>attn_weights.mean()</code>，没有保存完整注意力矩阵。由于每个 Query 对 9 个 Key 的 Softmax 权重之和恒为 1，所以全局均值自然约等于 <code>1/9 = 0.1111</code>；这个均值不能说明模型关注了谁。</div>
+        <figure class="figure" style="margin-top:16px">
+          <img src="assets/handmade-transformer/05-multi-head-attention.png" alt="三个注意力头输出拼接，再经过线性层得到输出 token 的工作表示意图">
+          <figcaption>Notebook 原图：每个 head 得到 V′，Concat 后由 Wo 投影成输出 token。</figcaption>
+        </figure>
+        <details class="code-details"><summary>查看多头注意力核心代码</summary><div class="code-card"><div class="code-head"><span>MultiHeadAttention.forward</span><span>Q · Kᵀ → Softmax → V</span></div><pre><code><span class="cm"># [B,S,64] → [B,4,S,16]</span>
+Q = self.Wq(Q).view(batch_size, -<span class="num">1</span>, self.num_heads, self.d_k).transpose(<span class="num">1</span>, <span class="num">2</span>)
+K = self.Wk(K).view(batch_size, -<span class="num">1</span>, self.num_heads, self.d_k).transpose(<span class="num">1</span>, <span class="num">2</span>)
+V = self.Wv(V).view(batch_size, -<span class="num">1</span>, self.num_heads, self.d_k).transpose(<span class="num">1</span>, <span class="num">2</span>)
+
+scores = torch.matmul(Q, K.transpose(-<span class="num">2</span>, -<span class="num">1</span>)) / math.sqrt(self.d_k)
+attn_weights = torch.softmax(scores, dim=-<span class="num">1</span>)
+output = torch.matmul(attn_weights, V)
+
+<span class="cm"># [B,4,S,16] → [B,S,64]</span>
+output = output.transpose(<span class="num">1</span>, <span class="num">2</span>).contiguous().view(batch_size, -<span class="num">1</span>, self.d_model)
+output = self.Wo(output)</code></pre></div></details>
+      </section>
+
+      <section class="section" id="encoder">
+        <div class="section-kicker">05 · FFN + ENCODER LAYER</div>
+        <h2>Attention 负责“交流”，FFN 负责“各自消化”</h2>
+        <p class="section-lead">Attention 在 token 之间混合信息；FFN 则对每个 token 独立使用同一套两层网络。中间先扩到 128 维，再压回 64 维，给模型更大的非线性表达空间。</p>
+        <div class="two-col">
+          <figure class="figure">
+            <img src="assets/handmade-transformer/06-feed-forward-network.png" alt="多层全连接神经网络的矩阵计算和节点连接示意图">
+            <figcaption>Notebook 原图：线性层、激活函数和下一层线性层如何串联。实际 FFN 对序列中的每个 token 复用同一组权重。</figcaption>
+          </figure>
+          <article class="concept">
+            <h3>FFN 的形状变化</h3>
+            <div class="formula">64 → Linear → 128 → ReLU → Linear → 64</div>
+            <p>它不会改变 batch 和序列长度：<code>[1, 9, 64] → [1, 9, 64]</code>。</p>
+            <div class="insight"><strong>为什么先放大？</strong>可以把 128 维看作更多“思考槽位”。ReLU 筛选出有用响应，再压回主干维度。</div>
+          </article>
+        </div>
+        <div class="encoder-stack" aria-label="编码器层结构">
+          <div class="encoder-block"><b>Self-Attention</b><code>看其他 token</code></div><div class="arrow">→</div>
+          <div class="encoder-block"><b>残差 + LayerNorm</b><code>x + attn(x)</code></div><div class="arrow">→</div>
+          <div class="encoder-block"><b>FFN + 残差 + Norm</b><code>x + ffn(x)</code></div>
+        </div>
+        <div class="plain-box"><strong>残差连接像“保留原稿再修改”：</strong>如果新子层暂时没学好，原始信息仍能沿着捷径传下去；LayerNorm 则把每个 token 的特征尺度拉回稳定范围。</div>
+        <details class="code-details"><summary>查看 EncoderLayer 对应代码</summary><div class="code-card"><div class="code-head"><span>EncoderLayer.forward</span><span>Post-Norm</span></div><pre><code><span class="kw">def</span> <span class="fn">forward</span>(self, x):
+    attn_output = self.self_attn(x, x, x)
+    x = self.norm1(x + self.dropout(attn_output))
+
+    ffn_output = self.ffn(x)
+    x = self.norm2(x + self.dropout(ffn_output))
+    <span class="kw">return</span> x</code></pre></div></details>
+      </section>
+
+      <section class="section" id="output">
+        <div class="section-kicker">06 · LOGITS + SOFTMAX</div>
+        <h2>两层 Encoder 之后，把 64 维映射回 20 个词表分数</h2>
+        <p class="section-lead">模型循环执行两次 EncoderLayer，然后通过 <code>nn.Linear(64, vocab_size)</code> 得到 logits。Softmax 把任意实数变成总和为 1 的概率。</p>
+        <div class="two-col">
+          <article class="concept">
+            <h3>本次 Notebook 的输出</h3>
+            <div class="formula">[1, 9, 64] → Linear → [1, 9, 20]</div>
+            <p>最后一个 token 的 top 3 概率如下。Notebook 只打印了概率值，没有打印对应 token ID，因此这里按排名展示，不猜测词项。</p>
+            <div class="prob-bars" aria-label="最后一个 token 的前三概率">
+              <div class="prob-row"><span>Top 1</span><div class="prob-track"><div class="prob-fill" style="width:100%"></div></div><strong>12.52%</strong></div>
+              <div class="prob-row"><span>Top 2</span><div class="prob-track"><div class="prob-fill" style="width:85.18%"></div></div><strong>10.67%</strong></div>
+              <div class="prob-row"><span>Top 3</span><div class="prob-track"><div class="prob-fill" style="width:71.26%"></div></div><strong>8.92%</strong></div>
+            </div>
+          </article>
+          <article class="concept">
+            <h3>为什么不能解读成预测结果？</h3>
+            <p>模型参数刚随机初始化，没有执行训练；同时模型仍处于训练模式，Dropout 会随机丢弃一部分值。</p>
+            <div class="warning"><strong>所以：</strong>重新运行 Notebook，logits 和 top 3 概率可能变化。这些数字只能证明前向传播与形状正确，不能证明模型学会了中文。</div>
+          </article>
+        </div>
+        <details class="code-details"><summary>查看 Notebook 本次运行日志</summary><div class="code-card"><div class="code-head"><span>cell 12 output</span><span>关键形状</span></div><pre><code>Tokenized IDs: [15, 17, 14, 11, 13, 19, 18, 16, 12]
+Embedding:           torch.Size([1, 9, 64])
+位置编码:             torch.Size([1, 9, 64])
+第 1 层 Attention:    torch.Size([1, 9, 64])
+第 2 层 Attention:    torch.Size([1, 9, 64])
+Linear logits:       torch.Size([1, 9, 20])
+最终概率:              torch.Size([1, 9, 20])
+Top 3: [0.125233, 0.106680, 0.089245]</code></pre></div></details>
+      </section>
+
+      <section class="section" id="review">
+        <div class="section-kicker">07 · READ THE CODE HONESTLY</div>
+        <h2>这份手搓代码适合学什么，不适合证明什么</h2>
+        <p class="section-lead">教学代码最重要的价值是建立骨架感。把边界说清楚，反而更容易知道下一步该补哪块。</p>
+        <div class="review-grid">
+          <article class="card review-card good"><h3>它做得好的地方</h3><ul><li>模块边界清楚：Tokenizer、Embedding、Position、Attention、FFN、Encoder。</li><li>多头拆分与合并的张量变换正确，形状链条完整。</li><li>包含残差、Dropout 与 LayerNorm，不只是孤立 Attention。</li><li>打印关键形状，适合逐层调试和建立直觉。</li></ul></article>
+          <article class="card review-card limit"><h3>它有意简化的地方</h3><ul><li><code>SimpleBPE.encode</code> 未应用 merge 规则，不是标准 BPE。</li><li><code>mask</code> 参数没有真正用于 scores，无法做 padding/causal mask。</li><li>只有 Encoder，没有 Decoder 和交叉注意力。</li><li>没有训练循环、loss、optimizer、数据集和随机种子。</li><li>只打印注意力均值，无法解释具体 token 的关注关系。</li></ul></article>
+        </div>
+        <div class="plain-box"><strong>建议的下一步：</strong>先补 <code>random seed + model.eval()</code> 让结果可复现；再真正应用 mask 并可视化完整 attention matrix；最后增加训练目标，看 loss 是否下降。不要一上来就堆 Decoder。</div>
+        <dl class="glossary">
+          <div><dt>batch_size = 1</dt><dd>一次只处理一句话。</dd></div>
+          <div><dt>seq_len = 9</dt><dd>这句话被分成 9 个字符 token。</dd></div>
+          <div><dt>d_model = 64</dt><dd>模型主干中每个 token 的表示维度。</dd></div>
+          <div><dt>num_heads = 4</dt><dd>并行使用 4 套不同的关注视角。</dd></div>
+          <div><dt>d_k = 16</dt><dd>每个注意力头分到的特征维度。</dd></div>
+          <div><dt>d_ff = 128</dt><dd>FFN 中间层扩张后的维度。</dd></div>
+        </dl>
+      </section>
+    </main>
+  </div>
+
+  <footer>内容来自“手搓transformer.ipynb”及其内嵌图片 · 页面解释对原代码的结构和边界进行了校准。</footer>
+
+  <script>
+    const shapeSteps = [
+      { name: "Token IDs", shape: "[1, 9]", detail: "9 个字符 token 进入模型" },
+      { name: "Embedding + PE", shape: "[1, 9, 64]", detail: "每个 token 变成 64 维向量，并加入位置信号" },
+      { name: "4 头 Attention", shape: "[1, 4, 9, 16]", detail: "64 维拆成 4 个 head，每头 16 维" },
+      { name: "Encoder × 2", shape: "[1, 9, 64]", detail: "交流、残差、归一化和独立消化重复两次" },
+      { name: "20 词概率", shape: "[1, 9, 20]", detail: "每个位置对 20 个词表项输出一个概率" }
+    ];
+    let activeShape = 0;
+    function renderShapeFlow() {
+      document.getElementById("shapeButtons").innerHTML = shapeSteps.map((step, index) => `<button type="button" class="shape-button${index === activeShape ? " active" : ""}" data-shape="${index}" aria-pressed="${index === activeShape}">${index + 1}. ${step.name}</button>`).join("");
+      document.getElementById("shapeFlow").innerHTML = shapeSteps.map((step, index) => `<div class="shape-stage${index === activeShape ? " active" : ""}"><b>${step.name}</b><code>${step.shape}</code></div>`).join("");
+      const step = shapeSteps[activeShape];
+      document.getElementById("shapeDetail").innerHTML = `${step.detail}<code>${step.shape}</code>`;
+    }
+    document.getElementById("shapeButtons").addEventListener("click", event => {
+      const button = event.target.closest("[data-shape]");
+      if (!button) return;
+      activeShape = Number(button.dataset.shape);
+      renderShapeFlow();
+    });
+
+    const tokens = ["我", "爱", "学", "习", "大", "语", "言", "模", "型"];
+    let selectedHead = 0;
+    let selectedQuery = 0;
+    function renderAttentionDemo() {
+      document.getElementById("headControls").innerHTML = [0,1,2,3].map(head => `<button type="button" class="demo-button${head === selectedHead ? " active" : ""}" data-head="${head}" aria-pressed="${head === selectedHead}">${head}</button>`).join("");
+      document.getElementById("queryControls").innerHTML = tokens.map((token, index) => `<button type="button" class="demo-button${index === selectedQuery ? " active" : ""}" data-query="${index}" aria-pressed="${index === selectedQuery}">${token}</button>`).join("");
+      document.getElementById("attentionMatrix").innerHTML = Array.from({ length: 81 }, (_, index) => {
+        const row = Math.floor(index / 9);
+        const col = index % 9;
+        const classes = ["attention-cell", row === selectedQuery ? "query" : "", row === col ? "diagonal" : ""].filter(Boolean).join(" ");
+        return `<span class="${classes}" aria-label="Query ${tokens[row]} 对 Key ${tokens[col]}">${row === selectedQuery ? tokens[col] : "·"}</span>`;
+      }).join("");
+      document.getElementById("attentionDemoReading").textContent = `Head ${selectedHead} 中，Query「${tokens[selectedQuery]}」会分别对 9 个 Key（${tokens.join("、")}）打分；黄色框标出“看自己”的位置。`;
+    }
+    document.querySelector(".attention-demo").addEventListener("click", event => {
+      const head = event.target.closest("[data-head]");
+      const query = event.target.closest("[data-query]");
+      if (head) selectedHead = Number(head.dataset.head);
+      if (query) selectedQuery = Number(query.dataset.query);
+      if (head || query) renderAttentionDemo();
+    });
+
+    const themeButton = document.getElementById("themeButton");
+    document.documentElement.dataset.theme = localStorage.getItem("handmade-transformer-theme") || "";
+    themeButton.addEventListener("click", () => {
+      const next = document.documentElement.dataset.theme === "dark" ? "" : "dark";
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem("handmade-transformer-theme", next);
+    });
+    const sections = [...document.querySelectorAll(".section")];
+    const tocLinks = [...document.querySelectorAll(".toc a")];
+    const updatePage = () => {
+      const total = document.documentElement.scrollHeight - innerHeight;
+      document.getElementById("progressBar").style.width = `${total > 0 ? scrollY / total * 100 : 0}%`;
+      let current = sections[0]?.id;
+      for (const section of sections) if (section.getBoundingClientRect().top <= 150) current = section.id;
+      tocLinks.forEach(link => link.classList.toggle("active", link.getAttribute("href") === `#${current}`));
+    };
+    addEventListener("scroll", updatePage, { passive: true });
+    addEventListener("resize", updatePage);
+    renderShapeFlow();
+    renderAttentionDemo();
+    updatePage();
+  </script>
+</body>
+</html>

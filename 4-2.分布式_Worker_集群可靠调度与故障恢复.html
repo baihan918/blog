@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="分布式 Worker 集群可靠调度与故障恢复：任务落库、消息队列、事件路由、幂等、租约、Outbox、OODA 检查点与前端重连。">
+  <meta name="theme-color" content="#f5f2e9">
+  <link rel="icon" href="data:,">
+  <title>分布式 Worker 集群：可靠调度与故障恢复</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page:#f5f2e9;--paper:#fffdf8;--paper-strong:#fff;--ink:#17202f;--muted:#687182;--line:#dedbd1;--line-soft:#ebe8df;
+      --blue:#3776ab;--blue-deep:#24557d;--blue-soft:#e7f2fb;--yellow:#efbd16;--yellow-deep:#745c00;--yellow-soft:#fff5c7;
+      --mint:#2d8a73;--mint-soft:#e7f5ef;--purple:#8260b3;--purple-soft:#f1ebf8;--coral:#e56b4e;--coral-soft:#fff0eb;
+      --code:#18202c;--code-ink:#e8eef7;--shadow:0 22px 60px rgba(51,46,34,.10);
+      --sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+      --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    }
+    [data-theme="dark"] {color-scheme:dark;--page:#121720;--paper:#19212c;--paper-strong:#1f2936;--ink:#edf2f7;--muted:#a8b2c1;--line:#344151;--line-soft:#2b3645;--blue-soft:#172d42;--blue-deep:#78b9ec;--yellow-soft:#3c3517;--yellow-deep:#f6d654;--mint-soft:#17352f;--purple-soft:#2e2540;--coral-soft:#3d2521;--code:#0d1118;--code-ink:#e9eef7;--shadow:0 24px 70px rgba(0,0,0,.28)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:90px}body{margin:0;color:var(--ink);background:radial-gradient(circle at 7% 2%,color-mix(in srgb,var(--blue) 14%,transparent),transparent 29rem),radial-gradient(circle at 94% 13%,color-mix(in srgb,var(--yellow) 18%,transparent),transparent 27rem),var(--page);font-family:var(--sans);line-height:1.76;-webkit-font-smoothing:antialiased}
+    button,a{-webkit-tap-highlight-color:transparent}button{color:inherit;font:inherit;cursor:pointer}code{font-family:var(--mono)}::selection{background:color-mix(in srgb,var(--blue) 23%,transparent)}
+    .skip-link{position:fixed;top:8px;left:8px;z-index:200;transform:translateY(-160%);padding:9px 13px;color:var(--paper);background:var(--ink);border-radius:10px}.skip-link:focus{transform:translateY(0)}
+    .progress-track{position:fixed;inset:0 0 auto;z-index:110;height:4px}.progress-bar{width:0;height:100%;background:linear-gradient(90deg,var(--blue),var(--purple),var(--yellow))}
+    .topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;min-height:68px;padding:10px clamp(16px,4vw,48px);border-bottom:1px solid color-mix(in srgb,var(--line) 78%,transparent);background:color-mix(in srgb,var(--page) 84%,transparent);backdrop-filter:blur(5px)}
+    .brand,.top-actions{display:flex;align-items:center;gap:11px}.brand{min-width:0;font-weight:850}.brand-mark{display:grid;place-items:center;width:40px;height:40px;flex:0 0 auto;border-radius:13px;color:#fff;background:linear-gradient(135deg,var(--blue),var(--purple));box-shadow:0 8px 20px rgba(55,118,171,.2);font:800 9px/1 var(--mono)}
+    .top-actions a,.icon-button{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 13px;border:1px solid var(--line);border-radius:11px;color:var(--ink);background:var(--paper);text-decoration:none}.icon-button{width:40px;padding:0}.top-actions a:hover,.icon-button:hover{border-color:var(--blue);transform:translateY(-1px)}
+    .hero{position:relative;max-width:1280px;margin:0 auto;padding:clamp(58px,8vw,104px) clamp(20px,5vw,70px) 52px;overflow:hidden}.hero::after{content:"ACK";position:absolute;right:1%;top:7%;color:color-mix(in srgb,var(--blue) 7%,transparent);font:900 clamp(90px,18vw,230px)/1 Georgia,serif;transform:rotate(-7deg);pointer-events:none}
+    .eyebrow{position:relative;z-index:1;display:flex;align-items:center;gap:9px;color:var(--blue-deep);font:800 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase}.eyebrow::before{content:"";width:28px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--yellow))}
+    h1{position:relative;z-index:1;max-width:1040px;margin:20px 0 0;font-size:clamp(40px,7vw,78px);line-height:1.04;letter-spacing:-.05em}h1 span{color:var(--blue)}.hero-copy{position:relative;z-index:1;max-width:900px;margin:24px 0 0;color:var(--muted);font-size:clamp(16px,2vw,20px)}
+    .hero-facts{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,180px));gap:12px;margin-top:32px}.fact{padding:15px 17px;border:1px solid var(--line);border-radius:15px;background:color-mix(in srgb,var(--paper) 92%,transparent)}.fact b{display:block;color:var(--blue);font:900 19px/1.1 var(--mono)}.fact:nth-child(2) b{color:var(--purple)}.fact:nth-child(3) b{color:var(--mint)}.fact:nth-child(4) b{color:var(--coral)}.fact span{display:block;margin-top:7px;color:var(--muted);font-size:12px}
+    .overview{max-width:1240px;margin:0 auto;padding:0 22px 28px}.lab{padding:21px;border:1px solid var(--line);border-radius:20px;background:var(--paper);box-shadow:var(--shadow)}.lab-title{display:flex;align-items:end;justify-content:space-between;gap:20px}.lab-title h2{margin:0;font-size:22px}.lab-title p{margin:0;color:var(--muted);font-size:12px}
+    .stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px}.step{position:relative;min-width:0;min-height:80px;padding:13px 10px;overflow:hidden;border:1px solid var(--line);border-radius:14px;color:var(--muted);background:var(--paper-strong);text-align:left}.step b,.step small{display:block}.step b{color:var(--ink);font-size:12px}.step small{margin-top:6px;font:700 9px/1.4 var(--mono);overflow-wrap:anywhere}.step.active{color:var(--blue-deep);border-color:var(--blue);background:var(--blue-soft)}
+    .stage{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:16px;margin-top:16px}.stage-flow{display:grid;gap:8px;padding:18px;border-radius:15px;color:var(--code-ink);background:var(--code);font:12px/1.7 var(--mono);overflow:auto}.flow-line{display:grid;grid-template-columns:28px 120px 1fr;gap:10px;padding:6px 8px;border-left:3px solid transparent;white-space:nowrap}.flow-line.active-line{border-left-color:var(--yellow);background:rgba(239,189,22,.12)}.flow-line em{color:#8ea0b8;font-style:normal}.flow-line strong{color:#8ec9f0}.stage-reading{padding:17px 19px;border:1px solid color-mix(in srgb,var(--yellow) 42%,var(--line));border-radius:15px;background:linear-gradient(115deg,var(--yellow-soft),var(--paper))}.stage-reading b{color:var(--yellow-deep)}.stage-reading p{margin:6px 0 0;color:var(--muted);font-size:13px}.stage-invariant{margin-top:10px;color:var(--blue-deep);font:750 11px/1.6 var(--mono);overflow-wrap:anywhere}
+    .failure-lab{margin-top:18px;padding-top:18px;border-top:1px solid var(--line-soft)}.failure-tabs{display:flex;flex-wrap:wrap;gap:8px}.failure-tab{padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:var(--paper-strong);font-size:12px}.failure-tab.active{border-color:var(--coral);color:var(--coral);background:var(--coral-soft)}.failure-result{display:grid;grid-template-columns:130px 1fr;gap:12px;margin-top:12px;padding:14px 16px;border-radius:13px;background:var(--coral-soft)}.failure-result b{color:var(--coral)}.failure-result p{margin:0;color:var(--muted);font-size:13px}
+    .layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:clamp(28px,5vw,70px);max-width:1240px;margin:0 auto;padding:58px 22px 100px}.toc{position:sticky;top:88px;max-height:calc(100vh - 110px);padding:17px;overflow-y:auto;border:1px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--paper) 93%,transparent);box-shadow:0 12px 32px rgba(45,40,28,.06)}.toc-title{margin:0 0 10px;color:var(--muted);font:800 11px/1 var(--mono);letter-spacing:.1em}.toc a{display:grid;grid-template-columns:24px 1fr;gap:3px;margin:2px 0;padding:7px 8px;border-radius:9px;color:var(--muted);text-decoration:none;font-size:11px;line-height:1.4}.toc a span{font:700 9px/1.6 var(--mono)}.toc a:hover,.toc a.active{color:var(--blue-deep);background:var(--blue-soft)}
+    .article{min-width:0}.article>h2{margin:84px 0 10px;padding-top:5px;font-size:clamp(28px,4vw,43px);line-height:1.18;letter-spacing:-.035em}.article>h2:first-child{margin-top:0}.article h3{margin:42px 0 10px;font-size:22px;line-height:1.3}.article h4{margin:28px 0 8px;font-size:17px}.article p{margin:10px 0;color:var(--muted)}.article h2+p{font-size:16px}.article strong{color:var(--ink)}.article p code,.article li code,.article td code,.article h3 code{padding:2px 6px;border-radius:6px;color:var(--blue-deep);background:var(--blue-soft);font-size:.88em}.article ul,.article ol{margin:12px 0;padding:16px 20px 16px 42px;border:1px solid var(--line-soft);border-radius:14px;background:color-mix(in srgb,var(--paper) 78%,transparent);color:var(--muted)}.article li+li{margin-top:6px}
+    .article>h2:nth-of-type(3n+1)::before{background:var(--blue)}.article>h2:nth-of-type(3n+2)::before{background:var(--purple)}.article>h2:nth-of-type(3n)::before{background:var(--mint)}.article>h2::before{content:"";display:block;width:38px;height:4px;margin-bottom:13px;border-radius:4px}
+    blockquote{margin:16px 0;padding:17px 20px;border:1px solid color-mix(in srgb,var(--yellow) 42%,var(--line));border-left:5px solid var(--yellow);border-radius:14px;background:linear-gradient(105deg,var(--yellow-soft),var(--paper));color:var(--ink);font-weight:750}
+    .code-card{margin:14px 0 20px;overflow:hidden;border:1px solid #303a48;border-radius:17px;background:var(--code);box-shadow:0 12px 30px rgba(15,20,28,.12)}.code-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #303a48;color:#bfc9d8;font:700 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase}.copy-button{padding:4px 8px;border:1px solid #465365;border-radius:7px;color:#c9d3e1;background:transparent;font:700 10px/1 var(--mono)}.copy-button:hover{color:#fff;border-color:#7890aa}.code-card pre{margin:0;padding:18px;overflow:auto;color:var(--code-ink);background:var(--code);font:12px/1.72 var(--mono);tab-size:4}
+    .table-wrap{margin:15px 0 22px;overflow-x:auto;border:1px solid var(--line);border-radius:15px;background:var(--paper)}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:12px 14px;border-bottom:1px solid var(--line-soft);text-align:left;vertical-align:top}th{color:var(--ink);background:var(--blue-soft)}td{color:var(--muted)}tr:last-child td{border-bottom:0}
+    .architecture{display:grid;grid-template-columns:repeat(5,minmax(110px,1fr));gap:8px;margin:16px 0}.arch-node{position:relative;padding:14px 11px;border:1px solid var(--line);border-radius:14px;background:var(--paper);text-align:center}.arch-node:not(:last-child)::after{content:"→";position:absolute;right:-10px;top:50%;z-index:2;color:var(--blue);font-weight:900;transform:translateY(-50%)}.arch-node b{display:block;font-size:12px}.arch-node small{display:block;margin-top:5px;color:var(--muted);font-size:10px}.arch-node:nth-child(2){background:var(--purple-soft)}.arch-node:nth-child(3){background:var(--blue-soft)}.arch-node:nth-child(4){background:var(--mint-soft)}.arch-node:nth-child(5){background:var(--yellow-soft)}
+    .decision{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}.decision>div{padding:16px 18px;border:1px solid var(--line);border-radius:15px;background:var(--paper)}.decision h4{margin:0 0 8px}.decision p{margin:0;font-size:13px}.good{border-top:4px solid var(--mint)!important}.bad{border-top:4px solid var(--coral)!important}
+    footer{max-width:1240px;margin:0 auto;padding:0 22px 50px;color:var(--muted);font-size:12px}
+    @media(max-width:1000px){.stepper{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:1fr}.toc{position:relative;top:0;display:grid;grid-template-columns:repeat(3,1fr);max-height:none}.toc-title{grid-column:1/-1}.stage{grid-template-columns:1fr}.architecture{grid-template-columns:1fr 1fr}.arch-node::after{display:none}}
+    @media(max-width:700px){.topbar{min-height:60px}.brand span:last-child,.top-actions a{display:none}.hero{padding-top:52px}.hero h1 span{display:inline-block}.hero-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.stepper{grid-template-columns:1fr 1fr}.lab-title{align-items:start;flex-direction:column}.layout{padding-inline:14px}.toc{grid-template-columns:1fr 1fr}.article>h2{margin-top:66px}.code-card pre{font-size:11px}.flow-line{grid-template-columns:24px 92px 1fr;font-size:10px}.failure-result,.decision{grid-template-columns:1fr}.architecture{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">DIST</span><span>Deep Research · Reliable Workers</span></div>
+    <div class="top-actions"><a href="#discussion">查看完整讨论范围</a><button class="icon-button" id="themeButton" type="button" aria-label="切换深浅色">◐</button></div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">DISTRIBUTED ORCHESTRATION</div>
+    <h1>Worker 可以崩，任务<span>不能丢</span></h1>
+    <p class="hero-copy">从单机线程池走向分布式集群，真正新增的不是“更多 Worker”，而是持久化任务、可靠投递、事件路由、租约续期、幂等处理与可恢复状态机。</p>
+    <div class="hero-facts">
+      <div class="fact"><b>research_id</b><span>定位整条研究工作流</span></div>
+      <div class="fact"><b>subtask_id</b><span>定位具体执行单元</span></div>
+      <div class="fact"><b>attempt</b><span>隔离重试与迟到事件</span></div>
+      <div class="fact"><b>event_id</b><span>保证事件幂等消费</span></div>
+    </div>
+  </section>
+
+  <section class="overview" aria-labelledby="flow-title">
+    <div class="lab">
+      <div class="lab-title"><div><div class="eyebrow">INTERACTIVE FLOW</div><h2 id="flow-title">一次任务如何穿过分布式系统</h2></div><p>点击步骤，观察当前责任组件、消息内容和可靠性约束</p></div>
+      <div class="stepper" id="stepper"></div>
+      <div class="stage">
+        <div class="stage-flow" id="stageFlow" aria-live="polite"></div>
+        <div class="stage-reading"><b id="stageTitle"></b><p id="stageText"></p><div class="stage-invariant" id="stageInvariant"></div></div>
+      </div>
+      <div class="failure-lab">
+        <div class="lab-title"><div><div class="eyebrow">FAILURE RECOVERY</div><h2>如果某一层崩了</h2></div><p>任务执行权必须属于后端持久化系统，而不是浏览器或某个进程</p></div>
+        <div class="failure-tabs" id="failureTabs"></div>
+        <div class="failure-result"><b id="failureTitle"></b><p id="failureText"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <main class="layout" id="main">
+    <nav class="toc" aria-label="章节目录">
+      <p class="toc-title">16 CHAPTERS · COMPLETE DISCUSSION</p>
+      <a href="#c1"><span>01</span>从线程池到分布式</a>
+      <a href="#c2"><span>02</span>五个基础组件</a>
+      <a href="#c3"><span>03</span>子任务为什么落库</a>
+      <a href="#c4"><span>04</span>事件如何找到任务</a>
+      <a href="#c5"><span>05</span>队列与事件订阅陷阱</a>
+      <a href="#c6"><span>06</span>前端崩溃怎么恢复</a>
+      <a href="#c7"><span>07</span>Worker 崩溃怎么接管</a>
+      <a href="#c8"><span>08</span>幂等与迟到事件</a>
+      <a href="#c9"><span>09</span>Outbox 保证可靠发布</a>
+      <a href="#c10"><span>10</span>OODA 状态如何保存</a>
+      <a href="#c11"><span>11</span>端到端完整时序</a>
+      <a href="#c12"><span>12</span>当前项目演进路线</a>
+      <a href="#c13"><span>13</span>Worker 如何消费任务</a>
+      <a href="#c14"><span>14</span>怎么判断全部完成</a>
+      <a href="#c15"><span>15</span>OODA 粒度与补充调度</a>
+      <a href="#c16"><span>16</span>讨论问题逐项核对</a>
+    </nav>
+
+    <article class="article">
+      <h2 id="discussion">这份页面完整覆盖哪三轮讨论</h2>
+      <p>本页不是只摘取架构结论，而是按讨论推进顺序保留三次提问中出现的全部核心信息：</p>
+      <ol>
+        <li><strong>“分布式的 Worker 集群是怎么处理的？”</strong>——单机线程池如何变成队列、Worker 如何竞争领取、任务状态如何保存、Orchestrator 如何判断完成、故障与重试、OODA 放在哪里、补充研究如何再次调度。</li>
+        <li><strong>“Orchestrator 是不是监听事件后通过 subtask_id 过滤？”</strong>——为什么要先按 event_type 分发，再按 research_id 路由，最后用 subtask_id + attempt 更新，并以 event_id 保证幂等。</li>
+        <li><strong>“子任务是否落库，前端崩了怎么办？”</strong>——当前项目真实限制、父子任务和事件表、对象存储、HTTP 202、轮询与 SSE 重连、租约接管、Outbox、Reconciler 和 OODA 检查点。</li>
+      </ol>
+      <blockquote>阅读方法：前 12 章讲完整生产链路；第 13～15 章补回原讨论中曾被页面省略的实现细节；第 16 章逐项核对三轮问题，防止再次出现选择性沉淀。</blockquote>
+
+      <h2 id="c1">1. 从线程池到分布式</h2>
+      <p>当前项目通过本机 <code>ThreadPoolExecutor</code> 调用 Worker：</p>
+      <div class="code-card"><div class="code-head"><span>single process</span><button class="copy-button" type="button">复制</button></div><pre><code>future = executor.submit(worker.execute, subtask)
+result = future.result()</code></pre></div>
+      <p>这里的 Future、Worker 状态和结果都依附于当前 Python 进程。分布式以后，Orchestrator 不再直接调用某个 Worker，而是发布一份可持久化、可重试的任务消息：</p>
+      <div class="code-card"><div class="code-head"><span>distributed</span><button class="copy-button" type="button">复制</button></div><pre><code>task_queue.publish({
+    "event_type": "subtask.ready",
+    "research_id": "research_123",
+    "subtask_id": "subtask_001",
+    "attempt": 1,
+    "payload": {...}
+})</code></pre></div>
+      <blockquote>分布式的本质不是把同一个线程池放大，而是让执行进程可以消失，同时任务仍能从持久化状态中恢复。</blockquote>
+
+      <h2 id="c2">2. 五个基础组件</h2>
+      <p>可靠系统至少需要下面五类角色，每一类只承担一种主要责任。</p>
+      <div class="architecture" aria-label="分布式 Worker 五层架构">
+        <div class="arch-node"><b>Frontend</b><small>提交与观察</small></div>
+        <div class="arch-node"><b>Orchestrator</b><small>计划与推进</small></div>
+        <div class="arch-node"><b>Queue</b><small>可靠传递</small></div>
+        <div class="arch-node"><b>Worker Cluster</b><small>执行与心跳</small></div>
+        <div class="arch-node"><b>DB / Object Store</b><small>权威状态与大结果</small></div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>组件</th><th>负责什么</th><th>不应该负责什么</th></tr></thead><tbody>
+        <tr><td>Frontend</td><td>提交任务、显示进度、重新连接</td><td>持有任务生命期</td></tr>
+        <tr><td>Orchestrator</td><td>拆任务、推进状态、聚合结果</td><td>依赖某个实例的本地内存</td></tr>
+        <tr><td>Queue</td><td>可靠传递、重投与削峰</td><td>作为最终权威状态库</td></tr>
+        <tr><td>Worker</td><td>执行一个 SubTask 及其内部 OODA</td><td>决定全局报告何时完成</td></tr>
+        <tr><td>Database</td><td>保存任务、子任务、事件和执行版本</td><td>存放无限膨胀的大段原始证据</td></tr>
+      </tbody></table></div>
+
+      <h2 id="c3">3. 子任务为什么需要落库</h2>
+      <p>耗时、异步或跨机器执行的 SubTask 应该落库。数据库中的记录不是日志副本，而是系统判断“下一步做什么”的权威事实。</p>
+      <h3>父任务：research_tasks</h3>
+      <div class="code-card"><div class="code-head"><span>schema</span><button class="copy-button" type="button">复制</button></div><pre><code>id                       research_123
+original_task            用户的原始研究问题
+status                   researching
+stage                    initial_research
+expected_subtasks        4
+completed_subtasks       3
+iteration                1
+quality_score            null
+final_report_location    null
+error_message            null
+created_at               2026-08-15T12:00:00
+updated_at               2026-08-15T12:03:00
+version                  7</code></pre></div>
+      <p>父任务可使用 <code>pending → planning → researching → synthesizing → iterating → completed</code> 的主状态链，并补充 <code>failed</code>、<code>cancelled</code> 等终止状态。</p>
+      <h3>子任务：research_subtasks</h3>
+      <div class="code-card"><div class="code-head"><span>schema</span><button class="copy-button" type="button">复制</button></div><pre><code>id                  subtask_001
+research_id         research_123
+phase               initial
+iteration           1
+name                市场规模与增速
+description         收集权威统计与趋势证据
+status              running
+priority            10
+attempt             2
+worker_id           worker_8
+lease_expires_at    2026-08-15T12:01:40
+result_location     null
+error_message       null
+created_at          2026-08-15T12:00:01
+updated_at          2026-08-15T12:00:40</code></pre></div>
+      <h3>事件表：research_events</h3>
+      <div class="code-card"><div class="code-head"><span>replayable progress event</span><button class="copy-button" type="button">复制</button></div><pre><code>id             1024
+research_id    research_123
+subtask_id     subtask_001
+event_type     subtask.completed
+payload        {"worker_id":"worker_8","attempt":2}
+created_at     2026-08-15T12:04:00</code></pre></div>
+      <p>搜索证据、OODA 轨迹和最终报告可能较大，可以进入对象存储；数据库只保留状态、索引、校验值和结果地址。</p>
+
+      <h2 id="c4">4. 事件如何找到正确任务</h2>
+      <p>你的理解方向是对的：先监听某类事件，再根据标识找到需要更新的任务。但生产系统不能只依赖 <code>subtask_id</code>。</p>
+      <div class="code-card"><div class="code-head"><span>event envelope</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  "event_id": "event_789",
+  "event_type": "subtask.completed",
+  "research_id": "research_123",
+  "subtask_id": "subtask_001",
+  "attempt": 2,
+  "worker_id": "worker_8",
+  "result_location": "results/subtask_001.json"
+}</code></pre></div>
+      <div class="table-wrap"><table><thead><tr><th>字段</th><th>作用</th></tr></thead><tbody>
+        <tr><td><code>event_type</code></td><td>决定交给哪个事件处理器</td></tr>
+        <tr><td><code>research_id</code></td><td>加载整条研究工作流状态</td></tr>
+        <tr><td><code>subtask_id</code></td><td>定位需要更新的具体执行单元</td></tr>
+        <tr><td><code>attempt</code></td><td>识别旧 Worker 的迟到结果</td></tr>
+        <tr><td><code>event_id</code></td><td>判断该事件是否已经处理过</td></tr>
+      </tbody></table></div>
+      <div class="code-card"><div class="code-head"><span>event handler</span><button class="copy-button" type="button">复制</button></div><pre><code>def handle_subtask_completed(event):
+    if processed(event.event_id):
+        return
+
+    state = load_research(event.research_id)
+    subtask = load_subtask(event.research_id, event.subtask_id)
+
+    if event.attempt != subtask.current_attempt:
+        return  # 丢弃旧执行的迟到事件
+
+    mark_completed(subtask, event.result_location)
+
+    if all_subtasks_completed(event.research_id):
+        publish("research.ready_to_synthesize", event.research_id)</code></pre></div>
+
+      <h2 id="c5">5. 共享队列里的过滤陷阱</h2>
+      <div class="decision">
+        <div class="bad"><h4>危险：实例拿到后再过滤</h4><p>Orchestrator B 从竞争队列拿到了属于 A 的事件，发现不是自己的就丢弃。A 将永远收不到这个事件。</p></div>
+        <div class="good"><h4>推荐：统一无状态处理器</h4><p>任意实例都能消费事件，并根据 <code>research_id</code> 从数据库加载状态、幂等更新和推进工作流。</p></div>
+      </div>
+      <p>在 Kafka 一类分区系统中，可以使用 <code>research_id</code> 作为消息 Key，让同一研究任务的事件进入同一分区：</p>
+      <div class="code-card"><div class="code-head"><span>partition routing</span><button class="copy-button" type="button">复制</button></div><pre><code>producer.send(
+    topic="subtask-events",
+    key=research_id,
+    value=event,
+)</code></pre></div>
+      <p>即使按 Key 路由，消费者仍应从数据库读取状态，不能假设某个进程一直拥有某个 <code>research_id</code>。</p>
+
+      <h2 id="c6">6. 前端崩溃为什么不应影响任务</h2>
+      <p>前端只负责提交和观察，不能成为任务的宿主。正确接口在持久化任务并可靠入队后立即返回：</p>
+      <div class="code-card"><div class="code-head"><span>http</span><button class="copy-button" type="button">复制</button></div><pre><code>POST /research
+→ 数据库创建 research_123
+→ Outbox 记录 subtask.ready
+→ HTTP 202 Accepted
+
+{
+  "task_id": "research_123",
+  "status": "pending"
+}</code></pre></div>
+      <p>页面关闭、刷新或网络断开后，队列和 Worker 仍然继续。前端重新打开只需要查询相同任务：</p>
+      <div class="code-card"><div class="code-head"><span>reconnect</span><button class="copy-button" type="button">复制</button></div><pre><code>GET /research/research_123
+
+GET /research/research_123/events?after=1024
+Last-Event-ID: 1024</code></pre></div>
+      <h3>恢复方式一：轮询</h3>
+      <div class="code-card"><div class="code-head"><span>polling</span><button class="copy-button" type="button">复制</button></div><pre><code>setInterval(async () => {
+  const task = await fetch("/research/research_123");
+  renderTask(await task.json());
+}, 2000);</code></pre></div>
+      <h3>恢复方式二：SSE 断点续传</h3>
+      <p>前端保存最后收到的事件 ID。重连时携带 <code>Last-Event-ID: 1024</code> 或查询 <code>?after=1024</code>，后端从事件表补回缺失进度：</p>
+      <div class="code-card"><div class="code-head"><span>missed events</span><button class="copy-button" type="button">复制</button></div><pre><code>1025  subtask.completed
+1026  synthesis.started
+1027  quality.checked</code></pre></div>
+      <blockquote>SSE 是进度展示通道，不是任务执行通道。SSE 断开只代表“看不到直播”，不代表任务应该取消。</blockquote>
+
+      <h2 id="c7">7. Worker 崩溃如何由其他节点接管</h2>
+      <p>Worker 领取任务后不应该永久占有它，而是获得一个有期限的执行租约。</p>
+      <div class="code-card"><div class="code-head"><span>lease lifecycle</span><button class="copy-button" type="button">复制</button></div><pre><code>12:00:00  Worker 8 claim，lease 到 12:01:00
+12:00:20  心跳续期，lease 到 12:01:20
+12:00:40  心跳续期，lease 到 12:01:40
+12:00:45  Worker 8 崩溃
+12:01:40  lease 过期
+12:01:41  subtask 重新进入 pending
+12:01:42  Worker 3 以 attempt=2 接管</code></pre></div>
+      <p>恢复器还应定期扫描卡住的状态：租约已过期的 running 子任务、全部子任务完成但未汇总的父任务、已经生成报告但仍未标记 completed 的任务。</p>
+
+      <h2 id="c8">8. 幂等、重复投递和迟到事件</h2>
+      <p>可靠队列通常提供“至少投递一次”。Worker 可能已经写入结果，但在 ACK 之前崩溃，于是同一消息再次投递。</p>
+      <div class="code-card"><div class="code-head"><span>idempotency</span><button class="copy-button" type="button">复制</button></div><pre><code>idempotency_key = research_id + ":" + subtask_id + ":" + attempt
+
+INSERT INTO worker_results (...)
+ON CONFLICT (idempotency_key)
+DO NOTHING;</code></pre></div>
+      <p>事件处理同样要幂等。如果 <code>subtask.completed</code> 被消费两次，不能把 <code>completed_subtasks</code> 加两次。旧 attempt 的迟到结果也不能覆盖新 Worker 的结果。</p>
+
+      <h2 id="c9">9. 为什么需要 Transactional Outbox</h2>
+      <p>“写数据库”和“发队列消息”是两个系统，任何先后顺序都存在崩溃窗口：</p>
+      <div class="code-card"><div class="code-head"><span>failure window</span><button class="copy-button" type="button">复制</button></div><pre><code>1. 数据库创建 subtask_001
+2. 进程准备 publish
+3. 进程崩溃
+
+结果：数据库有 pending 子任务，队列却没有消息</code></pre></div>
+      <p>Outbox 将业务变更和待发布事件放进同一个数据库事务：</p>
+      <div class="code-card"><div class="code-head"><span>transactional outbox</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+INSERT INTO research_subtasks (...);
+INSERT INTO outbox_events (event_type, payload, published=false);
+COMMIT;
+
+Outbox Publisher:
+  扫描 published=false
+  → 发布到队列
+  → 标记 published=true</code></pre></div>
+      <p>Publisher 即使重启也能继续扫描；消息即使重复发布，也由消费端幂等消化。</p>
+
+      <h2 id="c10">10. OODA 状态保存到什么粒度</h2>
+      <p>不需要保存模型隐藏推理，也不需要把每个局部变量落库。建议在每轮 Act 完成后保存可恢复检查点：</p>
+      <div class="code-card"><div class="code-head"><span>ooda checkpoint</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  "research_id": "research_123",
+  "subtask_id": "subtask_001",
+  "attempt": 2,
+  "current_cycle": 3,
+  "queries_used": 5,
+  "query_history": ["...", "..."],
+  "evidence_location": "evidence/subtask_001/cycle-3.json",
+  "last_action": "search",
+  "next_state": "orient"
+}</code></pre></div>
+      <div class="table-wrap"><table><thead><tr><th>应该保存</th><th>无需保存</th></tr></thead><tbody>
+        <tr><td>已执行查询、预算、证据、工具结果</td><td>模型隐藏推理过程</td></tr>
+        <tr><td>当前周期、最后动作、下一状态</td><td>可从证据重新计算的临时字符串</td></tr>
+        <tr><td>终止原因、结果地址、校验值</td><td>每一个函数内局部变量</td></tr>
+      </tbody></table></div>
+      <p>第一版最适合的粒度是：一个队列任务对应一个完整研究 SubTask，Worker 内部执行整个 OODA，并在每轮 Act 后保存检查点。</p>
+
+      <h2 id="c11">11. 端到端完整时序</h2>
+      <div class="code-card"><div class="code-head"><span>reliable workflow</span><button class="copy-button" type="button">复制</button></div><pre><code>Frontend
+  → POST /research
+
+API + Database Transaction
+  → 创建 research_tasks
+  → 创建 research_subtasks
+  → 创建 outbox_events
+  → 返回 202 + research_id
+
+Outbox Publisher
+  → 将 subtask.ready 发送到持久化队列
+
+Worker Cluster
+  → claim + lease
+  → 执行 OODA
+  → 每轮保存 checkpoint + heartbeat
+  → 结果落库
+  → 发布 subtask.completed
+
+Completion Event Handler
+  → event_id 幂等校验
+  → research_id 加载工作流
+  → subtask_id + attempt 更新子任务
+  → 全部完成则发布 research.ready_to_synthesize
+
+Orchestrator
+  → 汇总报告
+  → 质量检查
+  → 不足则创建 supplementary subtasks
+  → 达标则保存最终报告并标记 completed
+
+Frontend
+  → 轮询或 SSE 重连
+  → 获取最终报告</code></pre></div>
+
+      <h2 id="c12">12. 当前项目怎么逐步演进</h2>
+      <p>当前项目的 <code>TaskManager</code> 使用进程内字典，研究任务通过本地线程池运行。前端关闭时，只要 API 进程仍在，任务通常还能继续；但 API 重启会丢失任务状态。</p>
+      <div class="table-wrap"><table><thead><tr><th>故障或部署形态</th><th>当前项目的实际结果</th></tr></thead><tbody>
+        <tr><td>用户关闭页面</td><td>只要后端 Python 进程仍在，任务通常继续运行</td></tr>
+        <tr><td>SSE 或网络断开</td><td>任务继续，但前端暂时收不到实时进度</td></tr>
+        <tr><td>API 服务重启</td><td><code>TaskManager.tasks</code> 是内存字典，任务状态全部丢失</td></tr>
+        <tr><td>Python 进程崩溃</td><td>进程内线程池和正在执行的 Worker 一起消失</td></tr>
+        <tr><td>多实例部署</td><td>每个实例各自保存任务，查询请求落到别的实例时可能找不到</td></tr>
+        <tr><td>Worker 卡死</td><td>当前缺少租约、心跳和自动接管机制，可能永久停在执行中</td></tr>
+      </tbody></table></div>
+      <p>因此当前实现只能保证<strong>前端断开时任务大概率继续</strong>，不能保证<strong>后端进程故障后任务继续</strong>。</p>
+      <ol>
+        <li><strong>第一步：</strong>把 ResearchState、父任务和 SubTask 持久化，前端只持有 task_id。</li>
+        <li><strong>第二步：</strong>增加事件表与 SSE 断点续传，让页面刷新后恢复进度。</li>
+        <li><strong>第三步：</strong>用 Outbox + 持久化队列替换 <code>executor.submit()</code>。</li>
+        <li><strong>第四步：</strong>把 SearchWorker 做成独立消费者，增加 lease、heartbeat、retry 和幂等。</li>
+        <li><strong>第五步：</strong>把 Orchestrator 改成由事件驱动、可从数据库恢复的状态机。</li>
+        <li><strong>第六步：</strong>增加 Reconciler，主动修复租约过期和停滞工作流。</li>
+      </ol>
+      <blockquote>最终目标：Frontend 只观察；Database 保存事实；Queue 可靠传递；Worker 可以随时重启；Orchestrator 可以由任何实例继续推进。</blockquote>
+
+      <h2 id="c13">13. Worker 集群具体如何消费任务</h2>
+      <p>Orchestrator 发布任务后，不指定某一台机器。所有同类型 Worker 运行相同的消费者程序，从共享队列竞争领取任务。常见承载方式包括 Redis、RabbitMQ、Kafka、云厂商消息队列，以及 Celery、RQ 等任务框架。</p>
+      <div class="code-card"><div class="code-head"><span>worker consumer loop</span><button class="copy-button" type="button">复制</button></div><pre><code>while True:
+    task = task_queue.consume()
+
+    try:
+        result = execute_task(task)
+        save_result(result)
+        task_queue.ack(task)
+    except Exception:
+        task_queue.retry_or_reject(task)</code></pre></div>
+      <p>假设集群有 10 个 Worker，实际分配可能是下面这样；Orchestrator 只关心任务状态，不关心节点编号：</p>
+      <div class="code-card"><div class="code-head"><span>dynamic assignment</span><button class="copy-button" type="button">复制</button></div><pre><code>task_1 → Worker 3
+task_2 → Worker 8
+task_3 → Worker 1
+task_4 → Worker 6</code></pre></div>
+      <p>这些 Worker 可以位于不同进程、容器或服务器。结果本身也应独立建模：</p>
+      <div class="code-card"><div class="code-head"><span>WorkerResult</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  "subtask_id": "task_1",
+  "success": true,
+  "result_location": "object-storage/results/task_1.json"
+}</code></pre></div>
+      <p>存储职责必须分清：数据库保存任务状态和索引，对象存储保存大型搜索结果、报告与日志，队列保存待传递的消息但不作为最终事实来源。</p>
+
+      <h2 id="c14">14. Orchestrator 怎么判断所有子任务完成</h2>
+      <p>讨论中给出了两种常见办法，它们不是互斥关系。</p>
+      <h3>方式一：轮询数据库</h3>
+      <div class="code-card"><div class="code-head"><span>poll database</span><button class="copy-button" type="button">复制</button></div><pre><code>while True:
+    completed = count_completed_subtasks(research_id)
+    if completed == expected:
+        break
+    time.sleep(1)</code></pre></div>
+      <p>优点是逻辑简单、数据库事实明确；缺点是会产生持续轮询压力，完成后的推进也有一个轮询间隔。</p>
+      <h3>方式二：完成事件</h3>
+      <div class="code-card"><div class="code-head"><span>event-driven progress</span><button class="copy-button" type="button">复制</button></div><pre><code>task_1.completed → 1 / 4
+task_3.completed → 2 / 4
+task_2.completed → 3 / 4
+task_4.completed → 4 / 4 → 开始汇总</code></pre></div>
+      <p>生产系统通常组合使用：<strong>事件负责及时推进，数据库负责最终校验和故障恢复</strong>。事件丢失或处理器重启时，Reconciler 仍能从数据库发现“4/4 已完成但尚未汇总”的任务。</p>
+
+      <h2 id="c15">15. OODA 的调度粒度与补充研究</h2>
+      <p>OODA 可以有两种队列粒度。当前 Deep Research 项目的第一版更适合粗粒度方案。</p>
+      <div class="table-wrap"><table><thead><tr><th>方案</th><th>一个队列任务代表什么</th><th>取舍</th></tr></thead><tbody>
+        <tr><td>粗粒度</td><td>一个完整 SubTask，Worker 内部执行 Observe → Orient → Decide → Act</td><td>实现简单、消息少、延迟低，适合当前项目</td></tr>
+        <tr><td>细粒度</td><td>Observe、Orient、Decide、Act 分别成为任务</td><td>恢复更精细，但状态管理、消息数量和协调成本显著增加</td></tr>
+      </tbody></table></div>
+      <p>只有单轮特别长、不同步骤依赖不同机器类型，或必须在步骤级暂停与迁移时，才值得把 OODA 拆细。粗粒度也要在每轮 Act 后保存检查点，不能只在整个 SubTask 结束时保存。</p>
+      <h3>质量不足时如何再次调度</h3>
+      <div class="code-card"><div class="code-head"><span>supplementary research</span><button class="copy-button" type="button">复制</button></div><pre><code>初始 SubTask 全部完成
+→ Orchestrator 汇总初稿
+→ 质量检查发现证据缺口
+→ 创建 supplementary SubTask
+→ 发布到同一任务队列
+→ Worker 集群继续消费
+→ 合并补充结果并修订报告</code></pre></div>
+      <p>初始研究和补充研究复用同一套基础设施，只需要用阶段和轮次区分：</p>
+      <div class="code-card"><div class="code-head"><span>phase and iteration</span><button class="copy-button" type="button">复制</button></div><pre><code>{ "task_phase": "initial", "iteration": 1 }
+{ "task_phase": "supplementary", "iteration": 2 }</code></pre></div>
+
+      <h2 id="c16">16. 三轮讨论内容逐项核对</h2>
+      <div class="table-wrap"><table><thead><tr><th>原讨论内容</th><th>页面位置</th><th>是否保留</th></tr></thead><tbody>
+        <tr><td>线程池改为共享队列、Worker 竞争消费、队列选型</td><td>第 1、13 章</td><td>完整</td></tr>
+        <tr><td>ResearchTask、SubTask、WorkerResult 与存储分工</td><td>第 3、13 章</td><td>完整</td></tr>
+        <tr><td>Orchestrator 轮询与完成事件两种检测方式</td><td>第 14 章</td><td>完整</td></tr>
+        <tr><td>租约、心跳、重试、至少一次投递和幂等</td><td>第 7、8 章</td><td>完整</td></tr>
+        <tr><td>OODA 检查点、粗细粒度选择</td><td>第 10、15 章</td><td>完整</td></tr>
+        <tr><td>补充研究重新进入同一队列</td><td>第 11、15 章</td><td>完整</td></tr>
+        <tr><td>event_type、research_id、subtask_id、attempt、event_id</td><td>第 4、5 章</td><td>完整</td></tr>
+        <tr><td>不能由 Orchestrator 实例消费后再丢弃别人的消息</td><td>第 5 章</td><td>完整</td></tr>
+        <tr><td>父任务、子任务、事件落库与大结果对象存储</td><td>第 3 章</td><td>完整</td></tr>
+        <tr><td>前端关闭、SSE 断线、API/Worker/Orchestrator 崩溃恢复</td><td>第 6、7、12 章及故障实验区</td><td>完整</td></tr>
+        <tr><td>Transactional Outbox 与 Reconciler</td><td>第 9、12、14 章</td><td>完整</td></tr>
+        <tr><td>当前项目能力边界和分阶段演进路线</td><td>第 12 章</td><td>完整</td></tr>
+      </tbody></table></div>
+      <blockquote>最终回答不是“用消息队列就分布式了”，而是：持久化状态 + 可靠投递 + 可转移执行权 + 幂等事件 + 可恢复工作流，共同保证任何浏览器或单个进程消失后任务仍能继续。</blockquote>
+    </article>
+  </main>
+
+  <footer>基于当前 Deep Research 项目与分布式 Worker 讨论沉淀 · 重点：任务不依赖浏览器，不依赖单个 Worker，也不依赖单个 Orchestrator 进程。</footer>
+
+  <script>
+    (() => {
+      const stages = [
+        {label:'提交任务',meta:'HTTP 202',title:'Frontend 只负责提交和观察',text:'API 接收任务后必须先形成持久化记录，再返回 research_id。页面关闭不会撤销后端任务。',invariant:'不变量：前端断开 ≠ 任务取消',active:0},
+        {label:'任务落库',meta:'research + subtasks',title:'数据库成为权威事实源',text:'父任务记录全局阶段，子任务记录 status、attempt、lease 和结果地址。Orchestrator 重启后可以重新加载。',invariant:'不变量：进程内存不是任务真相',active:1},
+        {label:'Outbox',meta:'same transaction',title:'业务状态和待发消息原子提交',text:'创建 SubTask 与写入 Outbox 使用同一个事务，避免数据库成功但队列没有消息。',invariant:'不变量：可重发，但不能永久漏发',active:2},
+        {label:'进入队列',meta:'subtask.ready',title:'队列负责可靠传递和削峰',text:'任务消息携带 research_id、subtask_id、attempt 和 payload，由多个 Worker 竞争领取。',invariant:'不变量：Queue 不是最终状态库',active:3},
+        {label:'Worker 领取',meta:'claim + lease',title:'Worker 获得的是有期限执行权',text:'Worker 定期 heartbeat 续租；宕机后 lease 过期，任务可以由其他节点以新 attempt 接管。',invariant:'不变量：Worker 消失，任务仍可执行',active:4},
+        {label:'执行 OODA',meta:'checkpoint',title:'一个 SubTask 内部完成完整 OODA',text:'每轮 Act 后保存查询预算、证据地址和下一状态。恢复时从检查点继续，而不是从零搜索。',invariant:'不变量：只保存可恢复状态，不保存隐藏推理',active:5},
+        {label:'完成事件',meta:'subtask.completed',title:'事件处理器更新具体子任务',text:'先按 event_type 分发，再按 research_id 加载工作流，用 subtask_id + attempt 更新执行单元，并以 event_id 幂等。',invariant:'不变量：旧 attempt 不能覆盖新结果',active:6},
+        {label:'汇总与返回',meta:'synthesize',title:'全部完成后才推进全局报告',text:'Orchestrator 汇总、质检并可能创建补充任务。最终报告落库后，前端通过轮询或 SSE 重连获取。',invariant:'不变量：任何实例都能从数据库继续推进',active:7}
+      ];
+      const flow = [
+        ['01','Frontend','POST /research'],['02','Database','persist task + subtasks'],['03','Outbox','publish subtask.ready'],['04','Queue','durable delivery'],
+        ['05','Worker','claim + lease'],['06','OODA','checkpoint after Act'],['07','Event Handler','subtask.completed'],['08','Orchestrator','aggregate + refine']
+      ];
+      const stepper = document.getElementById('stepper');
+      const stageFlow = document.getElementById('stageFlow');
+      function renderStage(index) {
+        const stage = stages[index];
+        [...stepper.children].forEach((element,i) => { element.classList.toggle('active',i===index); element.setAttribute('aria-pressed',String(i===index)); });
+        stageFlow.innerHTML = flow.map((item,i) => '<span class="flow-line '+(i===stage.active?'active-line':'')+'"><em>'+item[0]+'</em><strong>'+item[1]+'</strong><span>'+item[2]+'</span></span>').join('');
+        document.getElementById('stageTitle').textContent = stage.title;
+        document.getElementById('stageText').textContent = stage.text;
+        document.getElementById('stageInvariant').textContent = stage.invariant;
+      }
+      stages.forEach((stage,index) => {
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'step';
+        button.innerHTML = '<b>'+(index+1)+'. '+stage.label+'</b><small>'+stage.meta+'</small>';
+        button.addEventListener('click',() => renderStage(index));
+        stepper.appendChild(button);
+      });
+      renderStage(0);
+
+      const failures = [
+        {label:'前端崩溃',title:'任务继续运行',text:'任务已经落库并进入队列。用户重新打开页面后，用 research_id 查询状态，并通过 Last-Event-ID 补回缺失进度。'},
+        {label:'API 崩溃',title:'新实例恢复服务',text:'已提交任务不依赖 API 内存。未发布消息由 Outbox Publisher 重发；新 API 实例从数据库返回任务状态。'},
+        {label:'Worker 崩溃',title:'租约过期后接管',text:'心跳停止，lease_expires_at 到期，Reconciler 将任务重新置为 pending，其他 Worker 使用新的 attempt 执行。'},
+        {label:'Orchestrator 崩溃',title:'任意实例继续推进',text:'完成事件由无状态处理器消费，根据 research_id 加载数据库状态。子任务全部完成后，新的实例仍可进入汇总阶段。'},
+        {label:'消息重复',title:'幂等吸收重复',text:'event_id 防止事件重复处理，research_id + subtask_id + attempt 防止结果重复生效；至少一次投递不会破坏最终状态。'}
+      ];
+      const failureTabs = document.getElementById('failureTabs');
+      function renderFailure(index) {
+        const failure = failures[index];
+        [...failureTabs.children].forEach((element,i) => { element.classList.toggle('active',i===index); element.setAttribute('aria-pressed',String(i===index)); });
+        document.getElementById('failureTitle').textContent = failure.title;
+        document.getElementById('failureText').textContent = failure.text;
+      }
+      failures.forEach((failure,index) => {
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'failure-tab'; button.textContent = failure.label;
+        button.addEventListener('click',() => renderFailure(index));
+        failureTabs.appendChild(button);
+      });
+      renderFailure(0);
+
+      const root = document.documentElement;
+      const themeButton = document.getElementById('themeButton');
+      const savedTheme = localStorage.getItem('distributed-worker-theme');
+      if (savedTheme) root.dataset.theme = savedTheme;
+      themeButton.addEventListener('click',() => { const next=root.dataset.theme==='dark'?'light':'dark'; root.dataset.theme=next; localStorage.setItem('distributed-worker-theme',next); });
+
+      const progress = document.getElementById('progressBar');
+      function updateProgress(){const max=document.documentElement.scrollHeight-innerHeight;progress.style.width=(max>0?scrollY/max*100:0)+'%'}
+      addEventListener('scroll',updateProgress,{passive:true});updateProgress();
+
+      const links=[...document.querySelectorAll('.toc a')];
+      const targets=links.map(link=>document.querySelector(link.getAttribute('href'))).filter(Boolean);
+      const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){links.forEach(link=>link.classList.toggle('active',link.getAttribute('href')==='#'+entry.target.id));}})},{rootMargin:'-18% 0px -70% 0px'});
+      targets.forEach(target=>observer.observe(target));
+
+      document.querySelectorAll('.copy-button').forEach(button=>button.addEventListener('click',async()=>{
+        const text=button.closest('.code-card').querySelector('code').textContent;
+        try{await navigator.clipboard.writeText(text);button.textContent='已复制';setTimeout(()=>button.textContent='复制',1200)}catch{button.textContent='复制失败'}
+      }));
+    })();
+  </script>
+</body>
+</html>

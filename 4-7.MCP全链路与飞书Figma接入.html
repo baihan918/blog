@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="用 Workspace Agent 的飞书与 Figma 接入实例，理解 MCP 的工具发现、宿主执行、调用路由、大文件数据面与结果回传。">
+  <title>MCP 全链路 · 飞书与 Figma 接入核心思路</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f2e9;
+      --paper: #fffdf8;
+      --paper-strong: #ffffff;
+      --ink: #17202f;
+      --muted: #687182;
+      --line: #dedbd1;
+      --line-soft: #ebe8df;
+      --blue: #3776ab;
+      --blue-deep: #24557d;
+      --blue-soft: #e7f2fb;
+      --yellow: #efbd16;
+      --yellow-deep: #745c00;
+      --yellow-soft: #fff5c7;
+      --mint: #2d8a73;
+      --mint-soft: #e7f5ef;
+      --purple: #8260b3;
+      --purple-soft: #f1ebf8;
+      --coral: #e56b4e;
+      --coral-soft: #fff0eb;
+      --code: #18202c;
+      --code-ink: #e8eef7;
+      --shadow: 0 22px 60px rgba(51, 46, 34, .10);
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page: #121720;
+      --paper: #19212c;
+      --paper-strong: #1f2936;
+      --ink: #edf2f7;
+      --muted: #a8b2c1;
+      --line: #344151;
+      --line-soft: #2b3645;
+      --blue-soft: #172d42;
+      --blue-deep: #78b9ec;
+      --yellow-soft: #3c3517;
+      --yellow-deep: #f6d654;
+      --mint-soft: #17352f;
+      --purple-soft: #2e2540;
+      --coral-soft: #3d2521;
+      --code: #0d1118;
+      --code-ink: #e9eef7;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 7% 2%, color-mix(in srgb, var(--blue) 14%, transparent), transparent 29rem),
+        radial-gradient(circle at 94% 13%, color-mix(in srgb, var(--yellow) 18%, transparent), transparent 27rem),
+        var(--page);
+      font-family: var(--sans);
+      line-height: 1.72;
+    }
+    button { font: inherit; }
+    code { font-family: var(--mono); }
+    ::selection { background: color-mix(in srgb, var(--blue) 23%, transparent); }
+    .skip-link { position: fixed; top: 8px; left: 8px; z-index: 200; transform: translateY(-160%); padding: 9px 13px; color: var(--paper); background: var(--ink); border-radius: 10px; }
+    .skip-link:focus { transform: translateY(0); }
+    .progress-track { position: fixed; inset: 0 0 auto; z-index: 110; height: 4px; }
+    .progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple), var(--yellow)); }
+    .topbar {
+      position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between;
+      min-height: 68px; padding: 10px clamp(16px, 4vw, 42px); border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+      background: color-mix(in srgb, var(--page) 84%, transparent); backdrop-filter: blur(5px);
+    }
+    .brand, .top-actions { display: flex; align-items: center; gap: 11px; }
+    .brand { min-width: 0; font-weight: 850; }
+    .brand span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 auto; border-radius: 13px; color: #fff; background: linear-gradient(135deg, var(--blue), var(--purple)); box-shadow: 0 8px 20px rgba(55, 118, 171, .2); font: 800 10px/1 var(--mono); }
+    .icon-button, .button { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 11px; color: var(--ink); background: var(--paper); text-decoration: none; cursor: pointer; transition: transform 140ms ease, border-color 140ms ease, background 140ms ease; }
+    .icon-button { width: 40px; padding: 0; }
+    .icon-button:hover, .button:hover { border-color: var(--blue); transform: translateY(-1px); }
+    .button.primary { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .hero { position: relative; max-width: 1280px; margin: 0 auto; padding: clamp(60px, 8vw, 108px) clamp(20px, 5vw, 70px) 56px; overflow: hidden; }
+    .hero::after { content: "MCP"; position: absolute; right: 1%; top: 8%; color: color-mix(in srgb, var(--blue) 7%, transparent); font: 900 clamp(100px, 20vw, 240px)/1 Georgia, serif; transform: rotate(-7deg); pointer-events: none; }
+    .eyebrow { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; color: var(--blue-deep); font: 800 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 28px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--yellow)); }
+    h1 { position: relative; z-index: 1; max-width: 990px; margin: 20px 0 0; font-size: clamp(38px, 7vw, 76px); line-height: 1.04; letter-spacing: -.045em; }
+    h1 span { color: var(--blue); }
+    .hero-copy { position: relative; z-index: 1; max-width: 870px; margin: 25px 0 0; color: var(--muted); font-size: clamp(16px, 2vw, 20px); }
+    .hero-copy strong { color: var(--ink); }
+    .hero-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .hero-facts { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 180px)); gap: 12px; margin-top: 34px; }
+    .fact { padding: 15px 17px; border: 1px solid var(--line); border-radius: 15px; background: color-mix(in srgb, var(--paper) 92%, transparent); }
+    .fact b { display: block; color: var(--blue); font: 900 21px/1 var(--mono); }
+    .fact:nth-child(2) b { color: var(--purple); } .fact:nth-child(3) b { color: var(--mint); } .fact:nth-child(4) b { color: var(--coral); }
+    .fact span { display: block; margin-top: 7px; color: var(--muted); font-size: 12px; }
+    .truth-strip { max-width: 1240px; margin: 0 auto; padding: 0 22px 28px; }
+    .truth-grid { display: grid; grid-template-columns: repeat(3, 1fr); overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); box-shadow: var(--shadow); }
+    .truth { padding: 20px 22px; border-right: 1px solid var(--line-soft); }
+    .truth:last-child { border-right: 0; }
+    .truth b, .truth span { display: block; }
+    .truth b { color: var(--blue-deep); }
+    .truth:nth-child(2) b { color: var(--purple); } .truth:nth-child(3) b { color: var(--mint); }
+    .truth span { margin-top: 5px; color: var(--muted); font-size: 13px; }
+    .layout { display: grid; grid-template-columns: 214px minmax(0, 1fr); gap: clamp(28px, 5vw, 70px); max-width: 1240px; margin: 0 auto; padding: 62px 22px 100px; }
+    .toc { position: sticky; top: 88px; max-height: calc(100vh - 110px); padding: 17px; overflow-y: auto; border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--paper) 93%, transparent); box-shadow: 0 12px 32px rgba(45, 40, 28, .06); }
+    .toc-title { margin: 0 0 10px; color: var(--muted); font: 800 11px/1 var(--mono); letter-spacing: .1em; }
+    .toc a { display: block; margin: 2px 0; padding: 7px 9px; border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 12px; line-height: 1.4; }
+    .toc a:hover, .toc a.active { color: var(--blue-deep); background: var(--blue-soft); }
+    .toc-status { margin-top: 14px; padding: 11px; border-radius: 11px; color: var(--mint); background: var(--mint-soft); font-size: 11px; }
+    .content { min-width: 0; }
+    .section { margin-top: 88px; scroll-margin-top: 94px; }
+    .section:first-child { margin-top: 0; }
+    .section-kicker { color: var(--blue-deep); font: 800 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+    h2 { margin: 12px 0 9px; font-size: clamp(27px, 4vw, 43px); line-height: 1.15; letter-spacing: -.028em; }
+    h3 { margin: 0; font-size: 18px; line-height: 1.35; }
+    .section-lead { max-width: 850px; margin: 0 0 26px; color: var(--muted); }
+    .card, .concept, .flow-lab, .route-panel, .compare-wrap, .quiz-card { border: 1px solid var(--line); border-radius: 19px; background: var(--paper); box-shadow: 0 12px 30px rgba(45, 40, 28, .055); }
+    .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+    .three-col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .concept { padding: 21px; }
+    .concept p, .concept li { color: var(--muted); font-size: 13px; }
+    .concept p { margin: 9px 0 0; }
+    .concept ul { margin: 12px 0 0; padding-left: 19px; }
+    .concept li + li { margin-top: 6px; }
+    .concept .icon { display: grid; place-items: center; width: 38px; height: 38px; margin-bottom: 13px; border-radius: 12px; background: var(--blue-soft); font-size: 20px; }
+    .concept.purple .icon { background: var(--purple-soft); }
+    .concept.mint .icon { background: var(--mint-soft); }
+    .concept.yellow .icon { background: var(--yellow-soft); }
+    .plain-box, .insight, .warning { margin-top: 16px; padding: 18px 20px; border-radius: 16px; font-size: 13px; }
+    .plain-box { border: 1px solid color-mix(in srgb, var(--yellow) 44%, var(--line)); background: linear-gradient(105deg, var(--yellow-soft), var(--paper)); }
+    .plain-box strong { color: var(--yellow-deep); }
+    .insight { border: 1px solid color-mix(in srgb, var(--mint) 34%, var(--line)); background: var(--mint-soft); }
+    .insight strong { color: var(--mint); }
+    .warning { border: 1px solid color-mix(in srgb, var(--coral) 34%, var(--line)); background: var(--coral-soft); }
+    .warning strong { color: var(--coral); }
+    .flow-lab { padding: 20px; }
+    .flow-steps { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 9px; }
+    .flow-step { position: relative; min-height: 110px; padding: 14px 12px; border: 1px solid var(--line); border-radius: 14px; color: var(--muted); background: var(--paper-strong); cursor: pointer; text-align: left; }
+    .flow-step::after { content: "→"; position: absolute; right: -10px; top: 39px; z-index: 2; color: var(--muted); font-weight: 900; }
+    .flow-step:nth-child(4)::after, .flow-step:last-child::after { display: none; }
+    .flow-step b, .flow-step small { display: block; }
+    .flow-step b { color: var(--ink); font-size: 12px; }
+    .flow-step small { margin-top: 6px; font: 700 9px/1.45 var(--mono); }
+    .flow-step.active { color: var(--blue-deep); border-color: var(--blue); background: var(--blue-soft); }
+    .flow-reading { min-height: 118px; margin-top: 16px; padding: 17px 19px; border-radius: 14px; background: var(--blue-soft); }
+    .flow-reading b { color: var(--blue-deep); }
+    .flow-reading p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    .split-flow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: stretch; margin-top: 18px; }
+    .mode-card { padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: var(--paper); }
+    .mode-card.fixed { border-top: 4px solid var(--yellow); }
+    .mode-card.agent { border-top: 4px solid var(--purple); }
+    .mode-card p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+    .mode-card code { color: var(--blue-deep); font-size: 11px; }
+    .versus { align-self: center; color: var(--muted); font: 900 12px/1 var(--mono); }
+    .route-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+    .route-tab { min-height: 38px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); background: var(--paper-strong); cursor: pointer; }
+    .route-tab.active { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .route-panel { padding: 22px; }
+    .route-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .route-title span { color: var(--muted); font: 750 10px/1 var(--mono); }
+    .route-chain { display: grid; grid-template-columns: repeat(6, minmax(98px, 1fr)); gap: 9px; margin-top: 20px; }
+    .route-node { position: relative; min-height: 100px; padding: 15px 11px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-strong); }
+    .route-node::after { content: "→"; position: absolute; right: -10px; top: 34px; z-index: 2; color: var(--muted); font-weight: 900; }
+    .route-node:last-child::after { display: none; }
+    .route-node b, .route-node span { display: block; }
+    .route-node b { color: var(--blue-deep); font-size: 12px; }
+    .route-node span { margin-top: 6px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .route-node:nth-child(3) { border-top: 4px solid var(--purple); }
+    .route-node:nth-child(5) { border-top: 4px solid var(--mint); }
+    .route-result { display: grid; grid-template-columns: 130px 1fr; gap: 14px; margin-top: 16px; padding: 16px; border-radius: 14px; background: var(--mint-soft); }
+    .route-result b { color: var(--mint); }
+    .route-result p { margin: 0; color: var(--muted); font-size: 12px; }
+    .compare-wrap { margin-top: 18px; overflow-x: auto; }
+    .compare-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 12px; }
+    .compare-table th, .compare-table td { padding: 14px 15px; border-bottom: 1px solid var(--line-soft); vertical-align: top; text-align: left; }
+    .compare-table th { color: var(--blue-deep); background: var(--blue-soft); font-size: 11px; }
+    .compare-table td:first-child { font-weight: 850; }
+    .compare-table tr:last-child td { border-bottom: 0; }
+    .code-card { margin-top: 16px; overflow: hidden; border: 1px solid #303a48; border-radius: 19px; background: var(--code); box-shadow: 0 12px 30px rgba(20, 25, 34, .12); }
+    .code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #303a48; color: #bfc9d8; font: 700 11px/1 var(--mono); }
+    pre { margin: 0; padding: 18px; overflow-x: auto; color: var(--code-ink); font: 12px/1.72 var(--mono); tab-size: 4; }
+    .cm { color: #8996a8; } .kw { color: #f08d81; } .fn { color: #82c7f3; } .st { color: #b7dc8a; }
+    .boundary-list { display: grid; gap: 10px; margin-top: 18px; }
+    .boundary { display: grid; grid-template-columns: 116px 1fr; gap: 15px; align-items: start; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+    .boundary b { color: var(--blue-deep); font: 800 11px/1.4 var(--mono); }
+    .boundary p { margin: 0; color: var(--muted); font-size: 12px; }
+    .quiz-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .quiz-card { padding: 19px; }
+    .quiz-card h3 { font-size: 14px; }
+    .quiz-options { display: grid; gap: 7px; margin-top: 13px; }
+    .quiz-option { padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: var(--paper-strong); cursor: pointer; text-align: left; font-size: 12px; }
+    .quiz-option:hover { border-color: var(--blue); }
+    .quiz-option.correct { color: var(--mint); border-color: var(--mint); background: var(--mint-soft); }
+    .quiz-option.wrong { color: var(--coral); border-color: var(--coral); background: var(--coral-soft); }
+    .quiz-explain { display: none; margin-top: 10px; color: var(--muted); font-size: 11px; }
+    footer { padding: 34px 20px 58px; color: var(--muted); text-align: center; font-size: 12px; }
+    @media (max-width: 1040px) {
+      .layout { grid-template-columns: 1fr; } .toc { display: none; }
+      .route-chain { grid-template-columns: repeat(3, 1fr); }
+      .route-node:nth-child(3)::after { display: none; }
+    }
+    @media (max-width: 760px) {
+      .hero-facts { grid-template-columns: repeat(2, 1fr); }
+      .truth-grid, .two-col, .three-col, .quiz-grid { grid-template-columns: 1fr; }
+      .truth { border-right: 0; border-bottom: 1px solid var(--line-soft); }
+      .truth:last-child { border-bottom: 0; }
+      .flow-steps { grid-template-columns: repeat(2, 1fr); }
+      .flow-step:nth-child(2n)::after { display: none; }
+      .split-flow { grid-template-columns: 1fr; } .versus { text-align: center; }
+      .route-chain { grid-template-columns: repeat(2, 1fr); }
+      .route-node:nth-child(2n)::after { display: none; }
+      .route-result, .boundary { grid-template-columns: 1fr; }
+      .top-actions .button { display: none; }
+    }
+    @media (max-width: 460px) {
+      .hero-facts, .flow-steps, .route-chain { grid-template-columns: 1fr; }
+      .flow-step::after, .route-node::after { display: none; }
+      .hero { padding-top: 52px; }
+      h1 { font-size: 39px; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">MCP</span><span>Workspace Agent · MCP 全链路</span></div>
+    <div class="top-actions">
+      <a class="button" href="#compare">查看两种接入</a>
+      <button class="icon-button" id="themeButton" type="button" aria-label="切换深浅主题">◐</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">MODEL CONTEXT PROTOCOL · FROM DISCOVERY TO RESULT</div>
+    <h1>Agent 如何通过 <span>MCP</span><br>读懂飞书与 Figma</h1>
+    <p class="hero-copy">最新架构把三件事彻底拆开：<strong>LLM 只返回工具调用意图，MCP Host 负责真正连接与执行，Workspace Writer 才负责下载大文件和生成本地产物。</strong>无论是本地适配还是托管 MCP，模型都不会直接访问远端 <code>/tmp</code> 或桌面文件系统。</p>
+    <div class="hero-actions">
+      <a class="button primary" href="#lifecycle">从完整闭环开始</a>
+      <a class="button" href="#feishu">直接看飞书</a>
+      <a class="button" href="#figma">直接看 Figma</a>
+    </div>
+    <div class="hero-facts">
+      <div class="fact"><b>HTTP</b><span>2 个独立 Connector MCP</span></div>
+      <div class="fact"><b>tools/list</b><span>动态发现能力</span></div>
+      <div class="fact"><b>tool call</b><span>模型只负责选择</span></div>
+      <div class="fact"><b>Writer</b><span>Workspace 独立持久化</span></div>
+    </div>
+  </section>
+
+  <section class="truth-strip" aria-label="三个核心结论">
+    <div class="truth-grid">
+      <div class="truth"><b>Connector ≠ Workspace</b><span>Connector 只读外部数据，不知道任何 Workspace 路径。</span></div>
+      <div class="truth"><b>对模型：两者很像</b><span>都是名称、参数 schema 与调用意图；真正差别在宿主后面的执行路径。</span></div>
+      <div class="truth"><b>凭证跟着服务走</b><span>飞书 Secret 与 Figma PAT 只属于各自 Connector Server。</span></div>
+    </div>
+  </section>
+
+  <main class="layout" id="main">
+    <aside>
+      <nav class="toc" aria-label="页面目录">
+        <p class="toc-title">LEARNING PATH</p>
+        <a href="#mental-model">01 · 先建立心智模型</a>
+        <a href="#lifecycle">02 · 一次调用的完整闭环</a>
+        <a href="#orchestration">03 · 固定编排与自主选择</a>
+        <a href="#feishu">04 · 飞书 MCP</a>
+        <a href="#figma">05 · Figma MCP</a>
+        <a href="#compare">06 · 两条链路对比</a>
+        <a href="#deployment">07 · 部署与配置边界</a>
+        <a href="#function-call">08 · MCP 与 Function Tool</a>
+        <a href="#data-plane">09 · 宿主与大文件数据面</a>
+        <a href="#boundaries">10 · 安全边界</a>
+        <a href="#quiz">11 · 四题自检</a>
+        <div class="toc-status" id="tocStatus">已完成自测 0 / 4</div>
+      </nav>
+    </aside>
+
+    <div class="content">
+      <section class="section" id="mental-model">
+        <div class="section-kicker">01 · MENTAL MODEL</div>
+        <h2>把 MCP 想成“工具插座标准”</h2>
+        <p class="section-lead">Agent 不需要提前认识每一个平台。只要某个 Server 遵循 MCP，它就能用统一方式询问“你会什么”、调用能力并读取结果。</p>
+        <div class="three-col">
+          <article class="concept"><div class="icon">🧠</div><h3>Agent / LLM</h3><p>理解用户意图，从当前工具清单里决定是否调用、调用哪个、参数是什么。</p></article>
+          <article class="concept purple"><div class="icon">⌁</div><h3>MCP Host / Manager</h3><p>通过 Streamable HTTP 连接多个 Server，动态收集 schema，并按命名空间路由调用。</p></article>
+          <article class="concept mint"><div class="icon">⚙</div><h3>Connector + Writer</h3><p>Connector 读取外部数据；Writer 在应用侧生成 Markdown、HTML、JSON 与图片，两者不互相越权。</p></article>
+        </div>
+        <div class="plain-box"><strong>一句话：</strong>模型只生成“调用哪个工具、传什么参数”的意图；Codex / Agent Runtime 这样的宿主才连接 MCP、执行本地 handler、管理权限并把结果放回模型上下文。</div>
+      </section>
+
+      <section class="section" id="lifecycle">
+        <div class="section-kicker">02 · LIFECYCLE</div>
+        <h2>一次 MCP 调用，实际走了 8 步</h2>
+        <p class="section-lead">点击任一步，查看这一刻是谁在做什么。前四步建立能力清单，后四步完成一次工具调用闭环。</p>
+        <div class="flow-lab">
+          <div class="flow-steps" id="flowSteps">
+            <button class="flow-step active" type="button" data-index="0"><b>1. 注册 Server</b><small>registry</small></button>
+            <button class="flow-step" type="button" data-index="1"><b>2. 协议握手</b><small>initialize</small></button>
+            <button class="flow-step" type="button" data-index="2"><b>3. 发现工具</b><small>tools/list</small></button>
+            <button class="flow-step" type="button" data-index="3"><b>4. 暴露给模型</b><small>native / adapter</small></button>
+            <button class="flow-step" type="button" data-index="4"><b>5. 模型选择</b><small>mcp / tool call</small></button>
+            <button class="flow-step" type="button" data-index="5"><b>6. 路由执行</b><small>tools/call</small></button>
+            <button class="flow-step" type="button" data-index="6"><b>7. 写入 Workspace</b><small>writer</small></button>
+            <button class="flow-step" type="button" data-index="7"><b>8. 回传并回答</b><small>tool result</small></button>
+          </div>
+          <div class="flow-reading" aria-live="polite"><b id="flowTitle">1. 注册 Server</b><p id="flowBody">应用登记两个 Streamable HTTP 地址：Feishu Connector 与 Figma Connector。它们可由桌面端启动，也可单独部署后供多个 Agent 使用。</p></div>
+        </div>
+        <div class="insight"><strong>关键：</strong>工具不是写死在模型 prompt 里。每次测试都会先连接 Server 并执行 <code>tools/list</code>，再把当下真实存在的工具交给模型。</div>
+      </section>
+
+      <section class="section" id="orchestration">
+        <div class="section-kicker">03 · ORCHESTRATION</div>
+        <h2>同一个 MCP，可以有两种使用方式</h2>
+        <p class="section-lead">是否“自主选择”由调用它的上层流程决定，不是 MCP 自己决定。</p>
+        <div class="split-flow">
+          <article class="mode-card fixed"><h3>Workspace：固定编排</h3><p>用户点击明确入口，应用直接调用飞书 Connector；拿到只读数据后，再交给 Writer 生成文档，无需模型判断。</p><p><code>button → feishu/read_document → writer</code></p></article>
+          <div class="versus">VS</div>
+          <article class="mode-card agent"><h3>全栈 Tab：Agent 自主选择</h3><p>把 MCP 动态发现的工具交给模型。模型选择数据源，Connector 返回数据，应用再确定性地调用对应 Writer。</p><p><code>prompt → LLM → connector → writer</code></p></article>
+        </div>
+        <div class="warning"><strong>隔离原则：</strong>当前自主调用入口是独立旁路测试，不进入、也不修改已有 FullStackAgent / OODA / Codex 任务链路。</div>
+      </section>
+
+      <section class="section" id="feishu">
+        <div class="section-kicker">04 · FEISHU MCP</div>
+        <h2>飞书：HTTP Connector 只负责“读”</h2>
+        <p class="section-lead">对 Agent 暴露 <code>read_document</code>：完成 wiki 定位、正文、blocks 与图片临时地址读取，但不接收 Workspace 路径，也不生成文件。</p>
+        <div class="route-panel">
+          <div class="route-title"><h3>飞书读取链路</h3><span>feishu__read_document</span></div>
+          <div class="route-chain">
+            <div class="route-node"><b>Agent / 页面</b><span>提供 docx、docs 或 wiki 链接</span></div>
+            <div class="route-node"><b>MCP Host</b><span>Streamable HTTP 动态发现与路由</span></div>
+            <div class="route-node"><b>Feishu Connector</b><span>无 Workspace 上下文的只读服务</span></div>
+            <div class="route-node"><b>飞书官方 MCP</b><span>调用 lark-mcp 的 OpenAPI 工具</span></div>
+            <div class="route-node"><b>文档 + Blocks</b><span>wiki 定位、正文、块与媒体地址</span></div>
+            <div class="route-node"><b>Workspace Writer</b><span>Markdown、HTML、assets 图片</span></div>
+          </div>
+          <div class="route-result"><b>拆分后的关键：</b><p>Connector 冻结“读 wiki → 找 docx → 拉正文 → 拉 blocks → 取媒体临时地址”；Writer 冻结“下载图片 → 渲染 Markdown / HTML → 安全写入 Workspace”。读取能力可以被其他 Agent 复用，而写入策略仍由各应用自己控制。</p></div>
+        </div>
+        <div class="two-col">
+          <article class="concept yellow"><div class="icon">🔑</div><h3>服务端认证</h3><p><code>FEISHU_APP_ID</code> 与 <code>FEISHU_APP_SECRET</code> 只进入 Feishu Connector 环境；tenant access token 由 lark-mcp 按需获取。</p></article>
+          <article class="concept mint"><div class="icon">🖼</div><h3>图片</h3><p>先从文档 blocks 找图片 token，再取得临时下载地址，将真实图片写入同一文档包的 <code>assets/</code>。</p></article>
+        </div>
+      </section>
+
+      <section class="section" id="figma">
+        <div class="section-kicker">05 · FIGMA MCP</div>
+        <h2>Figma：HTTP Connector 包装 REST API + PAT</h2>
+        <p class="section-lead">Figma Connector 使用 PAT 调 REST API，只返回节点结构与临时预览地址；真实 PNG 和 JSON 由 Workspace Writer 落盘。</p>
+        <div class="route-panel">
+          <div class="route-title"><h3>Figma 读取链路</h3><span>figma__read_design</span></div>
+          <div class="route-chain">
+            <div class="route-node"><b>Agent / 页面</b><span>提供包含 node-id 的设计链接</span></div>
+            <div class="route-node"><b>MCP Manager</b><span>动态发现 figma 工具并路由</span></div>
+            <div class="route-node"><b>Figma Connector</b><span>解析 file key 与 node-id</span></div>
+            <div class="route-node"><b>PAT 认证</b><span>X-Figma-Token，仅后端持有</span></div>
+            <div class="route-node"><b>Figma REST API</b><span>files/nodes + images 渲染</span></div>
+            <div class="route-node"><b>Workspace Writer</b><span>design.json + preview.png</span></div>
+          </div>
+          <div class="route-result"><b>本质是什么？</b><p>对上仍然是标准 Streamable HTTP MCP；对下是 Figma REST API。PAT 不会发给 Agent、模型或 Workspace Writer，Writer 只消费 Connector 返回的结构数据和短期预览地址。</p></div>
+        </div>
+        <div class="two-col">
+          <article class="concept purple"><div class="icon">⌗</div><h3>结构数据</h3><p>节点树保留文本、布局、尺寸、颜色、圆角、组件引用等核心设计信息，并限制最大节点数，避免上下文失控。</p></article>
+          <article class="concept mint"><div class="icon">▣</div><h3>视觉数据</h3><p>对目标 node-id 请求 PNG 渲染，真实图片落到 <code>assets/preview.png</code>，与结构 JSON 共同提供设计上下文。</p></article>
+        </div>
+      </section>
+
+      <section class="section" id="compare">
+        <div class="section-kicker">06 · COMPARE</div>
+        <h2>相同的是 MCP 外壳，不同的是内部适配</h2>
+        <p class="section-lead">切换下方链路可快速复习；表格展示两个 Server 为什么采用不同内部实现。</p>
+        <div class="route-tabs" role="tablist" aria-label="选择 MCP 链路">
+          <button class="route-tab active" id="tabFeishu" type="button" role="tab" aria-selected="true">飞书链路</button>
+          <button class="route-tab" id="tabFigma" type="button" role="tab" aria-selected="false">Figma 链路</button>
+        </div>
+        <div class="code-card">
+          <div class="code-head"><span>核心架构 · 非具体代码</span><span id="routeLabel">FEISHU</span></div>
+          <pre id="routeCode"><span class="cm">用户：读取这个飞书 PRD</span>
+  ↓
+<span class="fn">Agent / 固定入口</span>
+  ↓ Streamable HTTP · tools/call
+<span class="kw">Feishu Connector MCP</span>
+  ↓ 只读连接
+<span class="st">官方 lark-mcp → 飞书 OpenAPI</span>
+  ↓ structuredContent
+Workspace Writer ↓
+Markdown + HTML + 图片</pre>
+        </div>
+        <div class="compare-wrap">
+          <table class="compare-table">
+            <thead><tr><th>维度</th><th>飞书</th><th>Figma</th></tr></thead>
+            <tbody>
+              <tr><td>Agent 看到的工具</td><td><code>feishu__read_document</code></td><td><code>figma__read_design</code></td></tr>
+              <tr><td>MCP 连接方式</td><td>Streamable HTTP</td><td>Streamable HTTP</td></tr>
+              <tr><td>Server 内部下游</td><td>飞书官方 lark-mcp</td><td>Figma REST API</td></tr>
+              <tr><td>认证材料</td><td>App ID + App Secret</td><td>Personal Access Token</td></tr>
+              <tr><td>核心数据</td><td>正文、blocks、wiki 节点</td><td>设计节点树、文本、布局、样式</td></tr>
+              <tr><td>图片处理</td><td>媒体 token → 临时 URL → 本地图片</td><td>node-id → Images API → PNG 预览</td></tr>
+              <tr><td>Connector 输出</td><td>正文、blocks、媒体临时 URL</td><td>节点树、预览临时 URL</td></tr>
+              <tr><td>Writer 最终产物</td><td>Markdown + HTML + assets</td><td>design.json + preview.png</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="deployment">
+        <div class="section-kicker">07 · DEPLOYMENT & CONFIG</div>
+        <h2>Server 单独部署，配置和凭证跟着服务走</h2>
+        <p class="section-lead">桌面开发模式会在随机本地端口启动两个 HTTP 进程；团队模式则把它们部署到容器、函数计算或 Kubernetes，通过 URL 注册给多个 Agent。</p>
+        <div class="three-col">
+          <article class="concept"><div class="icon">☁</div><h3>Feishu Connector</h3><p>持有 <code>FEISHU_APP_ID</code>、<code>FEISHU_APP_SECRET</code>；内部获取 tenant token。其他 Agent 只知道 MCP URL。</p></article>
+          <article class="concept purple"><div class="icon">◆</div><h3>Figma Connector</h3><p>持有 <code>FIGMA_PAT</code>；通过 <code>X-Figma-Token</code> 访问 REST API，不把 PAT 放进工具返回。</p></article>
+          <article class="concept mint"><div class="icon">⌂</div><h3>Workspace Agent</h3><p>只持有两个 Connector URL 与自己的访问凭证；写入目录和文件策略留在本应用。</p></article>
+        </div>
+        <div class="two-col">
+          <article class="mode-card fixed"><h3>当前配置</h3><p>本地从进程环境或 <code>.env</code> 读取 URL、第三方凭证和 Connector Bearer Token；工具注册仍由应用 registry 管理。</p></article>
+          <article class="mode-card agent"><h3>Apollo 演进</h3><p>可按 Feishu、Figma、Workspace 三个应用/Namespace 分发配置；Apollo Access Key 本身必须由部署平台 Secret 注入，不能依赖 Apollo 自举。</p></article>
+        </div>
+        <div class="plain-box"><strong>Bearer Token 的角色：</strong>它认证“哪个 Agent 正在调用 Connector”，不等于飞书 tenant token，也不等于 Figma PAT。生产环境应逐 Agent 发放独立短期凭证，并配工具权限、审计与撤销。</div>
+      </section>
+
+      <section class="section" id="function-call">
+        <div class="section-kicker">08 · NATIVE MCP VS ADAPTER</div>
+        <h2>对模型都是调用意图，区别在宿主执行路径</h2>
+        <p class="section-lead">LLM 不会亲自执行 HTTP、MCP 或本地代码。它只输出工具名和参数；宿主收到意图后，选择本地 handler，或通过 MCP Client 转发给 MCP Server。</p>
+        <div class="two-col">
+          <article class="mode-card fixed"><h3>Function Tool</h3><p><code>LLM → tool_call → Host 中预注册的 handler</code>。handler 可以执行本地代码，也可以继续请求远程 HTTP 服务；Function Tool 并不等于“只能本地”。</p></article>
+          <article class="mode-card agent"><h3>MCP Tool</h3><p><code>LLM → tool_call → Host 的 MCP Client → tools/call → MCP Server</code>。Server 既可以是本机 stdio 子进程，也可以是远程 HTTP 服务；MCP 并不等于“只能远程”。</p></article>
+        </div>
+        <div class="compare-wrap">
+          <table class="compare-table">
+            <thead><tr><th>维度</th><th>Function Tool</th><th>MCP Tool</th></tr></thead>
+            <tbody>
+              <tr><td>模型看到什么</td><td>工具名、描述、参数 schema</td><td>工具名、描述、参数 schema</td></tr>
+              <tr><td>谁真正执行</td><td>宿主绑定的 handler</td><td>宿主中的 MCP Client 转发给 Server</td></tr>
+              <tr><td>工具如何注册</td><td>应用预先编写和注册</td><td>通过 <code>tools/list</code> 动态发现</td></tr>
+              <tr><td>部署位置</td><td>本地或远程</td><td>本地 stdio 或远程 HTTP</td></tr>
+              <tr><td>跨宿主复用</td><td>通常需要重新集成</td><td>通过标准协议更容易复用</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="plain-box"><strong>准确结论：</strong>MCP 可以理解为把工具发现、schema、调用、结果、资源和连接管理标准化。当前本地测试由 Manager 把 MCP 工具适配成模型 Function Tools；支持托管 MCP 的模型服务，则由服务端工具运行层承担 Host 的一部分职责，而不是 LLM 本体直接连接 MCP。</div>
+      </section>
+
+      <section class="section" id="data-plane">
+        <div class="section-kicker">09 · HOST & FILE DATA PLANE</div>
+        <h2>大文件不进上下文，走宿主的数据通道</h2>
+        <p class="section-lead">普通 MCP 文本结果最终会变成模型的 tool result，内容过大时会被限长。文件字节应在远程服务与实际执行环境之间传输，LLM 只接收 fileId、路径、摘要与校验结果。</p>
+        <div class="route-panel">
+          <div class="route-title"><h3>远程文件落到桌面并生成产物</h3><span>CONTROL PLANE ≠ DATA PLANE</span></div>
+          <div class="route-chain">
+            <div class="route-node"><b>LLM</b><span>返回 export_document 的工具调用意图</span></div>
+            <div class="route-node"><b>Codex Host</b><span>通过 MCP Client 执行 tools/call</span></div>
+            <div class="route-node"><b>远程 MCP</b><span>生成 fileId、元数据与短期下载凭证</span></div>
+            <div class="route-node"><b>文件数据通道</b><span>宿主流式下载，不把字节放进 prompt</span></div>
+            <div class="route-node"><b>本地 Writer</b><span>完整读取、转换、生成与验证</span></div>
+            <div class="route-node"><b>LLM / 用户</b><span>只看到结果摘要与本地最终路径</span></div>
+          </div>
+          <div class="route-result"><b>为什么远端路径没用？</b><p><code>/tmp/source.docx</code> 只属于远程 MCP Server 的文件系统。Codex 桌面端不能凭这个字符串读取文件；必须拿到可下载的文件句柄，或把文件复制进当前执行环境，再由本地 Writer 处理。</p></div>
+        </div>
+        <div class="two-col">
+          <article class="concept purple"><div class="icon">⌁</div><h3>控制面：给 LLM 的小结果</h3><p>工具名、参数、<code>fileId</code>、文件名、大小、MIME、哈希、过期时间、最终路径和验证摘要。它们用于决策，可以安全进入模型上下文。</p></article>
+          <article class="concept mint"><div class="icon">⇣</div><h3>数据面：不给 LLM 的大字节</h3><p>文档、图片、压缩包和生成物通过流式下载、共享对象存储或执行环境文件 API 传输，直接落到受控临时目录。</p></article>
+        </div>
+        <div class="code-card">
+          <div class="code-head"><span>推荐的 MCP 返回值 · 只返回句柄</span><span>JSON</span></div>
+          <pre>{
+  <span class="st">"fileId"</span>: <span class="st">"file_123"</span>,
+  <span class="st">"fileName"</span>: <span class="st">"source.docx"</span>,
+  <span class="st">"sizeBytes"</span>: 52428800,
+  <span class="st">"mimeType"</span>: <span class="st">"application/vnd.openxmlformats-officedocument.wordprocessingml.document"</span>,
+  <span class="st">"sha256"</span>: <span class="st">"..."</span>,
+  <span class="st">"downloadToken"</span>: <span class="st">"short-lived-token"</span>
+}</pre>
+        </div>
+        <div class="three-col">
+          <article class="concept"><div class="icon">1</div><h3>机械转换</h3><p>远程或本地程序直接处理完整文件，只把结果交给模型。例如 PDF 转 DOCX、Excel 转 CSV、模板填充。</p></article>
+          <article class="concept yellow"><div class="icon">2</div><h3>语义生成</h3><p>文件先落地，再由本地解析器按页或章节分块；LLM 逐块提取结构化事实，Writer 最后组装并回查原文。</p></article>
+          <article class="concept mint"><div class="icon">3</div><h3>远端生成</h3><p>MCP Server 在远端直接生成最终产物并返回新的 fileId；桌面端只下载成品，再做本地校验和展示。</p></article>
+        </div>
+        <div class="warning"><strong>不能这样做：</strong>只返回远端 <code>/tmp</code> 路径，本地不可访问；把几十 MB 文件转成 base64 放进 MCP 文本结果，会消耗上下文并可能被截断。若没有下载、执行环境复制或分块读取能力，就不能保证完整生成。</div>
+      </section>
+
+      <section class="section" id="boundaries">
+        <div class="section-kicker">10 · SAFETY BOUNDARIES</div>
+        <h2>稳定接入靠边界，不靠模型“自觉”</h2>
+        <p class="section-lead">认证、文件范围、网络目标和输出体积都应由应用与 Server 强约束。</p>
+        <div class="boundary-list">
+          <div class="boundary"><b>凭证边界</b><p>Secret 与 PAT 只在对应 Connector 环境中；Agent 只持有 MCP 访问凭证。任何凭证都不能写进 prompt、工具结果、日志或前端状态。</p></div>
+          <div class="boundary"><b>链接边界</b><p>飞书只接受可信飞书域名；Figma 只解析 figma.com HTTPS 链接。链接只是定位资源，不允许变成任意网络请求入口。</p></div>
+          <div class="boundary"><b>写入边界</b><p>Connector 永不写 Workspace；Writer 才能把生成物落到指定测试目录，并防止符号链接把写入位置引出 Workspace。</p></div>
+          <div class="boundary"><b>内容边界</b><p>MCP 返回内容属于不可信数据，只能当资料使用，不能把文档或设计里的文字提升成系统指令。</p></div>
+          <div class="boundary"><b>体积边界</b><p>限制节点数量、字符串长度与图片大小；图片优先传临时 URL，由 Writer 下载，避免在 MCP 响应中塞入大段 base64。</p></div>
+          <div class="boundary"><b>传输边界</b><p>下载凭证必须短期、单文件、最小权限并校验大小、MIME 与哈希；临时文件名不能直接信任远端输入，最终产物只能写入获准目录。</p></div>
+        </div>
+      </section>
+
+      <section class="section" id="quiz">
+        <div class="section-kicker">11 · QUICK CHECK</div>
+        <h2>四题确认你真的理解了</h2>
+        <p class="section-lead">每题选择后会立即显示答案。</p>
+        <div class="quiz-grid">
+          <article class="quiz-card" data-answer="b"><h3>1. Connector 可以直接写 Workspace 吗？</h3><div class="quiz-options"><button class="quiz-option" type="button" data-choice="a">A. 可以，方便一次完成</button><button class="quiz-option" type="button" data-choice="b">B. 不应，由 Writer 负责</button></div><p class="quiz-explain">Connector 是可复用的数据连接器，Workspace 写入属于具体应用的副作用边界。</p></article>
+          <article class="quiz-card" data-answer="a"><h3>2. PAT 能否直接登录官方 Remote MCP？</h3><div class="quiz-options"><button class="quiz-option" type="button" data-choice="a">A. 不能，本项目用它调 REST API</button><button class="quiz-option" type="button" data-choice="b">B. 能，等同 OAuth Token</button></div><p class="quiz-explain">PAT 是 REST API 凭证，不等于官方 Remote MCP OAuth。</p></article>
+          <article class="quiz-card" data-answer="a"><h3>3. MCP 必须转换为 Function Tool 吗？</h3><div class="quiz-options"><button class="quiz-option" type="button" data-choice="a">A. 不必须，取决于模型接口</button><button class="quiz-option" type="button" data-choice="b">B. 必须，这是 MCP 规范</button></div><p class="quiz-explain">Chat Completions 需要 Host 适配；支持原生 MCP 的 Responses API 可直接使用 type: mcp。</p></article>
+          <article class="quiz-card" data-answer="b"><h3>4. 远端 MCP 返回 /tmp/a.docx，本地能直接读取吗？</h3><div class="quiz-options"><button class="quiz-option" type="button" data-choice="a">A. 能，路径已经返回给模型</button><button class="quiz-option" type="button" data-choice="b">B. 不能，需要文件传输或环境复制</button></div><p class="quiz-explain">路径只在它所属的文件系统中有效；大文件应走宿主数据通道，而不是进入 LLM 上下文。</p></article>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>Workspace Agent · LLM / Host / MCP / Writer · 控制面与文件数据面分层</footer>
+
+  <script>
+    const flowData = [
+      ["1. 注册 Server", "应用登记两个 Streamable HTTP 地址：Feishu Connector 与 Figma Connector。它们可由桌面端启动，也可单独部署后供多个 Agent 使用。"],
+      ["2. 协议握手", "MCP Host 连接 /mcp 并发送 initialize。Server 声明协议版本、身份与能力；Bearer Token 用于认证调用方。"],
+      ["3. 发现工具", "Host 调用 tools/list。飞书返回 read_document，Figma 返回 read_design，名称、描述与输入 schema 都来自 Server。"],
+      ["4. 暴露给模型", "当前 Chat Completions 模式由 Manager 转成 Function Tools；原生 MCP 模式则把 type=mcp 与 server_url 直接交给模型平台。"],
+      ["5. 模型选择", "模型根据用户意图选择 feishu__read_document 或 figma__read_design，也可以判断当前不需要外部工具。"],
+      ["6. 路由执行", "Host 或模型平台通过 MCP tools/call 调用 Connector。Connector 只读取外部数据，不持有 Workspace 路径。"],
+      ["7. 写入 Workspace", "应用把 structuredContent 交给对应 Writer：飞书生成 Markdown / HTML / assets，Figma 保存 design.json / preview.png。"],
+      ["8. 回传并回答", "Writer 的安全结果摘要作为工具结果回传给模型，模型继续回答；第三方 Secret、PAT 和临时大数据不会进入最终上下文。"]
+    ];
+    const flowButtons = [...document.querySelectorAll(".flow-step")];
+    flowButtons.forEach(button => button.addEventListener("click", () => {
+      const index = Number(button.dataset.index);
+      flowButtons.forEach(item => item.classList.toggle("active", item === button));
+      document.getElementById("flowTitle").textContent = flowData[index][0];
+      document.getElementById("flowBody").textContent = flowData[index][1];
+    }));
+
+    const routes = {
+      feishu: {
+        label: "FEISHU",
+        html: `<span class="cm">用户：读取这个飞书 PRD</span>\n  ↓\n<span class="fn">Agent / 固定入口</span>\n  ↓ Streamable HTTP · tools/call\n<span class="kw">Feishu Connector MCP</span>\n  ↓ App ID / Secret\n<span class="st">官方 lark-mcp → 飞书 OpenAPI</span>\n  ↓ structuredContent\nWorkspace Writer → Markdown + HTML + 图片`
+      },
+      figma: {
+        label: "FIGMA",
+        html: `<span class="cm">用户：分析这个 Figma 节点</span>\n  ↓\n<span class="fn">Agent 自主选择</span>\n  ↓ Streamable HTTP · tools/call\n<span class="kw">Figma Connector MCP</span>\n  ↓ X-Figma-Token\n<span class="st">Figma REST API → nodes + preview URL</span>\n  ↓ structuredContent\nWorkspace Writer → design.json + preview.png`
+      }
+    };
+    const tabFeishu = document.getElementById("tabFeishu");
+    const tabFigma = document.getElementById("tabFigma");
+    function selectRoute(name) {
+      const isFeishu = name === "feishu";
+      tabFeishu.classList.toggle("active", isFeishu);
+      tabFigma.classList.toggle("active", !isFeishu);
+      tabFeishu.setAttribute("aria-selected", String(isFeishu));
+      tabFigma.setAttribute("aria-selected", String(!isFeishu));
+      document.getElementById("routeLabel").textContent = routes[name].label;
+      document.getElementById("routeCode").innerHTML = routes[name].html;
+    }
+    tabFeishu.addEventListener("click", () => selectRoute("feishu"));
+    tabFigma.addEventListener("click", () => selectRoute("figma"));
+
+    const answered = new Set();
+    const quizzes = [...document.querySelectorAll(".quiz-card")];
+    quizzes.forEach((card, index) => {
+      const answer = card.dataset.answer;
+      const options = [...card.querySelectorAll(".quiz-option")];
+      options.forEach(option => option.addEventListener("click", () => {
+        options.forEach(item => {
+          item.disabled = true;
+          item.classList.toggle("correct", item.dataset.choice === answer);
+        });
+        if (option.dataset.choice !== answer) option.classList.add("wrong");
+        card.querySelector(".quiz-explain").style.display = "block";
+        answered.add(index);
+        document.getElementById("tocStatus").textContent = `已完成自测 ${answered.size} / ${quizzes.length}`;
+      }));
+    });
+
+    const themeButton = document.getElementById("themeButton");
+    const savedTheme = localStorage.getItem("agent-learning-theme");
+    if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+    themeButton.addEventListener("click", () => {
+      const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem("agent-learning-theme", next);
+    });
+
+    const progressBar = document.getElementById("progressBar");
+    function updateProgress() {
+      const total = document.documentElement.scrollHeight - innerHeight;
+      progressBar.style.width = `${total > 0 ? scrollY / total * 100 : 0}%`;
+    }
+    addEventListener("scroll", updateProgress, { passive: true });
+    updateProgress();
+
+    const tocLinks = [...document.querySelectorAll(".toc a")];
+    const sections = [...document.querySelectorAll(".section")];
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      tocLinks.forEach(link => link.classList.toggle("active", link.getAttribute("href") === `#${visible.target.id}`));
+    }, { rootMargin: "-18% 0px -68%", threshold: [0, .2, .5] });
+    sections.forEach(section => observer.observe(section));
+  </script>
+</body>
+</html>

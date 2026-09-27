@@ -1,0 +1,1290 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="基于面试题截图整理的 AI Agent 开发岗位重点题单，按重点、算法、原理与拔高分类。">
+  <meta name="theme-color" content="#f4f1e8">
+  <title>AI Agent 面试重点题</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page:#f4f1e8; --paper:#fffdf8; --ink:#18202d; --muted:#697283;
+      --line:#dedad0; --line-soft:#ece8de; --blue:#3776ab; --blue-deep:#24577f;
+      --blue-soft:#e8f2fa; --yellow:#efbd16; --yellow-soft:#fff4c4; --yellow-deep:#735a00;
+      --mint:#287f6b; --mint-soft:#e7f4ef; --purple:#7d5db0; --purple-soft:#f0ebf8;
+      --coral:#df684d; --coral-soft:#ffefe9; --shadow:0 22px 58px rgba(47,43,33,.09);
+      --sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+      --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    }
+    [data-theme="dark"] {
+      color-scheme:dark; --page:#121720; --paper:#1a222d; --ink:#eef3f8; --muted:#a7b2c1;
+      --line:#354251; --line-soft:#2b3644; --blue-deep:#82c0ef; --blue-soft:#172e43;
+      --yellow-soft:#3c3518; --yellow-deep:#f4d55a; --mint-soft:#17362f;
+      --purple-soft:#302740; --coral-soft:#3d2521; --shadow:0 24px 65px rgba(0,0,0,.27);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;color:var(--ink);background:radial-gradient(circle at 9% 2%,color-mix(in srgb,var(--blue) 14%,transparent),transparent 31rem),radial-gradient(circle at 92% 8%,color-mix(in srgb,var(--yellow) 18%,transparent),transparent 28rem),var(--page);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased}
+    button{color:inherit;font:inherit;cursor:pointer}
+    .progress-track{position:fixed;inset:0 0 auto;z-index:120;height:4px}.progress-bar{width:0;height:100%;background:linear-gradient(90deg,var(--blue),var(--purple),var(--yellow))}
+    .topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;min-height:66px;padding:0 clamp(16px,4vw,56px);border-bottom:1px solid color-mix(in srgb,var(--line) 80%,transparent);background:color-mix(in srgb,var(--page) 86%,transparent);backdrop-filter:blur(5px)}
+    .brand{display:flex;align-items:center;gap:11px;font-weight:850}.brand-mark{display:grid;place-items:center;width:40px;height:40px;border-radius:13px;color:#fff;background:linear-gradient(135deg,var(--blue),var(--purple));font:850 11px/1 var(--mono)}
+    .icon-button{display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+    .hero{max-width:1120px;margin:auto;padding:clamp(54px,8vw,92px) 22px 30px}.eyebrow{color:var(--blue-deep);font:850 12px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase}.eyebrow:before{content:"";display:inline-block;width:28px;height:3px;margin:0 9px 3px 0;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--yellow))}
+    h1{max-width:900px;margin:18px 0 0;font-size:clamp(41px,7vw,75px);line-height:1.04;letter-spacing:-.055em}h1 span{color:var(--blue)}
+    .hero-copy{max-width:760px;margin:22px 0 0;color:var(--muted);font-size:clamp(16px,2vw,19px)}
+    .summary{display:flex;flex-wrap:wrap;gap:9px;margin-top:28px}.summary span{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--paper) 88%,transparent);font-size:12px;font-weight:750}.summary b{color:var(--blue-deep);font-family:var(--mono)}
+    .content-layout{display:grid;grid-template-columns:252px minmax(0,1fr);align-items:start;gap:24px;max-width:1450px;margin:auto;padding:0 22px 90px}
+    .main{min-width:0}
+    .question-nav{position:sticky;top:78px;max-height:calc(100vh - 96px)}
+    .question-nav-panel{overflow:hidden;border:1px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--paper) 92%,transparent);box-shadow:0 12px 36px rgba(45,40,28,.07);backdrop-filter:blur(16px)}
+    .question-nav-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 14px 12px;border-bottom:1px solid var(--line-soft)}.question-nav-title{font-size:13px;font-weight:900}.question-nav-count{display:block;margin-top:2px;color:var(--muted);font:700 10px/1.3 var(--mono)}
+    .nav-top-button{display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line);border-radius:10px;background:var(--paper);font-size:14px}.nav-top-button:hover{color:var(--blue-deep);border-color:var(--blue);background:var(--blue-soft)}
+    .question-nav-list{display:grid;gap:3px;max-height:calc(100vh - 168px);padding:8px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+    .question-nav-link{display:grid;grid-template-columns:38px minmax(0,1fr);align-items:start;gap:7px;width:100%;padding:8px;border:0;border-radius:10px;background:transparent;text-align:left}.question-nav-link:hover{background:var(--blue-soft)}.question-nav-link.active{color:var(--blue-deep);background:var(--blue-soft);box-shadow:inset 3px 0 var(--blue)}
+    .question-nav-number{padding-top:2px;color:var(--muted);font:800 10px/1.4 var(--mono)}.question-nav-link.active .question-nav-number{color:var(--blue-deep)}.question-nav-text{overflow:hidden;font-size:11px;font-weight:750;line-height:1.45;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+    .tabs-shell{position:sticky;top:78px;z-index:70;padding:8px;border:1px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--paper) 90%,transparent);box-shadow:0 12px 36px rgba(45,40,28,.07);backdrop-filter:blur(16px)}
+    .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.tab{min-height:48px;padding:9px 12px;border:0;border-radius:12px;background:transparent;font-size:13px;font-weight:800}.tab:hover{background:var(--blue-soft)}.tab.active{color:#fff;background:linear-gradient(135deg,var(--blue),var(--purple));box-shadow:0 8px 20px rgba(55,118,171,.22)}.tab small{display:block;margin-top:2px;font:700 10px/1 var(--mono);opacity:.75}
+    .section-head{display:flex;justify-content:space-between;gap:20px;align-items:end;margin:32px 2px 15px}.section-head h2{margin:0;font-size:27px;letter-spacing:-.035em}.section-head p{max-width:600px;margin:0;color:var(--muted);font-size:13px;text-align:right}
+    .question-list{display:grid;gap:14px}.card{overflow:hidden;scroll-margin-top:148px;border:1px solid var(--line);border-radius:20px;background:var(--paper);box-shadow:0 10px 28px rgba(45,40,28,.055)}
+    .card-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:15px;padding:20px 21px;border-bottom:1px solid var(--line-soft)}.number{display:grid;place-items:center;width:48px;height:48px;border-radius:15px;color:var(--blue-deep);background:var(--blue-soft);font:900 13px/1 var(--mono)}
+    .card[data-category="算法"] .number{color:var(--coral);background:var(--coral-soft)}.card[data-category="原理"] .number{color:var(--mint);background:var(--mint-soft)}.card[data-category="拔高"] .number{color:var(--purple);background:var(--purple-soft)}
+    .card h3{margin:0;font-size:18px;line-height:1.42;letter-spacing:-.018em}.requirement{margin:7px 0 0;color:var(--blue-deep);font-size:13px;font-weight:800}.meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.tag{padding:4px 8px;border-radius:999px;color:var(--muted);background:var(--line-soft);font-size:10px;font-weight:800}.tag.company{color:var(--blue-deep);border:1px solid color-mix(in srgb,var(--blue) 27%,transparent);background:var(--blue-soft)}.tag.focus{color:var(--yellow-deep);background:var(--yellow-soft)}
+    .original-question{margin-top:13px;border:1px solid var(--line);border-radius:13px;background:color-mix(in srgb,var(--paper) 78%,var(--blue-soft))}.original-question summary{display:flex;align-items:center;gap:9px;padding:10px 12px;color:var(--blue-deep);font-size:12px;font-weight:850;list-style:none;cursor:pointer;user-select:none}.original-question summary::-webkit-details-marker{display:none}.original-question summary:before{content:"+";display:grid;place-items:center;width:20px;height:20px;border-radius:7px;color:#fff;background:var(--blue);font:900 14px/1 var(--mono)}.original-question[open] summary:before{content:"−"}.original-question[open] summary{border-bottom:1px solid var(--line)}.original-copy{margin:0;padding:13px 14px 15px;color:var(--ink);font-size:13px;line-height:1.8;white-space:pre-line}
+    .mastery{padding:18px 21px 21px}.mastery-label{display:flex;align-items:center;gap:9px;color:var(--muted);font:850 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase}.mastery-label:after{content:"";height:1px;flex:1;background:var(--line-soft)}.mastery ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 26px;margin:14px 0 0;padding:0;list-style:none}.mastery li{position:relative;padding-left:19px;font-size:14px}.mastery li:before{content:"✓";position:absolute;left:0;top:0;color:var(--mint);font-weight:900}
+    .empty{display:none;padding:65px 20px;border:1px dashed var(--line);border-radius:20px;color:var(--muted);background:var(--paper);text-align:center}
+    .footer{max-width:900px;margin:auto;padding:0 22px 70px;color:var(--muted);text-align:center;font-size:12px}.footer:before{content:"";display:block;width:62px;height:3px;margin:0 auto 20px;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--yellow))}
+    @media(max-width:1180px){.content-layout{display:block;max-width:1120px}.question-nav{display:none}}
+    @media(max-width:760px){.tabs-shell{top:73px;overflow-x:auto}.tabs{display:flex;min-width:max-content}.tab{min-width:116px}.section-head{display:block}.section-head p{margin-top:8px;text-align:left}.mastery ul{grid-template-columns:1fr}}
+    @media(max-width:520px){.hero,.content-layout{padding-left:14px;padding-right:14px}.brand-text{display:none}.card-head{padding:17px}.mastery{padding:16px 17px 19px}.number{width:43px;height:43px}}
+    @media print{.topbar,.progress-track,.tabs-shell,.question-nav{display:none}.hero{padding-top:20px}.content-layout{display:block;padding-bottom:20px}.card{break-inside:avoid;box-shadow:none}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">AG</span><span class="brand-text">AI Agent 面试重点题</span></div>
+    <button class="icon-button" id="themeButton" type="button" aria-label="切换深浅色模式" title="切换深浅色模式">◐</button>
+  </header>
+
+  <header class="hero">
+    <div class="eyebrow">AI Agent Interview Focus</div>
+    <h1>AI Agent 开发面试<br><span>重点题清单</span></h1>
+    <p class="hero-copy">面向 AI Agent 开发岗位筛选与分类：重点题需要深入掌握，算法题用于通用编程轮，原理题掌握核心机制，拔高题按页面标注理解即可。题号按当前复习顺序编排。</p>
+    <div class="summary"><span><b data-summary-category="重点">108</b> 道重点</span><span><b data-summary-category="算法">21</b> 道算法</span><span><b data-summary-category="原理">21</b> 道原理</span><span><b data-summary-category="拔高">20</b> 道拔高</span></div>
+  </header>
+
+  <div class="content-layout">
+    <aside class="question-nav" aria-label="题目快速导航">
+      <div class="question-nav-panel">
+        <div class="question-nav-head">
+          <div><div class="question-nav-title">题目导航</div><small class="question-nav-count" id="questionNavCount">170 道</small></div>
+          <button class="nav-top-button" id="navTopButton" type="button" aria-label="回到题目分类顶部" title="回到题目分类顶部">↑</button>
+        </div>
+        <nav class="question-nav-list" id="questionNavList" aria-label="当前分类题目"></nav>
+      </div>
+    </aside>
+
+    <main class="main">
+    <nav class="tabs-shell" aria-label="题目分类">
+      <div class="tabs" role="tablist" id="tabs">
+        <button class="tab active" role="tab" aria-selected="true" data-category="全部" type="button">全部<small>170 题</small></button>
+        <button class="tab" role="tab" aria-selected="false" data-category="重点" type="button">重点准备<small>108 题</small></button>
+        <button class="tab" role="tab" aria-selected="false" data-category="算法" type="button">算法<small>21 题</small></button>
+        <button class="tab" role="tab" aria-selected="false" data-category="原理" type="button">原理<small>21 题</small></button>
+        <button class="tab" role="tab" aria-selected="false" data-category="拔高" type="button">拔高<small>20 题</small></button>
+      </div>
+    </nav>
+
+    <div class="section-head">
+      <h2 id="sectionTitle">全部题目</h2>
+      <p id="sectionDescription">先学“重点准备”，算法题用于通用编程轮，拔高题只需达到页面标注的理解深度。</p>
+    </div>
+    <section class="question-list" id="questionList" aria-live="polite"></section>
+    <div class="empty" id="emptyState">当前分类没有题目。</div>
+    </main>
+  </div>
+
+  <footer class="footer">AI Agent 面试重点题 · 按岗位相关性安排掌握深度</footer>
+
+  <script>
+    const questions = [
+      {
+        id:1, category:"重点", company:"蚂蚁国际", title:"RAG 系统如何设计文本分块策略？",
+        requirement:"需要重点掌握，能结合 Agent / RAG 项目回答。",
+        original:`在 RAG 系统中，为同时保障语义完整性与支持人工标注关键分块边界，应如何设计兼顾自动化鲁棒性与人类先验可注入性的文本分块策略？请阐述其核心权衡考量（如粒度-连贯性-标注成本的三角约束）、典型技术实现路径（如语义感知切分、边界强化学习、混合规则+LLM 校验），以及该策略对检索精度与系统可维护性的影响。`,
+        points:["固定长度、递归分块、语义分块和混合分块的适用场景","chunk size 和 overlap 对语义完整性、噪声和召回的影响","metadata、标题、页码、来源与父子块如何保留","用真实问题集评估召回命中、答案证据和系统可维护性"]
+      },
+      {
+        id:2, category:"重点", company:"滴滴", title:"为什么缩放点积注意力要除以 √dₖ？",
+        requirement:"需要掌握推导链路，不要只背“防止梯度消失”。",
+        original:`为什么在缩放点积注意力（scaled dot-product attention）中需将 QKᵀ 除以 √dₖ？请分别从 logits 的方差增长（概率分布视角）和梯度幅值稳定性（优化视角）两个角度解释其必要性。`,
+        points:["Q·K 是 dₖ 个乘积之和，其方差随 dₖ 增长、标准差约为 √dₖ","logits 过大会让 softmax 过早饱和、分布过尖","softmax 饱和后 Jacobian 趋近 0，Q/K 投影层获得的梯度变小","dₖ 是每个 head 的 query/key 维度，不是总 d_model"]
+      },
+      {
+        id:3, category:"重点", company:"阿里巴巴", title:"Transformer 中 Pre-Norm 与 Post-Norm 有什么区别？",
+        requirement:"需要会画结构，并能说清梯度流和训练稳定性。",
+        original:`Transformer 中 Pre-norm 与 Post-norm 结构在梯度流动、训练稳定性及收敛行为上有何关键差异？这些差异如何从优化动态（如梯度方差、残差路径梯度值、归一化层输入分布变化）角度解释 LLaMA 等主流大模型选择 Pre-norm 的架构设计依据？`,
+        points:["Post-Norm：Norm(x + F(x))；Pre-Norm：x + F(Norm(x))","Pre-Norm 中残差主干提供更直接的梯度通道","Pre-Norm 通常更易稳定训练深层模型，但不代表所有场景都更好","知道现代 LLM 中常见 RMSNorm，并能与 LayerNorm 区分"]
+      },
+      {
+        id:4, category:"重点", company:"蚂蚁集团", title:"在 SFT 数据构造中，如何系统设计高质量指令—响应对？",
+        requirement:"需要会结构化分析，不必深入训练代码。",
+        original:`在监督微调（SFT）数据构造过程中，如何系统性设计高质量的“指令-响应对”？需重点分析覆盖性（任务/领域/语言分布）、难度梯度（从基础到复杂的能力分层）、标注/偏好一致性（含人工标注规范与多标注者协同机制）等关键因素，并说明各因素间的潜在权衡关系。`,
+        points:["任务和场景覆盖，包括基础到复杂的难度梯度","instruction、context 与 response 的一致性和可执行性","AI 标注、多标注者协同与人工抽检验收","Agent 工具调用数据中的工具选择、参数、结果和最终回答要一致"]
+      },
+      {
+        id:5, category:"算法", company:"微信 WXG、美团", title:"手写快速排序的 partition 函数并分析复杂度。",
+        requirement:"算法轮需要能完整手写和讲解。",
+        original:`请手写快速排序的递归实现，要求完整包含 partition 函数（明确指定主元选择策略、分区逻辑及边界处理），并准确分析其平均时间复杂度的推导依据，以及最坏时间复杂度的触发条件（需说明输入特征与递归树形态的关系）。`,
+        points:["熟练 Lomuto 或 Hoare 至少一种 partition 写法","partition 的循环不变量、左右区间代表什么","平均 O(n log n)、最坏 O(n²)，原地额外空间与递归栈要分开说","有序、重复元素和极端 pivot 下的退化与改进"]
+      },
+      {
+        id:6, category:"算法", company:"字节跳动、快手、百度", title:"求时间 O(n)、空间 O(1) 的最大子数组和。",
+        requirement:"算法轮需要能无提示写出 Kadane 算法。",
+        original:`实现时间复杂度 O(n)、空间复杂度 O(1) 的最大子数组和算法，并说明其正确性依据。`,
+        points:["current 表示以当前位置结尾的最大和，best 是全局最大和","current = max(x, current + x)，best = max(best, current)","初始值应来自第一个元素，才能处理全负数数组","能解释负贡献的前缀为什么可以丢弃"]
+      },
+      {
+        id:7, category:"算法", company:"蚂蚁集团", title:"队列和栈的核心抽象差异是什么？",
+        requirement:"通用编程基础：需要掌握 ADT 接口契约、基础实现和典型应用。",
+        original:`队列和栈的核心抽象差异是什么？请各举一个不可互相替代的典型算法或系统场景，并从 ADT 本质、操作约束与实际系统需求的映射角度，说明为何在此场景中二者无法通过简单封装或逆序调整相互替代。`,
+        points:["栈是 LIFO：在同一端 push / pop；队列是 FIFO：一端 enqueue、另一端 dequeue","栈常用于函数调用、DFS、括号匹配和撤销；队列常用于 BFS、任务调度和消息缓冲","ADT 定义行为契约，底层容器相同不代表二者可互换","Python 中队列优先使用 collections.deque，避免 list.pop(0) 的 O(n) 搬移"]
+      },
+      {
+        id:8, category:"算法", company:"阿里巴巴", title:"用动态规划解决分割等和子集。",
+        requirement:"算法轮需要能写出一维 0/1 背包解法，并解释为何倒序。",
+        original:`如何用动态规划解决“分割等和子集”问题？请明确定义状态、推导状态转移方程、说明边界条件与初始化逻辑，并深入分析从二维 DP 到一维 DP 空间优化的关键前提、实现细节及易错点（如遍历顺序为何必须逆序）。`,
+        points:["总和为奇数直接返回 false，目标是寻找和为 total/2 的子集","dp[j] 表示当前元素范围内是否能组成和 j，dp[0]=true","dp[j] = dp[j] || dp[j-num]，每个元素只能使用一次","容量 j 必须倒序遍历，否则会在同一轮重复使用当前元素，变成完全背包"]
+      },
+      {
+        id:9, category:"原理", company:"字节跳动（抖音）", title:"写出 Sigmoid 函数及其一阶导数的闭式表达式。",
+        requirement:"基础原理题：会写结论并能用链式法则简短推导。",
+        original:`请写出 Sigmoid 函数的数学表达式，并推导其一阶导数的闭式表达式（即仅用原函数自身表示，不显含自变量 x）。`,
+        points:["σ(x)=1/(1+e⁻ˣ)","σ'(x)=σ(x)(1−σ(x))","Sigmoid 的输出在 (0,1)，可用于二分类概率或门控","|x| 较大时导数趋近 0，容易进入饱和区"]
+      },
+      {
+        id:10, category:"拔高", company:"阶跃星辰", title:"用 Python 实现 Top-p（nucleus）采样。",
+        requirement:"Top-p 采样——理解原理和参数影响，不手写算法。",
+        original:`请手写 Python 代码实现 top-p（nucleus）采样算法，输入为 logits 张量（形状为 [vocab_size]）或对应概率分布，要求：① 将 logits 转换为概率（经 softmax）；② 按概率降序排序并累积求和；③ 截断至累积概率首次 ≥ p 的最小前缀集合；④ 对截断后概率重新归一化；⑤ 从该归一化分布中采样一个 token 索引；需处理边界情况（如 p=0、p=1、所有概率相等、单 token 等）。`,
+        points:["将 logits 通过 softmax 转成概率分布","Top-p 保留按概率降序后累计概率达到 p 的最小 token 集合","截断后需对保留概率重新归一化，再采样","p 越小输出越保守，p 越大候选越多；能区分 temperature、top-k 与 top-p","Agent 场景通常更关心稳定工具选择和结构化输出，因此不要把采样参数调得过于随机"]
+      },
+      {
+        id:11, category:"拔高", company:"快手、腾讯", title:"全参数微调时 GPU 显存由哪些部分构成？ZeRO 如何节省显存？",
+        requirement:"理解显存组成和 ZeRO 分片对象，不必背所有精确字节数。",
+        original:`在大模型全参数微调（Full Fine-tuning）过程中，GPU 显存主要由模型参数、梯度、优化器状态和激活值四部分构成；请系统分析各部分的显存占用机制（含数据类型如 FP16/AMP 的影响），并给出可推导的总显存估算公式；进一步说明 ZeRO 等显存优化技术如何针对性地削减其中哪些组件的内存开销。`,
+        points:["模型参数、梯度、优化器状态和前向激活是四个主要部分","Adam 通常保留一阶和二阶动量，还可能存在 FP32 master weights","ZeRO-1 切分优化器状态，ZeRO-2 再切分梯度，ZeRO-3 再切分参数","Agent 应用岗位主要用这些知识判断微调方案成本，无需深入分布式训练实现"]
+      },
+      {
+        id:12, category:"拔高", company:"蚂蚁集团", title:"GRPO 和 GSPO 分别解决 RLHF 中的哪些问题？",
+        requirement:"偏模型后训练：了解动机和差异即可，不作为 Agent 岗位的主线题。",
+        original:`GRPO 和 GSPO 分别针对 RLHF 中的哪些具体问题（如奖励建模偏差、策略优化目标不一致、梯度估计方差等）提出改进？请从优化目标函数设计、奖励信号利用方式、策略更新机制三个维度，系统对比二者的核心技术差异及其背后的原理动因。`,
+        points:["先能说清 RLHF / 策略优化 / 奖励信号的基本语境","GRPO 通过组内多个回答的相对奖励构造优势，弱化对独立 critic 的依赖","GSPO 关注序列级目标与 token 级优化之间的不一致和训练稳定性","Agent 开发面试先讲清两者是后训练方法，不要冒充为 Agent 编排技术"]
+      },
+      {
+        id:13, category:"原理", company:"蚂蚁集团", title:"缓存与数据库一致性策略如何取舍？",
+        requirement:"系统工程基础：需要理解一致性窗口和失败场景，不必背固定模板。",
+        original:`在读写混合场景下，Cache-Aside、Write-Through、Write-Behind 和双删等典型缓存与数据库一致性策略，各自如何保障最终一致性？请对比分析其核心机制、适用条件（如读写比例、延迟敏感度、容错要求）、典型缺陷（如脏读、缓存击穿、级联失败）及在 CAP 约束和系统复杂度上的本质权衡。`,
+        points:["Cache-Aside 的读时回填与写时更新数据库后删缓存","Write-Through 同步双写换一致性，Write-Behind 用异步批量写换吞吐","延迟双删只是缩小并发不一致窗口，需配合重试、订阅 binlog 或版本机制","能从延迟、丢失风险、操作顺序和系统复杂度说清选型"]
+      },
+      {
+        id:14, category:"重点", company:"蚂蚁国际", title:"如何安全地把大模型生成的代码集成到现有系统？",
+        requirement:"与 AI Agent 代码生成和工具执行直接相关，需要重点掌握。",
+        original:`大模型生成的代码在集成到现有系统时，如何确保不破坏原有业务逻辑？请从静态分析、契约验证（如接口契约、行为契约）、测试增强（含回归测试覆盖、差分测试、黄金样本比对）等技术手段出发，说明其原理、适用场景及工程落地中的关键权衡。`,
+        points:["静态分析、类型检查、lint 和依赖/危险 API 扫描能提前阻断明显问题","用接口 schema、前后置条件、不变量和副作用边界验证契约","回归测试保旧行为，差分测试比新旧实现，黄金样本锁定关键输入输出","在隔离 worktree/沙箱中生成和运行，通过 CI 门禁和人工审核后才能合并"]
+      },
+      {
+        id:15, category:"原理", company:"蚂蚁国际", title:"MySQL 事务隔离级别如何选择？",
+        requirement:"后端工程基础：会从一致性需求和并发开销说清选型。",
+        original:`MySQL 的四种事务隔离级别分别解决了哪些并发问题？在大模型服务后端（如推理请求日志、RAG 检索日志、用户反馈存储等典型场景）中，应如何基于一致性需求与性能开销的权衡，选择并论证最合适的隔离级别？`,
+        points:["四级从 Read Uncommitted、Read Committed、Repeatable Read 到 Serializable","能区分脏读、不可重复读和幻读，并了解 MVCC/锁的作用","日志和追踪写入通常更看重吞吐，计费、配额或状态机更看重一致性","不要只背数据库默认值，要根据具体读写不变量和并发量选择"]
+      },
+      {
+        id:16, category:"拔高", company:"阶跃星辰", title:"大语言模型训练为什么比中小模型更难？",
+        requirement:"偏模型训练：理解四类瓶颈的关联，不需深入分布式实现。",
+        original:`训练大语言模型相比中小规模模型，在训练稳定性、显存效率和收敛行为上面临哪些本质性挑战？请结合梯度爆炸/消失、分布式通信瓶颈、激活内存爆炸及长序列优化等核心机制，系统阐述其技术根源与内在关联。`,
+        points:["模型深度和规模放大梯度尺度、初始化和数值精度问题","参数、梯度、优化器状态和激活值共同构成显存瓶颈","数据/张量/流水线并行引入集合通信、气泡和故障恢复成本","长序列使注意力计算和激活保存快速增长，需要 FlashAttention、重计算等技术"]
+      },
+      {
+        id:17, category:"重点", company:"阶跃星辰", title:"如何用 MMLU、GSM8K、HumanEval 定位模型能力短板？",
+        requirement:"Agent 开发同样需要评测思维：重点掌握细粒度诊断和闭环验证。",
+        original:`如何基于 MMLU、GSM8K、HumanEval 等标准评测基准的细粒度结果（如子任务/题目类型/错误模式/层面）系统诊断大模型的能力短板，并据此构建从误差归因、指标局限性识别到针对性优化策略（如数据增强、课程学习、解码调优）的闭环优化路径？`,
+        points:["先按领域、难度、错误类型和推理步骤切片，不只看总分","区分知识缺口、推理错误、指令遵循、代码执行和解码随机性","识别题库泄漏、评测污染、格式敏感和基准与真实 Agent 任务不一致","每个优化假设都需固定评测集、对照实验和回归测试验证"]
+      },
+      {
+        id:18, category:"原理", company:"阿里巴巴", title:"Transformer 的 FFN 层为什么不能被注意力替代？",
+        requirement:"LLM 架构原理：会说清“token 间混合”和“token 内非线性变换”的分工。",
+        original:`Transformer 中前馈网络（FFN）层的核心作用是什么？若仅保留多头自注意力机制而移除 FFN，模型在非线性变换能力、特征维度适配、局部模式建模及位置感知等方面会缺失哪些不可替代的关键表达特性？请结合 Universal Approximation 定理与注意力机制的置换等变性约束进行分析。`,
+        points:["注意力主要在 token 之间动态混合信息，FFN 对每个 token 独立应用共享非线性变换","FFN 通常先升维再降维，提供更大的特征变换容量","GELU/SwiGLU 等非线性和门控是表达能力的重要来源","位置感知主要来自位置编码/RoPE，不应把它当作 FFN 的独立职责"]
+      },
+      {
+        id:19, category:"原理", company:"阿里巴巴", title:"BatchNorm、LayerNorm 和 RMSNorm 有什么区别？",
+        requirement:"LLM 基础原理：需要掌握归一化维度、统计量和适用场景。",
+        original:`BatchNorm、LayerNorm 和 RMSNorm 在归一化目标、统计量计算维度（如是否依赖 batch/sequence 维度）、数值稳定性机制及训练动态行为上有何本质区别？结合大语言模型的输入特性（如变长序列、小 batch size、自回归训练）和底层数值敏感性，解释为何 RMSNorm 逐渐成为主流 LLM 架构（如 LLaMA 系列）的首选归一化方案，而非 BatchNorm 或 LayerNorm。`,
+        points:["BatchNorm 跨 batch 统计特征均值/方差，训练与推理使用的统计量不同","LayerNorm 对每个 token 的特征维做去均值和方差归一化，不依赖 batch","RMSNorm 不做去均值，使用均方根尺度归一化，计算更简洁","LLM 的变长序列、小 batch 和自回归推理更适合不依赖跨样本统计的 Norm"]
+      },
+      {
+        id:20, category:"拔高", company:"面壁智能", title:"不依赖显式奖励模型的对齐方法有哪些？",
+        requirement:"偏后训练：理解 DPO、IPO、KTO 的动机和适用边界即可。",
+        original:`是否存在不依赖显式奖励模型的策略优化方法？请结合 DPO、IPO、KTO 等隐式偏好建模方法，以及逆强化学习等替代路径，阐释其核心原理、与传统 RLHF 范式的本质差异，并分析其在对齐任务中的适用边界与局限性。`,
+        points:["DPO 把偏好对数据直接转化为分类式目标，避免显式训练奖励模型和在线 RL","IPO 通过不同的偏好优化形式缓解 DPO 在某些偏好噪声下的过优化问题","KTO 可使用单个回答的好/坏反馈，不一定需要成对偏好数据","离线偏好方法更简洁，但受数据支持域、偏好质量和分布外行为限制"]
+      },
+      {
+        id:21, category:"拔高", company:"面壁智能", title:"PPO 和 GRPO 在 LLM 对齐训练中如何取舍？",
+        requirement:"偏后训练：理解 critic/value、组内相对优势和稳定性取舍即可。",
+        original:`在 LLM 对齐训练（RLHF）中，PPO 相比 GRPO 更常用，其关键优势体现在哪些算法设计层面？请从信任域约束机制、梯度稳定性保障（如 clip 目标、value clipping）、多步 rollout 处理，以及高方差离散语言动作空间下的收敛鲁棒性角度，对比分析二者本质差异。`,
+        points:["PPO 通常训练 value/critic 估计优势，GRPO 用同一 prompt 的多个样本组内相对奖励作为基线","PPO 的 clipped surrogate objective 和 value clipping 限制更新幅度，但系统组件和显存开销更大","GRPO 去掉独立 critic，更省显存，但组内采样数、奖励质量和方差控制影响明显","不要简化为谁绝对更稳定；需结合任务、奖励可验证性、计算预算和实现成熟度选择"]
+      },
+      {
+        id:22, category:"原理", company:"高德", title:"语言模型的困惑度 Perplexity 是什么？",
+        requirement:"模型评测基础：会写定义、解释与交叉熵的关系和使用边界。",
+        original:`请写出语言模型困惑度（Perplexity）的严格数学定义和计算公式，推导其与交叉熵损失的等价关系，并解释该关系如何体现语言模型评估目标与最大似然训练目标的一致性。`,
+        points:["PPL=exp(−(1/N)Σ log p(xₜ|x<ₜ))，表示模型对下一 token 不确定性的几何平均","token 级交叉熵就是平均负对数似然，因此 PPL=exp(cross-entropy)","最小化交叉熵、最大化数据似然与最小化困惑度目标等价","不同 tokenizer、语言或数据分布的 PPL 不宜直接横比，也不能代替 Agent 任务成功率"]
+      },
+      {
+        id:23, category:"原理", company:"高德", title:"BERT 的 MLM 与 Decoder 的 Causal Mask 有什么本质区别？",
+        requirement:"LLM 架构基础：需要掌握建模目标、信息可见性和训练/推理方式。",
+        original:`BERT 的随机掩码（MLM）与 Transformer Decoder 的因果掩码（causal mask）在建模目标、训练机制（含目标函数与数据流约束）、信息可见性（即上下文访问能力）以及训练/推理行为（如并行性、自回归性）上存在哪些本质区别？`,
+        points:["MLM 随机遮住部分 token 并使用双向上下文恢复，适合表示学习","Causal Mask 使位置 t 只能访问 ≤t 的 token，目标是下一 token 预测","Decoder 训练可对已知序列并行计算损失，生成时必须按 token 自回归展开","MLM 的 [MASK] 与下游使用存在一定分布差异，Decoder 的预训练目标与生成形式更直接一致"]
+      },
+      {
+        id:24, category:"重点", company:"高德", title:"除了 Perplexity，如何评估大语言模型？",
+        requirement:"需要掌握“指标要与任务目标对齐”，不只背指标名称。",
+        original:`除困惑度（Perplexity）外，大语言模型还有哪些常用自动评估指标？请系统性说明各指标的设计意图、适用场景与固有局限性，并对比分析它们在表层文本匹配（如 BLEU、ROUGE）、语义一致性（如 BERTScore、MAUVE）、知识能力（如 MMLU）和人类偏好对齐（如 WinRate、HELM 综合框架）等不同评测目标上的本质差异。`,
+        points:["BLEU/ROUGE 主要看 n-gram 精确率或召回率，适合有参考答案的翻译/摘要但对同义改写敏感","BERTScore 用上下文表示比较语义，MAUVE 比较机器与人类文本分布","MMLU 等基准看领域知识/推理，WinRate 看对战偏好，但都受题库污染和评审偏差影响","Agent 评测还要看任务成功率、工具选择/参数正确率、轨迹、延迟、成本和安全性"]
+      },
+      {
+        id:25, category:"拔高", company:"京东", title:"Grouped Query Attention（GQA）如何复用 KV Heads？",
+        requirement:"GQA 机制——理解张量维度、KV 头复用和推理收益，不手写核心实现。",
+        original:`请手写 Grouped Query Attention（GQA）的核心计算逻辑（Python 伪代码或关键步骤），明确体现分组查询机制、键值头（KV heads）复用方式，并对比说明其与多头注意力（MHA）和多查询注意力（MQA）在查询（Q）、键（K）、值（V）张量维度上的关键差异。`,
+        points:["设 Q 头数为 Hq、KV 头数为 Hkv，GQA 中 1<Hkv<Hq 且 Hq 可被 Hkv 整除","每组 Hq/Hkv 个 Q 头共享一组 K/V 头，计算前可用 repeat/interleave 对齐张量","MHA 是 Hkv=Hq，MQA 是 Hkv=1，GQA 在质量和 KV Cache/带宽之间取折","GQA 主要改善自回归 decode 时的 KV Cache 与读取带宽，不会消除注意力的序列长度瓶颈"]
+      },
+      {
+        id:26, category:"拔高", company:"字节跳动", title:"大模型 Post-training 有哪些主要范式？",
+        requirement:"理解 SFT、RLHF、DPO、KTO 的训练信号、稳定性和适用范围即可。",
+        original:`大模型后训练（post-training）的主要范式有哪些（如 SFT、RLHF、DPO、KTO 等）？请对比它们在目标建模、奖励信号依赖、训练稳定性及对齐效果上的关键差异。`,
+        points:["SFT 用示范答案做监督学习，建立基本指令遵循和任务格式","RLHF 通常包含偏好数据、奖励模型和在线策略优化，实现复杂且训练成本高","DPO 用成对偏好直接优化策略，KTO 可使用单样本好/坏反馈","Agent 开发重点是知道训练方法能改变哪些行为，不需深入优化器实现"]
+      },
+      {
+        id:27, category:"原理", company:"字节跳动", title:"Transformer Decoder 如何协同实现自回归生成？",
+        requirement:"LLM 架构基础：需要能从因果掩码、注意力、残差和上下文复用完整讲解。",
+        original:`Transformer Decoder 在自回归生成时，其单步前向传播的关键计算步骤（含掩码、注意力、残差连接）如何协同实现因果约束与上下文建模？`,
+        points:["输入 token embedding 融合位置信息，causal mask 禁止当前位置访问未来 token","Self-Attention 在可见历史上计算关联并汇总 V，FFN 对每个 token 做非线性变换","Residual + Norm 保留信息通路并稳定深层网络，最终 LM Head 输出下一 token logits","推理时对新 token 循环生成，KV Cache 复用历史 K/V，避免每步重算整个前缀"]
+      },
+      {
+        id:28, category:"重点", company:"字节跳动", title:"多轮对话中，Agent 最难学习的核心能力是什么？",
+        requirement:"直接对应 Agent 开发：需要能说清单步工具调用与多步因果规划的差异。",
+        original:`在多轮对话场景中，模型最难学习的核心能力是什么？是函数语义理解、参数生成准确性、调用时机判断，还是调用序列的因果规划能力？`,
+        points:["函数语义、schema 参数和调用时机是单步基础，长任务的核心难点是状态化的因果规划","每个工具结果会改变后续可行动作，Agent 需根据 observation 重新判断而非照搬初始计划","多轮中还要维护用户意图、中间状态、约束、已完成步骤和失败路径","面试回答要指出：这些能力不是四选一，而是层层依赖，因果规划是最高层的难点"]
+      },
+      {
+        id:29, category:"重点", company:"字节跳动", title:"20+ 工具场景下，Agent 如何完成工具路由？",
+        requirement:"直接对应 Agent 开发：需要能设计可扩展的候选筛选、决策和回退链路。",
+        original:`在 20+ 工具的多工具路由任务中，模型进行工具选择时应综合考虑哪些关键决策维度（如语义匹配度、工具前置约束、执行代价、失败回退路径等）？`,
+        points:["先用意图/语义匹配缩小候选集，工具描述需明确能力、禁用场景、参数与输出","校验权限、前置状态、必填参数、数据新鲜度和工具间依赖","把延迟、金钱成本、副作用风险、成功率和输出质量纳入路由决策","设计超时、重试、幂等、备选工具、人工确认和失败终止，并对全链路做 trace"]
+      },
+      {
+        id:30, category:"重点", company:"字节跳动", title:"端到端 LLM 规划与模块化 Agent 架构如何取舍？",
+        requirement:"直接对应 Agent 系统设计：需要从可靠性、可调试性和泛化性说清取舍。",
+        original:`对比端到端 LLM 规划与模块化 Agent 架构，在长程任务（如 10+步决策链）中，各自在可靠性、可调试性与泛化性上的根本瓶颈是什么？`,
+        points:["端到端规划灵活、前期开发快，但误差沿长轨迹累积，中间决策难以稳定复现和定位","模块化架构通过 planner、executor、memory、tool adapter、validator 建立可观测边界","模块化提高可靠性和可测试性，但边界、状态契约和手工规则也可能限制分布外泛化","实际系统常用混合方案：高风险主干用确定性 Workflow，局部开放决策交给 LLM"]
+      },
+      {
+        id:31, category:"原理", company:"字节跳动", title:"RoPE 如何把位置信息注入 Query 和 Key？",
+        requirement:"RoPE 机制——理解成对维度旋转和相对位置性质，不手写完整实现。",
+        original:`手写实现 RoPE（Rotary Position Embedding）的核心逻辑：给定 query/key 张量和位置索引，如何按维度交替应用旋转矩阵？`,
+        points:["将 Q/K 最后一维两两成对，每对在对应频率和位置决定的角度下做二维旋转","旋转形如 (x₁cosθ−x₂sinθ, x₁sinθ+x₂cosθ)，只应用于 Q/K","Q 与 K 的点积会自然包含位置差，因而建模相对位置","Agent 岗位掌握原理和外推问题即可，不要把手写当主线"]
+      },
+      {
+        id:32, category:"原理", company:"字节跳动", title:"Self-Attention 的计算流程和设计动机是什么？",
+        requirement:"必须能从 Q/K/V、缩放、Mask、Softmax 到 Value 汇总完整讲解。",
+        original:`请简述 self-attention 的计算流程及其核心设计动机（如为何需要 Q/K/V 三组投影、缩放因子的作用等）。`,
+        points:["输入经三组投影得到 Q/K/V：Q 表示查询，K 用于匹配，V 承载被汇总的信息","scores=QKᵀ/√dₖ，按场景加 causal/padding mask 后在 key 维做 softmax","attention weights·V 完成上下文混合，多头结果拼接后再输出投影","Q/K/V 分工使“用什么查、用什么匹配、读出什么”可分别学习"]
+      },
+      {
+        id:33, category:"拔高", company:"字节跳动", title:"如何降低长序列 Self-Attention 的计算成本？",
+        requirement:"理解 2–3 类主流思路和代价，不要深入手写算子。",
+        original:`列举并简要说明 2–3 种降低长序列下 self-attention 计算复杂度的主流方法（如稀疏注意力、线性注意力等），指出各自的核心思想。`,
+        points:["稀疏注意力只计算局部/块/全局 token 的部分连接，用召回风险换复杂度下降","线性注意力通过核函数和乘法重排避免显式 n×n 矩阵，可能损失精确 softmax 表达","分块/滑窗+少量全局 token 在局部效率与跨块传播之间取折","FlashAttention 主要降低 IO 和激活内存，算术复杂度仍是 O(n²)，需区分"]
+      },
+      {
+        id:34, category:"重点", company:"字节跳动", title:"Agent 的短期记忆与长期记忆如何划分？",
+        requirement:"直接对应 Agent 记忆设计：需要掌握存储边界、检索和更新策略。",
+        original:`在 Agent 系统中，短期记忆与长期记忆通常依据哪些维度（如时效性、访问频率、语义粒度等）进行功能划分？各自的典型存储机制和更新策略有何差异？`,
+        points:["短期记忆服务当前任务/会话，关心时序、高频和快速读写；长期记忆保留跨会话稳定事实和经验","短期常用上下文窗口、状态表和摘要；长期常用结构化库+语义索引+原始证据","写入长期记忆需去重、冲突处理、来源绑定、验证和过期机制","不要把同会话摘要等同于长期知识库"]
+      },
+      {
+        id:35, category:"重点", company:"字节跳动", title:"Agent 历史交互如何做分层索引和缓存？",
+        requirement:"直接对应记忆检索工程：需要会在延迟、命中率与一致性之间取舍。",
+        original:`当 Agent 需从海量历史交互中检索相关信息时，可采取哪些分层索引、缓存策略或语义压缩方法来降低延迟、提升相关性的检索？`,
+        points:["先用用户/会话/时间/任务等结构化索引做粗过滤，再用向量/关键词检索精排","热点用户、近期会话和频繁问题可缓存，需 TTL、版本号与失效策略","用会话摘要、事件抽取和实体关系压缩历史，但要保留回源到原始证据的链接","指标需同时看 p95 延迟、Recall@k、新鲜度、权限隔离和错误记忆率"]
+      },
+      {
+        id:36, category:"重点", company:"字节跳动", title:"开放域问答/RAG 中如何取舍检索与生成？",
+        requirement:"需要掌握召回覆盖、证据精度和最终回答可用性的取舍。",
+        original:`在开放域问答或 RAG 场景中，“召回+精排”两阶段范式相比端到端生成（如 FLARE、Self-RAG），各自的适用边界与根本性优势是什么？`,
+        points:["召回+精排边界清晰、可观测和易缓存，适合知识库稳定、合规和强引用场景","生成式检索可在推理中动态决定何时查、怎么改写和是否再查，更灵活但成本与不确定性更高","两者并非互斥：常用稳定检索主干+有限次动态反思/补充检索","回答需包含选型依据：准确性、延迟、成本、可调试性、证据要求和风险"]
+      },
+      {
+        id:37, category:"重点", company:"字节跳动", title:"多 Agent 应该选中心化调度还是自组织协商？",
+        requirement:"直接对应 Multi-Agent 架构设计，需要按任务结构和风险选型。",
+        original:`在多 Agent 协同场景中，引入显式仲裁/协调模块的必要性取决于哪些系统属性（如任务耦合度、实时性要求、Agent 自治性）？请对比中心化协调与自组织协商的适用条件。`,
+        points:["高耦合、共享稀缺资源、强顺序或高风险任务更适合中心协调和全局状态管理","任务可分解、Agent 自治性强、节点可动态加入/失败时可考虑分布式协商","中心化易调试但有瓶颈/单点；自组织弹性强但冲突、活锁、消息风暴和一致性更难","生产系统常采用中心化任务/权限边界+局部自主协商的混合方案"]
+      },
+      {
+        id:38, category:"重点", company:"字节跳动", title:"超长上下文模型会让 RAG 变得多余吗？",
+        requirement:"需要掌握长上下文与 RAG 的互补边界，不能只用 token 容量作判断。",
+        original:`超长上下文模型（如 1M tokens）是否削弱了传统 RAG 的核心价值？请从信息密度、检索精度、延迟开销和知识新鲜度四个维度分析其互补性。`,
+        points:["能塞进去不代表能精准使用：低信息密度和中部遗忘会带来上下文污染","长上下文增加 prefill 延迟、token 成本和 KV Cache，RAG 可用精准选择降低负担","RAG 可按权限、时间和版本检索最新证据，超长上下文本身不解决知识更新","最佳组合常是 RAG 精选证据+较长上下文完成多文档综合推理"]
+      },
+      {
+        id:39, category:"原理", company:"字节跳动", title:"Decoder-only 为什么适合对话生成，Encoder-only 为什么适合判别？",
+        requirement:"需要从注意力掩码、信息流向和建模目标回答。",
+        original:`从注意力掩码机制、信息流向和任务建模本质出发，解释为何 decoder-only 架构天然适配自回归生成，而 encoder-only 架构更适配判别式任务（如文本分类）。`,
+        points:["Decoder-only 用 causal mask 建模 p(xₜ|x<ₜ)，训练目标与逐 token 生成一致","Encoder-only 使用双向上下文构建整句表示，适合分类、标注、检索编码","生成需严格的左到右概率分解，判别任务则希望每个位置同时看到两侧证据","架构倾向不是绝对限制，应结合预训练目标和任务头理解"]
+      },
+      {
+        id:40, category:"原理", company:"字节跳动", title:"正弦位置编码为什么具有一定长度外推能力？",
+        requirement:"理解不同频率、相对位置线性关系与外推局限。",
+        original:`正弦位置编码的周期性设计如何支持模型外推至未见长度？“交叉”（即不同频率分量交织）对位置表征的线性可分性与相对位置建模能力有何作用？`,
+        points:["不同维度使用不同周期的 sin/cos，在未见位置也可直接计算而无需新 embedding","位置 pos+k 的 sin/cos 可由 pos 的 sin/cos 经线性变换表示，有利于学习相对偏移","多频率同时提供局部精细和长程粗粒度位置信号","可计算不代表无限可靠外推，训练长度外仍可出现相位混叠和分布偏移"]
+      },
+      {
+        id:41, category:"算法", company:"字节跳动", title:"原地合并两个有序数组。",
+        requirement:"通用编程轮：需要能写出从尾部反向合并的 O(m+n) 解法。",
+        original:`如何原地合并两个已排序数组（nums1 长度为 m+n，含 m 个有效元素；nums2 长度为 n），要求时间复杂度 O(m+n)，空间复杂度 O(1)？`,
+        points:["设 i=m−1、j=n−1、k=m+n−1，从后向前比较并写入 nums1[k]","从尾部写可避免覆盖 nums1 中尚未处理的有效元素","nums2 剩余元素需继续拷贝；nums1 剩余时无需处理","时间 O(m+n)，只使用常数指针空间"]
+      },
+      {
+        id:42, category:"重点", company:"字节跳动", title:"MMR 重排如何在相关性和多样性之间取舍？",
+        requirement:"RAG 检索重点：需要掌握 MMR 目标、局限和替代方案。",
+        original:`在 RAG 或检索重排阶段，MMR 通过多样性-相关性权衡缓解冗余，其核心假设存在哪些局限？有哪些替代或增强范式（如基于 LLM 打分融合、图结构重排、强化学习重排）能突破该框架瓶颈？`,
+        points:["MMR 迭代选择 λ·Sim(query,doc)−(1−λ)·max Sim(doc,selected)，以相似度代理相关和冗余","MMR 依赖 embedding 空间可比性、单一λ和贪心选择，不能显式建模文档互补证据与业务约束","Cross-encoder/LLM 可做细粒度相关性和覆盖评分，图重排可利用引用/实体关系","生产中要通过证据 Recall@k、冗余率、答案正确性和延迟联合评估"]
+      },
+      {
+        id:43, category:"原理", company:"字节跳动", title:"Multi-Head Attention 为什么比单头更有表达力？",
+        requirement:"需要掌握并行子空间建模的收益与限制。",
+        original:`Multi-head Attention 如何实现并行子空间建模？相比单头 Attention，多头设计在表达能力和泛化性上提供了哪些本质优势？`,
+        points:["将 d_model 拆成多个 head，各头用独立 Q/K/V 投影在不同子空间学习关系","不同头可同时关注语法、指代、位置和长程依赖，再经输出投影融合","在 d_model 固定时，多头不会把 QKᵀ 主体 FLOPs 简单再乘 head 数","head 数过多会使每头维度过小，而且不保证每个头都学到可解释模式"]
+      },
+      {
+        id:44, category:"重点", company:"小红书", title:"Reranker 为什么不能被双塔量化检索完全替代？",
+        requirement:"RAG 必会：需要掌握双塔召回与 Cross-Encoder 精排的能力/成本边界。",
+        original:`在检索语义匹配场景中，大语言模型（如用作 reranker 或 zero-shot classifier）是否削弱了对专用文本嵌入模型（如 Sentence-BERT、ColBERT）的依赖？请从表征能力、计算开销与任务适配性三方面分析。`,
+        points:["双塔独立编码 query/doc，可离线索引并快速 ANN 召回，但交互发生在单一相似度上","Cross-Encoder/LLM 让 query 和 document 进行 token 级交互，对否定、数值、关系和细粒度条件更准","LLM 精排更贵更慢，因此常用 embedding/BM25 召回候选后只重排 top-N","生产选型同时看 Recall@k、nDCG/MRR、p95 延迟、吞吐和单次成本"]
+      },
+      {
+        id:45, category:"重点", company:"小红书", title:"RAG 如何支持跨多文档的多跳推理？",
+        requirement:"需要能设计问题分解、迭代检索、证据聚合和停止条件。",
+        original:`RAG 系统如何支持需要跨多个文档片段进行逻辑链式推理（多跳推理）的任务？请对比迭代检索、图增强检索与 LLM 辅助推理等方案的设计原理与局限。`,
+        points:["将复杂问题拆成可检索子问题，每跳用新证据改写后续 query，设置最大步数和停止判断","图增强检索显式利用实体、关系和引用边，适合关系密集知识但建图成本高","LLM 辅助分解/反思灵活，但容易引入错误子问题和证据链漂移","必须保存每跳 query、候选、引用与中间结论，以便评测和回放"]
+      },
+      {
+        id:46, category:"重点", company:"小红书", title:"直接用 LLM 生成检索 Embedding 有哪些风险？",
+        requirement:"需要掌握检索向量的稳定性、版本一致性和可重现性。",
+        original:`使用 LLM（而非专用编码器）直接生成检索用 Embedding 存在哪些稳定性风险？可采取哪些技术手段缓解生成式嵌入在分布偏移、提示扰动或长度敏感性方面的不稳定性？`,
+        points:["生成式输出可受采样、prompt、模型版本和输入格式影响，难以保证向量空间稳定","query 和 document 如不用统一模板/归一化/模型版本，相似度可失去可比性","优先使用专用 embedding 模型；若使用 LLM 表征，需固定层/池化/模板并禁用采样","版本升级需重建或双索引过渡，用固定检索集回归 Recall@k 和分布漂移"]
+      },
+      {
+        id:47, category:"重点", company:"小红书", title:"检索嵌入应该用联合空间还是双编码器对齐？",
+        requirement:"需要会对比 joint embedding、bi-encoder 与 cross-attention 的精度/效率边界。",
+        original:`在多模态检索任务中，采用联合嵌入（joint embedding）与分离编码+显式对齐（如 cross-attention、contrastive alignment）两类范式，各自的适用场景、性能权衡与典型实现约束是什么？`,
+        points:["joint/dual embedding 将不同模态映射到同一空间，可离线建索引并高效大规模召回","contrastive alignment 通过正负对学习空间对齐，效果依赖数据配对质量与难负样本","Cross-attention 做细粒度跨模态交互更准但不适合全库遍历，常用于 top-N 重排","常用两阶段方案：联合嵌入召回+跨模态交互精排"]
+      },
+      {
+        id:48, category:"重点", company:"小红书", title:"多模态 RAG 如何对齐图像检索结果与文本描述？",
+        requirement:"多模态 Agent/RAG 重点：会设计对齐、索引、结果表示和提示工程链路。",
+        original:`在多模态 RAG 中，如何联合利用图像检索结果与对应文本描述，支撑“以图搜图/图的高质量文案生成”？需说明跨模态对齐、检索结果结构化表示及生成提示工程的关键设计。`,
+        points:["图像/文本用 CLIP 类联合空间对齐，同时保留 OCR、类目、实体、时间和来源等 metadata","检索结果要结构化为图像 ID/地址、相似度、描述、属性和可引用证据，而非只返回图片","Prompt 中区分视觉事实、检索参考和生成要求，强制不确定内容标记/拒答","评测同时覆盖跨模态 Recall@k、事实一致性、引用正确性和生成质量"]
+      },
+      {
+        id:49, category:"算法", company:"小红书", title:"在无序数组中以平均 O(N) 找到第 K 大元素。",
+        requirement:"通用编程轮：需要掌握 Quickselect 的 partition 缩小区间思路。",
+        original:`如何在 O(N) 平均时间复杂度内找到无序数组中第 K 大的元素？请说明核心思路并写出关键步骤。`,
+        points:["第 K 大可转换为升序下索引 n−k，用 Quickselect 的 partition 定位 pivot","若 pivot 位置小于目标，只搜索右侧；大于目标只搜索左侧","random pivot 使期望时间为 O(N)，最坏仍可 O(N²)，原地空间可 O(1)","需处理重复元素、K 越界和极端输入；若要最坏 O(N) 可讨论 median-of-medians"]
+      },
+      {
+        id:50, category:"重点", company:"滴滴", title:"RAG 为什么只复述检索片段，却不会跨片段推理？",
+        requirement:"RAG 故障诊断重点：需要能从检索、上下文组装和生成约束分层定位。",
+        original:`RAG 系统中，模型为何常将检索片段直接复述而非进行跨片段整合与逻辑推理？请从注意力机制偏差、检索-生成对齐缺失、训练目标不匹配等算法层面分析成因，并说明对应的技术缓解方案。`,
+        points:["召回的片段可能各自相关但缺少关系链、时序或共同实体，模型难以自动建立桥接","长片段、重复内容和靠前证据会吸引注意力，导致复制式回答","用问题分解、迭代/图检索、实体聚合和证据去重构造可推理上下文","提示或训练数据应要求显式列出中间证据关系，并用多跳评测集回归"]
+      },
+      {
+        id:51, category:"重点", company:"百度", title:"LLM 语义缓存如何判定查询可以复用结果？",
+        requirement:"Agent/RAG 成本优化重点：需要掌握缓存 key、语义阈值和安全失效。",
+        original:`在基于 Redis 的 LLM 响应缓存中，如何实现语义层面的查询去重与缓存命中判定？请对比嵌入向量相似度、归一化模板匹配、轻量级语义哈希等方案的适用性与开销。`,
+        points:["先对明确可归一化的参数查询做模板化+精确 key，成本低且可控","开放文本可用 embedding 近邻和阈值命中，但要防止数字、否定、时间和权限差异被误合并","语义哈希查找快但碰撞和语义精度较弱，适合粗粒度预筛","缓存 key 还应包含租户/用户权限、模型/prompt/知识库版本、工具状态和 TTL"]
+      },
+      {
+        id:52, category:"重点", company:"美团", title:"知识更新频繁时，应该选 RAG 还是 LoRA？",
+        requirement:"需要从知识新鲜度、行为学习、可追溯性和运维成本做决策。",
+        original:`在知识更新频繁、领域专业性强且标注数据有限的场景下，RAG 与参数微调（如 LoRA）在知识注入能力、推理一致性、维护成本和幻觉控制方面的核心差异是什么？`,
+        points:["RAG 在推理时注入可更新、可引用、可做权限控制的证据，适合频繁变化知识","LoRA 更适合学习风格、格式、领域表达和稳定任务行为，不是可靠的可更新数据库","有限强标注数据下 LoRA 容易过拟合，RAG 则受切块、召回和证据质量限制","常用组合方案：LoRA 学习领域任务行为，RAG 提供最新事实与引用"]
+      },
+      {
+        id:53, category:"拔高", company:"腾讯", title:"将图像变成离散 token 并与文本自回归建模有什么挑战？",
+        requirement:"多模态模型原理：理解序列长度、损失失衡和模态对齐，不深入训练实现。",
+        original:`在统一文本-图像预训练中，将图像编码为离散 image token 并混入文本序列进行自回归建模，可能带来哪些训练目标冲突或优化挑战？如何缓解？`,
+        points:["图像 token 数量大、序列长，会显著增加注意力计算和 KV Cache","文本/图像 token 频率、熵和学习难度不同，统一交叉熵可能让一种模态主导梯度","离散视觉 tokenizer 的重建误差和 codebook 崩溃会限制视觉质量","可用模态损失加权、分阶段训练、课程采样、图像 token 压缩和对齐辅助损失缓解"]
+      },
+      {
+        id:54, category:"拔高", company:"腾讯", title:"vLLM 的 PagedAttention 如何优化 KV Cache？",
+        requirement:"推理系统原理：理解分页 KV、内存碎片和连续批处理收益。",
+        original:`vLLM 如何通过 PagedAttention 机制优化 KV 缓存管理？该设计解决了传统自回归推理中的哪些内存与计算瓶颈？`,
+        points:["传统做法为每个请求预留连续 KV 空间，变长序列会带来内外碎片和过度预留","PagedAttention 将 KV Cache 切成固定块，通过逻辑块到物理块的映射非连续分配","Copy-on-write 可让 beam/共享前缀复用物理块，提高显存利用率","更高的可用 KV 容量使连续批处理可纳入更多并发请求，提升吞吐"]
+      },
+      {
+        id:55, category:"算法", company:"腾讯", title:"二维 0/1 矩阵的最大四连通区域。",
+        requirement:"算法轮需要能用 DFS 或 BFS 写出可运行代码并分析复杂度。",
+        original:`给定一个二维二值矩阵（0/1），求值为 1 的最大连通区域（4 邻接）的面积。请手写完整可运行代码（Python）。`,
+        points:["遍历所有格子，遇到未访问的 1 启动 DFS/BFS，向上下左右扩展并累计面积","可用 visited 集合，也可将访问过的 1 原地改为 0，需先说明是否允许修改输入","边界判断、空矩阵、全 0/全 1 和细长连通块是易错点","每个格子最多访问一次，时间 O(mn)，额外空间最坏 O(mn)"]
+      },
+      {
+        id:56, category:"拔高", company:"蚂蚁集团", title:"LoRA 应该注入 Transformer 的哪些模块？",
+        requirement:"理解 Q/K/V/O、FFN 的选择依据和参数/效果取舍，不需深入训练代码。",
+        original:`LoRA 通常被注入 Transformer 中哪些可训练模块（如 Q/K/V/O、FFN）？其设计依据是什么？在 Adapter 架构或 ViT 中复用 LoRA 是否合理？MLP 层是否适合应用 LoRA？请从参数效率与梯度传播角度分析。`,
+        points:["常见起点是 Q/V 或 Q/K/V/O 线性投影，因为它们直接调整注意力读写方式","任务需要较强知识/特征变换时可将 LoRA 扩展到 FFN/MLP，但参数与显存也增加","设原权重 W 为 out×in，LoRA 额外参数约为 r(in+out)，用秩 r 控制能力/成本","原理可复用到 ViT 线性层；与 Adapter 同用时要评估参数冗余、训练稳定性和真实收益"]
+      },
+      {
+        id:57, category:"重点", company:"蚂蚁国际", title:"AI 生成代码上线后性能骤降或偶发崩溃，如何定位？",
+        requirement:"直接对应 AI 代码落地：需要能设计从发布差分到 trace/profile 的完整证据链。",
+        original:`当 AI 生成的代码在线上引发异常（如性能骤降、偶发崩溃），你如何开展根因定位？请结合可观测性工具链和 AI 生成特性说明排查思路。`,
+        points:["先关联发布时间、版本 diff、流量分组和指标异常，通过回滚/灰度对照确认因果","性能问题用 metrics+trace+profile 定位 CPU、内存、I/O、锁、网络和下游等待；崩溃看错误聚类、栈和 core dump","针对 AI 生成特性检查隐蔽 N+1、无界循环/递归、资源未释放、线程不安全与极端输入缺失","沉淀最小复现、回归测试、静态规则和发布门禁，防止同类问题重现"]
+      },
+      {
+        id:58, category:"重点", company:"蚂蚁国际", title:"AI 生成代码异常如何区分模型、Prompt 和集成环境根因？",
+        requirement:"需要掌握可回放输入、生成元数据、环境对照和业务不变量证据。",
+        original:`当 AI 生成的代码在线上引发异常（如 NPE、超时、数据不一致），你如何系统性定位问题是源于模型输出缺陷、提示偏差，还是集成环境差异？请描述排查路径与关键证据链。`,
+        points:["保存可脱敏回放的用户输入、系统/Agent prompt、检索上下文、工具结果、模型与采样参数","固定模型与环境重放：同输入稳定生成错码倾向模型/提示，本地通过线上失败倾向环境/数据差异","用契约、类型、业务不变量、依赖/配置/数据库 schema diff 定位第一个偏离点","结论必须绑定 trace、日志、生成元数据、测试和环境快照，不能凭感觉归因给 AI"]
+      },
+      {
+        id:59, category:"拔高", company:"大模型", title:"GPTQ、AWQ 与 SmoothQuant 的核心差异是什么？",
+        requirement:"推理量化拔高：理解二阶误差补偿与激活感知思路，不要求推导 Hessian 公式。",
+        original:`GPTQ算法如何通过逐层二阶信息（Hessian近似）实现无校准的权重量化？其与AWQ、SmoothQuant在激活感知策略上有何本质区别？`,
+        points:["GPTQ 按层或分块量化权重，用近似逆 Hessian 评估误差并补偿尚未量化的权重","AWQ 根据激活统计识别重要权重通道，通过缩放保护少量显著权重，通常属于仅权重量化","SmoothQuant 将激活离群值通过等价缩放迁移到权重侧，便于同时量化权重与激活","面试需能比较校准数据、W-only/W+A、精度、推理内核和硬件适配成本"]
+      },
+      {
+        id:60, category:"重点", company:"字节跳动", title:"除 ReAct 外，Agent 还有哪些典型推理—行动架构？",
+        requirement:"需要认识 Plan-and-Execute、Reflexion、ReWOO、MRKL，并能深入讲清其中一种。",
+        original:`除ReAct外，大模型Agent的典型推理-行动架构还有哪些（如Plan-and-Execute、Reflexion、ReWOO、MRKL等）？请简述其中一种的设计动机与核心组件。`,
+        points:["Plan-and-Execute 先生成全局计划，再逐步执行和重规划，适合长任务但首步延迟较高","Reflexion 将失败反馈沉淀为语言记忆，供下一轮尝试修正策略","ReWOO 先规划工具调用及依赖，再批量执行，减少模型与工具之间的往返","MRKL 用路由器选择专业模块；回答时选一种讲清 planner、executor、memory/router 和失败恢复"]
+      },
+      {
+        id:61, category:"重点", company:"字节跳动", title:"如何系统性规避大模型的事实、逻辑与指令错误？",
+        requirement:"Agent 安全与可靠性重点：能从训练、推理、反馈三层给出可落地方案。",
+        original:`针对大模型生成中的典型错误（如事实性错误、逻辑矛盾、指令违背），有哪些可落地的技术路径能实现系统性规避？请从训练、推理、反馈三个层面简述核心机制。`,
+        points:["训练层：清洗和覆盖高质量数据，用 SFT/偏好对齐强化事实性、拒答与指令遵循","推理层：RAG 引证、结构化输出、规则校验、工具权限和二次验证降低自由生成风险","反馈层：建立分类评测集、线上 trace、用户反馈和失败回放，持续回归与修复","系统无法保证零错误；需用置信度、降级、人工接管和审计限制错误影响面"]
+      },
+      {
+        id:62, category:"重点", company:"字节跳动", title:"通用客服 Agent 如何兼顾任务泛化与领域专业性？",
+        requirement:"需要能画出路由、领域模块、记忆、工具、护栏和人工接管的整体架构。",
+        original:`设计一个支持多目标（商品推荐、政策解释、投诉处理）的通用客服Agent时，如何在架构层面平衡任务泛化性与领域专业性？请说明核心模块划分及关键权衡。`,
+        points:["通用层负责意图识别、规划、对话状态和统一回复，领域 Skill 负责知识、规则与工具","通过路由和能力注册按需加载商品、政策、投诉模块，避免把全部上下文塞给一个模型","共享用户状态要区分短期会话与长期记忆，并实施租户、隐私和权限隔离","高风险任务设置确定性流程、审核与人工接管；权衡复用率、专业准确率、延迟和维护成本"]
+      },
+      {
+        id:63, category:"重点", company:"字节跳动", title:"如何提升 Agent 的 Function Calling 灵活性？",
+        requirement:"掌握文档注入、示例学习、动态工具检索和运行时发现的适用边界。",
+        original:`提升模型函数调用灵活性的关键技术路径有哪些？例如：接口文档注入、示例微调、动态工具检索、或运行时工具发现，各自的优势与适用边界是什么？`,
+        points:["接口文档和 schema 注入上线快，但工具多时上下文膨胀且描述质量直接影响选用","few-shot/SFT 可稳定固定工具模式，但更新慢且容易与最新版接口漂移","动态工具检索按任务召回少量候选，扩展性好，但需处理漏召回、误召回和重排","运行时发现最灵活，也必须管理工具版本、认证、权限、成本、延迟和不可信返回值"]
+      },
+      {
+        id:64, category:"原理", company:"字节跳动", title:"Python 进程、线程和协程有什么核心差异？",
+        requirement:"Agent 工程基础：能按内存、调度、GIL、故障隔离和任务类型做选择。",
+        original:`从并发模型、内存共享、调度开销和适用场景四个维度，对比Python中进程、线程和协程的核心差异。`,
+        points:["进程内存隔离、切换和通信成本高，可绕过 GIL 做 CPU 密集计算且故障隔离更好","线程共享进程内存，需锁保护共享状态；常用于阻塞 I/O，CPython 下 CPU 并行受 GIL 限制","协程通常在单线程事件循环中协作调度，开销低，适合大量高并发 I/O","Agent 服务还需考虑上下文传播、超时取消、背压、阻塞库兼容和进程池/线程池边界"]
+      },
+      {
+        id:65, category:"原理", company:"字节跳动", title:"async/await 如何暂停与恢复协程？与 yield 有何不同？",
+        requirement:"理解事件循环和协程状态机，能解释 await 为什么不会阻塞整个线程。",
+        original:`Python中async/await如何实现协程的暂停与恢复？其与生成器协程（yield）的本质区别是什么？`,
+        points:["async 函数调用后产生协程对象；执行到 await 时保存栈帧状态并把控制权交还事件循环","被等待的 Future/Task 完成后，事件循环将协程重新放入就绪队列并从暂停点恢复","yield 主要向调用方产出值并由调用方驱动迭代；await 面向可等待对象、任务组合与事件调度","asyncio 还提供任务取消、超时和异常传播；同步阻塞调用仍会卡住事件循环"]
+      },
+      {
+        id:66, category:"重点", company:"字节跳动", title:"Function Calling 的完整执行闭环是什么？",
+        requirement:"Agent 开发必会：从工具 schema 到校验、执行、回填和再次生成都要讲完整。",
+        original:`大模型实现Function Calling功能的核心机制是什么？需涵盖模型输出结构设计、解析对齐、安全校验与执行调度等关键环节。`,
+        points:["将工具名、描述和 JSON Schema 提供给模型，模型返回结构化 tool call 而不是直接执行函数","服务端解析参数并做 schema、类型、权限和业务校验，再按超时、并发与依赖关系调度工具","把工具结果连同匹配的 tool_call_id 回填对话，再调用模型生成答案或下一次工具调用","生产环境还要处理流式参数拼接、幂等、重试、限流、审计、敏感数据和循环上限"]
+      },
+      {
+        id:67, category:"重点", company:"字节跳动", title:"RAG 为什么不能只用答案正确率评估？",
+        requirement:"掌握答案正确性、忠实性、上下文相关性与检索召回之间的关系。",
+        original:`RAG系统如何以“答案正确率”作为核心评估指标？该指标存在哪些局限性？请对比说明其与事实一致性、忠实性、检索相关性等维度的关系。`,
+        points:["答案正确性可用 exact match、语义相似度、LLM Judge 或人工标注，但依赖参考答案质量","答对不代表忠实：模型可能凭参数记忆猜对，却没有使用或引用检索证据","检索相关性/召回衡量上下文是否找对，忠实性衡量回答是否受证据支持，二者定位不同故障层","建立分层评测：检索 recall/precision、context relevance、faithfulness、answer correctness，并校准 Judge"]
+      },
+      {
+        id:68, category:"重点", company:"字节跳动", title:"RAG 如何减少相似但冗余的召回片段？",
+        requirement:"需要掌握检索端多样性控制与生成前去重、聚合的组合方案。",
+        original:`RAG中检索阶段出现语义相似但信息冗余的文档片段，有哪些典型方法可缓解冗余召回问题？请从检索端（如重排序、多样性控制）和后处理端（如聚类去重、摘要融合）两方面说明。`,
+        points:["检索端可用 MMR 在相关性与多样性间取舍，并按文档、章节、URL 或内容指纹限制重复来源","用 reranker 精排后再做相似度阈值去重，避免在低质量候选上过早丢失证据","后处理可聚类相似片段、合并相邻 chunk、按 parent-child 结构聚合或生成证据摘要","不能只追求去重率；应同时监控关键证据召回、来源覆盖、上下文 token 和最终答案质量"]
+      },
+      {
+        id:69, category:"算法", company:"字节跳动", title:"组合总和：找出和为 target 的不重复组合。",
+        requirement:"通用算法轮需要会写回溯、剪枝与去重；这是应保留的基础题。",
+        original:`给定一个整数数组和目标值target，找出所有不重复的数字组合（元素可重复使用），使其和等于target。请描述回溯解法的核心剪枝策略，并说明时间复杂度下界。`,
+        points:["先排序，DFS 状态包含 start、remain 和 path；remain 为 0 时记录路径","元素允许重复使用时递归仍传当前索引；不同组合通过只向后选保证顺序唯一","候选值大于 remain 可直接停止；若输入本身含重复值，同层跳过相同候选避免重复答案","最坏时间为指数级，且至少受输出规模约束；空间主要是递归深度与结果集合"]
+      },
+      {
+        id:70, category:"重点", company:"字节", title:"大模型在线服务如何平衡延迟与生成质量？",
+        requirement:"Agent 上线必备：能从系统和模型两个层面给出互相独立、可组合的优化方案。",
+        original:`大模型在线服务中，为平衡端到端延迟与生成质量，可采取哪些正交的系统级与模型级优化策略？`,
+        points:["系统侧用连续批处理、前缀/KV 缓存、请求排队、流式返回和推测解码降低等待与计算成本","模型侧可选择更小模型、量化、蒸馏、路由或限制输出长度，但必须评估质量损失","按任务风险分层：简单任务走低成本路径，复杂或高风险任务升级模型、检索或人工流程","用 TTFT、TPOT、P95/P99、吞吐、成功率和任务质量联合评测，不能只优化平均延迟"]
+      },
+      {
+        id:71, category:"重点", company:"字节", title:"千 QPS 大模型 API 如何保障 P99 延迟？",
+        requirement:"生产工程重点：掌握调度、动态批处理、资源隔离、限流和弹性扩缩容。",
+        original:`面向千QPS以上的大模型API服务，如何通过请求调度、批处理、资源隔离与弹性扩缩容协同保障SLO（如P99延迟）？`,
+        points:["按模型、输入/输出长度、优先级和 SLO 分队列，避免超长请求阻塞短请求","动态批处理在等待时间与 GPU 利用率间取舍，并设置 batch token 上限和排队超时","为在线、离线、高优请求做资源池或配额隔离，配合限流、背压、熔断与降级","扩缩容应参考队列长度、token 吞吐和 KV 占用并预热实例，单看 CPU/GPU 利用率会滞后"]
+      },
+      {
+        id:72, category:"重点", company:"字节", title:"缓存、模型路由与分层推理如何降低 Agent 成本？",
+        requirement:"需要会按命中条件、任务难度和质量风险组合优化手段，而非只罗列名词。",
+        original:`缓存（如结果/Embedding缓存）、模型裁剪（如MoE稀疏激活）与分层推理（如粗粒度初筛+细粒度精推）三类技术，在推理加速中的作用机制、收益瓶颈及典型适用场景分别是什么？`,
+        points:["结果/Embedding 缓存减少重复计算，但 key 必须包含权限、知识库、模型和 prompt 版本并设置失效策略","模型量化、蒸馏或稀疏激活直接降低单次计算量，收益受内核、硬件和质量回退限制","分层推理先用规则/小模型筛选或分类，疑难任务再升级大模型，适合请求难度差异明显的场景","综合评估命中率、升级率、质量损失、P99、GPU 成本和系统复杂度，避免局部加速整体变慢"]
+      },
+      {
+        id:73, category:"重点", company:"字节", title:"多 Agent 如何做任务分配与路由？",
+        requirement:"掌握能力、负载和语义三类路由信号，以及失败重分配机制。",
+        original:`多Agent系统中，任务分工通常基于哪些策略（如能力感知分配、负载均衡、语义相似度路由）？各自的假设前提与失效场景是什么？`,
+        points:["能力感知按 Skill、工具权限和历史成功率分配，前提是能力描述可信且及时更新","负载均衡关注队列、成本和延迟，但可能把任务分给不擅长的 Agent","语义路由用分类器或 embedding 匹配任务与能力，需处理歧义、跨域任务和漏路由","生产方案通常先做权限/能力硬过滤，再综合质量、负载和成本打分，并支持超时重试、转派和降级"]
+      },
+      {
+        id:74, category:"重点", company:"字节", title:"单个 Agent 输出不可靠时，如何避免多 Agent 冲突扩散？",
+        requirement:"多 Agent 可靠性重点：能设计证据、置信度、验证、仲裁和回滚闭环。",
+        original:`当多Agent系统中因单个Agent输出不可靠引发策略冲突时，有哪些鲁棒性保障机制（如置信度门控、交叉验证、回滚协议）？其设计难点是什么？`,
+        points:["输出需携带证据、来源、置信度和版本，不能只传一段自然语言结论","关键决策用独立 Agent/确定性规则交叉验证，并由仲裁器按权限和证据质量裁决","共享状态采用版本号、幂等操作、检查点和补偿事务，冲突或异常时可回滚","难点是置信度未必校准、多 Agent 错误可能相关、验证成本高，还需避免死循环和责任不清"]
+      },
+      {
+        id:75, category:"重点", company:"字节", title:"为什么增大 RAG 的 Top-K 可能降低答案质量？",
+        requirement:"必须能解释召回率提升不等于生成质量提升，并给出可验证的调参方法。",
+        original:`增大向量检索的Top-K值可能引入更多噪声或无关文档，这对下游大模型生成质量会产生哪些具体负面影响？请从信息干扰、上下文冗余和注意力机制局限角度分析。`,
+        points:["Top-K 增大可能提高证据召回，也会加入相似噪声、过期信息和互相冲突的片段","重复上下文消耗 token、推高延迟，并让真正关键证据在长上下文中被稀释","模型可能受位置、措辞频率和注意力竞争影响，复制高频错误内容或无法完成证据整合","应用检索 recall、context precision、faithfulness 和答案质量共同选择 K，并配合 rerank、去重和阈值"]
+      },
+      {
+        id:76, category:"重点", company:"字节", title:"为什么 Reranker 通常放在向量召回之后？",
+        requirement:"RAG 核心流程题：理解双塔粗召回与交叉编码精排的能力和成本差异。",
+        original:`Rerank模型为何常被部署在向量初筛（如FAISS召回）之后？它主要弥补了稠密检索在语义粒度、查询-文档交互建模和排序精度上的哪些固有缺陷？`,
+        points:["向量检索预先独立编码查询和文档，近邻搜索快，适合从海量语料中粗召回候选","独立向量压缩了细粒度 token 交互，容易错过否定、数字、实体关系和复杂条件","Cross-encoder reranker 联合编码 query-document 并做深度交互，排序更准但无法全库逐篇计算","典型流程是高召回粗排→元数据过滤/去重→小候选集精排；需联合调节初召回 K 与最终 K"]
+      },
+      {
+        id:77, category:"拔高", company:"字节", title:"HyDE 为什么能改善模糊查询的检索？",
+        requirement:"RAG 拔高：理解假设文档作为查询扩展，不要求掌握训练细节。",
+        original:`HyDE（Hypothetical Document Embeddings）的核心思想是什么？为何它能提升模糊或语义不明确查询的检索效果？`,
+        points:["先让 LLM 根据查询生成一段假设答案/文档，再对假设文档做 embedding 检索真实语料","假设文档补充了术语、实体和可能的答案表述，缩小短查询与长文档之间的表达鸿沟","它适合信息不足或措辞与语料差异大的查询，但假设内容可能带偏召回或放大幻觉","可生成多个假设、与原查询混合检索并用 reranker 校正，同时保留真实来源作为最终证据"]
+      },
+      {
+        id:78, category:"重点", company:"字节", title:"RAG 检索结果相互冲突时如何处理？",
+        requirement:"掌握冲突发现、来源可信度、时效性和证据呈现，不把冲突直接交给模型猜。",
+        original:`在RAG场景中，当多个检索片段就同一事实给出冲突陈述时，如何在不修改模型权重的前提下，通过检索增强或后处理机制实现冲突识别与时效性加权融合？`,
+        points:["先按实体、字段或主张抽取结构化 claim，识别同一事实下互斥的值及其来源","用发布时间、有效期、官方级别、文档版本和业务权威性打分，不能只看向量相似度","检索时做 metadata 过滤和版本优先；后处理可聚类冲突证据、重排并保留引用","无法可靠裁决时应显式说明分歧、展示各方证据或转人工，而不是静默拼接成单一答案"]
+      },
+      {
+        id:79, category:"重点", company:"字节", title:"哪些评测环节不应该完全交给 AI 判断？",
+        requirement:"评测治理重点：能划清 AI 辅助与人类最终负责的边界。",
+        original:`在评测链路中，哪些关键环节原则上不应引入AI进行自动化判断（如黄金标准生成、公平性审计基准、安全红线判定）？请说明其不可替代性的技术依据。`,
+        points:["黄金标准、合规政策、安全红线和公平性基准决定评测尺度，应由领域专家和责任主体审定","模型可能继承同源偏见、迎合被评模型或在边界案例上不稳定，无法自证价值判断正确","AI 可辅助整理候选和发现疑点，但关键标签需双人复核、争议仲裁、版本记录与审计","高风险上线结论保留人工签署和可追责证据，避免 Judge 分数成为唯一放行条件"]
+      },
+      {
+        id:80, category:"重点", company:"字节", title:"AI 适合辅助评测链路中的哪些环节？",
+        requirement:"需要会比较 LLM Judge 与蒸馏小模型，并设计抽检和校准机制。",
+        original:`在评测链路中，哪些环节适合引入AI辅助（如bad case聚类、评分一致性校验、自然语言反馈解析）？请对比至少两种实现方案（如zero-shot打分 vs. 蒸馏小模型）及其适用条件。`,
+        points:["适合用于 bad case 聚类、开放反馈归因、重复样本去重、规则预筛和评分一致性检查","Zero-shot LLM Judge 上线快、能解释复杂标准，但成本高、版本漂移且存在位置与风格偏差","蒸馏小模型吞吐高、输出稳定，适合成熟高频标准；代价是标注/训练成本和分布外退化","以人工标注集校准相关性与分组偏差，持续抽检并保留模型、prompt、温度和输入版本以便复现"]
+      },
+      {
+        id:81, category:"重点", company:"字节", title:"Function Call 请求和结果是否应该进入 Agent 短期记忆？",
+        requirement:"Agent 状态管理必会：需要保留工具调用因果链，但不能把所有原始载荷无限塞入上下文。",
+        original:`在Agent执行过程中，是否应将function call（如工具调用请求/响应）纳入短期记忆？若排除会导致哪些可观察的推理缺陷？`,
+        points:["短期记忆应保留工具名、关键参数、调用状态、结果摘要、错误和对应 tool_call_id，以维持执行因果链","完全排除会导致重复调用、遗忘已完成步骤、无法引用工具结果、错误重试失控和回答前后矛盾","大结果应摘要并保存外部引用，敏感字段脱敏；按 token 预算、任务阶段和有效期压缩或淘汰","只有经过验证且跨任务仍有价值的信息才进入长期记忆，瞬时调用日志不应永久沉淀"]
+      },
+      {
+        id:82, category:"原理", company:"字节国际", title:"文本 Embedding 应该使用 CLS、最后一个 Token 还是 Mean Pooling？",
+        requirement:"理解三种池化方式的建模前提和模型训练约定，不要脱离模型文档自行替换。",
+        original:`在基于Transformer的文本嵌入模型中，通常采用哪种token的隐藏状态（如[CLS]、最后一个token、mean-pooling over all tokens）作为句子表征？不同选择背后的建模假设和适用场景是什么？`,
+        points:["CLS 依赖预训练/微调让特殊 token 聚合全句信息，常见于 Encoder 分类与专门训练的嵌入模型","Mean Pooling 对有效 token 表示求平均，覆盖整句且通常较稳健，但必须排除 padding mask","最后 token 常用于 Decoder-only 模型，因为它在因果注意力下看过全部前缀；需处理 padding 方向和 EOS","池化方法必须与模型训练目标匹配，并通过目标检索集比较归一化、相似度分布和召回效果"]
+      },
+      {
+        id:83, category:"拔高", company:"小红书", title:"Query Rewrite 如何评估，是否需要强化学习？",
+        requirement:"掌握查询改写的目标和评测指标；强化学习只需理解适用条件与风险。",
+        original:`Query重写（Rewriter）模块中，强化学习是否被用于端到端优化？若否，主流评估改写质量的指标和方法有哪些（如相关性、多样性、保真度）？`,
+        points:["查询改写可用规则、Prompt、监督学习或反馈优化，生产系统并不必须使用强化学习","离线看改写保真度、相关性、多样性，以及 Recall@K、MRR/NDCG 和 rerank 后的证据命中提升","端到端还要看答案正确性/忠实性、无答案率、延迟、token 与调用成本，避免只优化文本相似度","使用强化学习时奖励应覆盖检索与最终任务质量，并防止关键词堆砌、偏离原意和 reward hacking"]
+      },
+      {
+        id:84, category:"重点", company:"小红书", title:"UGC 高频更新时，RAG 知识库如何增量刷新？",
+        requirement:"RAG 工程重点：能设计变更检测、增量索引、删除、版本和一致性链路。",
+        original:`面对用户生成内容（UGC）高频增量更新的场景，RAG系统的知识更新机制应如何设计以兼顾时效性、一致性与计算开销？请说明增量索引、变更检测与embedding刷新的关键技术路径。`,
+        points:["以业务数据库/对象存储为事实源，用 CDC、事件流或更新时间戳捕获新增、修改和删除","按内容哈希与 chunk 稳定 ID 只重算变化片段的 embedding，并对删除数据写 tombstone 或同步删索引","采用版本号、双写校验、幂等消费和可回放事件，避免正文、元数据与向量索引短暂错配","热点内容可准实时更新，低频内容批量合并；监控更新延迟、失败积压、孤儿向量和检索新鲜度"]
+      },
+      {
+        id:85, category:"重点", company:"小红书", title:"RAG 的事实性幻觉从哪里产生，如何分层治理？",
+        requirement:"必须能按模型、检索和生成三个层次定位，而不是笼统回答“加 RAG”。",
+        original:`RAG系统中产生事实性幻觉的主要根源有哪些？对应可采取哪些模型层、检索层和生成层的协同缓解策略？`,
+        points:["检索层可能漏召回、召回噪声/过期/冲突证据；用查询改写、混合检索、过滤、rerank 和版本治理改善","生成层可能忽略证据、错误整合或用参数记忆补全；要求引用、结构化证据绑定、冲突检测和无证据拒答","模型层通过指令遵循、领域适配和忠实性数据提高使用证据的能力，但无法替代最新外部知识","分层评测 context recall/precision、faithfulness 和 answer correctness，先定位故障层再修复"]
+      },
+      {
+        id:86, category:"重点", company:"小红书", title:"什么是 RAG 检索污染，如何避免数据泄露？",
+        requirement:"评测可信度重点：掌握训练集、测试集和检索语料之间的交叉泄露问题。",
+        original:`什么是检索污染（retrieval contamination）？在微调或评测阶段应如何避免训练/测试数据泄露导致的检索偏差？`,
+        points:["检索污染是检索库含有测试答案、标签、评测题复述或训练阶段不可获得的未来信息，使指标虚高","按来源、用户、时间和文档族划分数据，不能只随机拆分相似 chunk；评测索引与生产索引隔离","对训练/测试/语料做精确哈希、近重复和语义去重，保留来源、版本、时间戳与构建清单","使用时间切分、隐藏测试集和污染探针，并分别报告闭卷能力、合法检索增益和疑似泄露样本"]
+      },
+      {
+        id:87, category:"重点", company:"小红书", title:"Agent 如何判断是否需要调用工具或检索？",
+        requirement:"Agent 控制流必会：需要给出触发决策、执行预算和防无限循环机制。",
+        original:`在基于LLM的Agent系统中，设计工具调用/检索触发机制时，如何建模“是否需要外部信息”的决策边界？以及如何从架构层面防止工具调用或检索的无限循环？`,
+        points:["依据任务类型、知识时效性、模型不确定性、权限和当前证据缺口决定直接回答还是调用外部能力","可组合规则/分类器、LLM 路由和规划器；高风险或实时事实应设强制检索/工具策略","用显式状态机、最大步数/成本/时间预算、重复调用检测和无进展判断终止循环","工具调用需幂等，失败按错误类型重试、换工具或降级；结束时记录停止原因与完整 trace"]
+      },
+      {
+        id:88, category:"重点", company:"小红书", title:"新模型上线如何设计可靠的 A/B 测试？",
+        requirement:"Agent 上线评估重点：掌握实验单元、指标、分流、显著性和安全护栏。",
+        original:`大模型服务上线后，如何设计科学的A/B测试方案来评估新模型版本的效果？需考虑哪些关键指标、分流策略和统计显著性保障措施？`,
+        points:["先定义主指标、护栏指标和最小可接受提升：任务成功/满意度之外还看幻觉、安全、延迟、成本和失败率","按用户或会话做稳定随机分流，必要时按场景、语言和新老用户分层，避免同一用户跨组污染","实验前做样本量/检验功效估算，控制实验周期、季节性和多重比较，避免每天偷看后提前下结论","高风险先离线回放与灰度，小流量设置自动熔断；记录模型、Prompt、工具、知识库版本确保结果可解释"]
+      },
+      {
+        id:89, category:"拔高", company:"小鹏", title:"BGE-M3 与传统 Sentence-BERT 有什么差异？",
+        requirement:"Embedding 选型拔高：理解多语言、多粒度和多种检索表示，不要求掌握训练代码。",
+        original:`BGE系列嵌入模型（如BGE-M3）在文本嵌入任务中，如何通过多粒度、多任务联合训练提升检索效果？其与传统双塔模型（如Sentence-BERT）的关键架构差异是什么？`,
+        points:["BGE-M3 面向多语言、多粒度文本，并统一支持 dense、sparse 与 multi-vector 表示，可按场景组合检索","多任务/多阶段训练让同一骨干同时学习语义全局表示、词项匹配和细粒度 token 交互信号","Sentence-BERT 典型做法是双塔独立编码并池化为单个 dense 向量，部署简单、近邻检索高效","BGE-M3 也包含双编码思想，差异不是简单的单塔/双塔；选型应实测语言、长文、召回质量、索引和 rerank 成本"]
+      },
+      {
+        id:90, category:"算法", company:"淘天", title:"用动态规划求两个字符串的编辑距离。",
+        requirement:"经典动态规划题，需要能写出完整代码并说明二维 DP 与滚动数组优化。",
+        original:`用动态规划求解两个字符串的编辑距离，状态定义、转移方程及空间优化思路是什么？`,
+        points:["定义 dp[i][j] 为 word1 前 i 个字符变成 word2 前 j 个字符的最少操作数","字符相同则继承 dp[i-1][j-1]；否则取删除、插入、替换三者最小值加 1","初始化 dp[i][0]=i、dp[0][j]=j，并处理空字符串、完全相同和长短差异大的输入","二维实现时间 O(mn)、空间 O(mn)；只依赖上一行和当前行，可优化到 O(min(m,n))"]
+      },
+      {
+        id:91, category:"重点", company:"淘天", title:"Decoder-only Agent 在长上下文多轮对话中有哪些瓶颈？",
+        requirement:"Agent 原理与工程结合题：需要区分模型结构、训练目标和推理机制导致的问题。",
+        original:`基于纯Attention架构（如标准Decoder-only LLM）构建多轮对话Agent时，在长上下文场景下会面临哪些固有瓶颈？这些瓶颈源于模型结构、训练目标还是推理机制？`,
+        points:["结构层：注意力计算和 prefill 成本随上下文增长，KV Cache 占用上升，并存在中部信息利用不足","训练层：next-token 目标不等于长期任务状态管理，模型未必学会区分关键事实、临时信息和已完成步骤","推理层：自回归错误会逐轮累积，历史噪声、工具日志和冲突信息持续污染后续决策","工程上用结构化状态、摘要、RAG/记忆检索、滑动窗口和上下文压缩，不能只依赖扩大 context window"]
+      },
+      {
+        id:92, category:"重点", company:"滴滴", title:"双塔检索为什么通常要对向量做归一化？",
+        requirement:"RAG 检索必会：理解双塔编码、点积/余弦相似度和向量范数偏差。",
+        original:`稠密检索中，查询与文档如何通过双塔结构编码并完成向量相似度匹配？为何需对向量做归一化，以及未归一化可能引发哪些检索偏差？`,
+        points:["Query Encoder 与 Document Encoder 分别编码查询和文档，文档向量可离线建索引，在线用 ANN 召回","L2 归一化后点积等价于余弦相似度，排序更关注方向即语义，而不是向量绝对长度","未归一化时高范数文档可能在点积中占优，形成 hubness，并受文本长度、频率或模型尺度影响","是否归一化必须与训练损失和索引度量保持一致，最终用 Recall@K、MRR/NDCG 和分布检查验证"]
+      },
+      {
+        id:93, category:"重点", company:"滴滴", title:"轻量级 Agent 如何建立可执行、可归因的自动评测闭环？",
+        requirement:"Agent 评测重点：不只评最终答案，还要评任务分解、工具调用和执行轨迹。",
+        original:`在仅依赖Prompt编排的轻量级Agent范式中，如何构建可自动执行、可归因、可增量评估的能力评测体系（如任务分解正确性、工具调用合规性、结果自治性），并支持迭代优化闭环？`,
+        points:["建立带初始状态、可用工具、预期约束和可验证终态的任务集，覆盖正常、异常与对抗场景","记录完整 trace，分别校验规划步骤、工具选择、参数 schema/权限、调用顺序和最终任务是否完成","指标包括 step/trajectory success、任务成功率、合规率、重试次数、延迟与成本，并按失败节点归因","版本化模型、Prompt、工具和数据集；将线上 bad case 回放入回归集，变更后做对照评测和人工抽检"]
+      },
+      {
+        id:94, category:"重点", company:"百度", title:"分布式 Agent 的 Session 状态如何持久化与同步？",
+        requirement:"生产架构重点：能比较 Redis、数据库、JWT 与无状态服务的适用边界。",
+        original:`在分布式Agent系统中，用户Session状态应如何持久化与同步？请分析Redis、数据库、客户端Token（如JWT）及无状态设计各自的适用边界与一致性挑战。`,
+        points:["Redis 适合低延迟热点会话、TTL 和原子更新，但需要持久化/高可用设计，不能作为唯一审计事实源","数据库适合长期状态、版本和审计，可靠但读写延迟更高；常与 Redis 组成缓存+事实源","JWT 适合小型、低频变化且可由客户端携带的声明，不适合大上下文、频繁修改或敏感可撤销状态","服务层尽量无状态，Session 外置；用版本号/CAS、幂等请求、事件顺序和冲突合并处理并发更新"]
+      },
+      {
+        id:95, category:"重点", company:"百度", title:"Markdown 切块如何处理跨块引用和语义断裂？",
+        requirement:"RAG 文档工程重点：掌握层级元数据、引用解析和关联块扩展召回。",
+        original:`使用Markdown结构化切块（MD chunking）时，如何处理跨块引用（如“详见上一章”“参见第3节”）导致的语义断裂问题？`,
+        points:["解析 Markdown AST，给每个 chunk 保留文档、章节路径、标题层级、锚点和相邻块 ID","将父级标题或必要摘要注入子块，使脱离原位置的片段仍有最小语义上下文","把“参见第3节”等引用解析为显式边或 metadata，命中当前块时按预算扩展被引用块和邻居块","避免无条件扩大 overlap；用引用解析成功率、证据召回、上下文冗余和最终答案质量评估方案"]
+      },
+      {
+        id:96, category:"算法", company:"美团", title:"原地反转单链表。",
+        requirement:"链表基础题，需要能写迭代版本并解释递归版本的额外栈空间。",
+        original:`手写一个链表反转（迭代/递归任选），并分析时间/空间复杂度；若要求原地、O(1)额外空间、一次遍历完成，如何处理奇偶长度边界？`,
+        points:["迭代维护 prev、current、next：先保存 next，再反转 current.next，最后整体向前移动","循环结束 current 为 null，prev 即新头结点；时间 O(n)、额外空间 O(1)，只遍历一次","递归写法时间仍为 O(n)，但调用栈为 O(n)，不满足严格的 O(1) 额外空间","单纯反转无需区分奇偶长度；空链表、单结点和尾结点统一由 current/next 的 null 边界处理"]
+      },
+      {
+        id:97, category:"重点", company:"美团", title:"Agent 任务分解有哪些方法和典型失效模式？",
+        requirement:"Agent 规划必会：能比较直接分解、Planner、DAG 和树搜索，并说明何时重规划。",
+        original:`Agent中任务分解（task decomposition）有哪些典型方法（如LLM-based prompting、规划器驱动、树搜索）？各自的适用边界和失败模式是什么？`,
+        points:["直接 Prompt 分解实现简单，适合短任务，但容易遗漏依赖、粒度不稳且缺少全局约束","Planner-Executor 将计划与执行分离，可根据工具结果重规划，代价是额外调用和状态管理","DAG 显式表达依赖并支持并行；树搜索探索多个候选但成本高，需价值评估和剪枝","常见失败包括过度/不足分解、循环、错误前提传播和计划过期；用里程碑、预算、验证点与可观测 trace 控制"]
+      },
+      {
+        id:98, category:"重点", company:"美团", title:"如何构建高质量 Golden Dataset？",
+        requirement:"Agent/LLM 评测重点：掌握覆盖率、一致性、忠实性、污染控制与标注成本的平衡。",
+        original:`构建高质量golden dataset时，如何平衡人工标注的覆盖性、一致性与成本？忠实度（faithfulness）评测通常采用哪些可复现的自动化指标或人工协议？`,
+        points:["先按场景、难度、语言、用户类型和风险分层采样，覆盖主路径、长尾、失败与对抗样本","制定标签定义、正反例和争议处理规则，采用双人标注、仲裁与一致性指标校准标注员","忠实性可拆成 claim 并检查是否被给定证据支持，结合规则/LLM Judge 与人工抽检验证可复现性","版本化数据、来源和标注协议，做去重与泄露检查；主动采样高价值 bad case 控制成本"]
+      },
+      {
+        id:99, category:"重点", company:"美团", title:"模型或云端不可用时，Agent 如何设计降级与容灾？",
+        requirement:"生产可靠性重点：需要设计多级 fallback，而不是简单切换另一个模型。",
+        original:`在边缘-云协同推理架构中，当云端大模型不可用时，fallback降级引擎应满足哪些核心设计原则？典型降级策略（如模型轻量化切换、提示工程兜底、缓存响应等）各自适用边界与局限性是什么？`,
+        points:["区分超时、限流、供应商故障、质量异常和网络中断，不同故障进入不同降级路径","可按任务风险切换备用供应商/小模型、规则模板、可信缓存、只读模式或人工处理","降级路径必须保持 schema、工具权限和关键业务约束兼容，并明确质量下降和不可用能力","用超时预算、熔断、隔离、重试抖动与演练验证；同时处理数据出境、隐私和缓存时效性"]
+      },
+      {
+        id:100, category:"重点", company:"美团", title:"LangChain 是框架，Agent 是什么？二者不能混为一谈。",
+        requirement:"概念边界必会：能从组件抽象、控制流和状态管理比较框架实现与系统范式。",
+        original:`LangChain是一个开发框架，而Agent是一种系统范式。请从组件抽象、控制流机制和状态管理三个维度，对比基于LangChain构建的Agent与原生Agent（如ReAct、Plan-and-Execute）架构的本质差异。`,
+        points:["Agent 是围绕目标进行规划、工具执行、观察反馈和状态更新的系统模式；LangChain 是实现这些能力的工具框架","LangChain 提供模型/Prompt/Tool/Retriever/Graph 等组件和运行时抽象，可减少胶水代码但不自动保证正确架构","所谓原生实现通常自行控制循环、状态机、持久化、重试和观测，灵活透明但工程成本更高","面试重点不是框架 API，而是解释控制流、状态所有权、错误恢复、可测试性和何时绕过框架抽象"]
+      },
+      {
+        id:101, category:"重点", company:"美团", title:"FAISS、Milvus、Qdrant 和 Chroma 如何选型？",
+        requirement:"RAG 工程选型题：需要从规模、过滤、持久化、分布式和运维成本回答。",
+        original:`FAISS相较于Milvus、Qdrant、Chroma等向量数据库，在索引构建、查询延迟、内存占用和分布式支持方面各有哪些关键权衡？适用场景如何差异化选择？`,
+        points:["FAISS 是高性能 ANN 库，适合单机嵌入式索引和算法实验，但服务化、元数据、持久化与分布式需自行建设","Milvus 面向大规模分布式向量服务，扩展能力强，但组件和运维复杂度更高","Qdrant 强调服务化、过滤和易部署；Chroma 上手快，常用于本地原型和中小规模应用","结合向量量级、更新频率、过滤条件、SLA、高可用、备份、团队运维能力和云成本做压测选型"]
+      },
+      {
+        id:102, category:"算法", company:"美团", title:"二叉树锯齿形层序遍历。",
+        requirement:"树与队列基础题，需要会 BFS，并能解释 DFS 按层收集的替代方案。",
+        original:`实现二叉树锯齿形层序遍历（奇数层左→右、偶数层右→左），分析BFS和DFS两种解法的时间与空间复杂度，并说明DFS解法中递归栈深度与结果存储开销如何区分。`,
+        points:["BFS 用队列逐层处理，记录层大小；按方向追加或在层结束后反转当前层结果","也可用 deque 在不同方向写入层结果，但子结点入队顺序仍需保持清晰一致","DFS 传入 depth，首次到达新层时创建列表，再按层的奇偶方向写入节点值","两种时间均 O(n)；BFS 队列最坏 O(w)，DFS 调用栈 O(h)，输出结果 O(n) 不计入辅助空间时要说明"]
+      },
+      {
+        id:103, category:"拔高", company:"腾讯", title:"高维向量 ANN 检索有哪些挑战？HNSW 与 IVF-PQ 如何取舍？",
+        requirement:"向量检索拔高：理解召回、延迟、内存、构建和更新之间的权衡，不要求手写索引。",
+        original:`Embedding的语义表征本质是什么？向量相似度搜索（如ANN）在高维空间面临哪些根本挑战，以及主流解决方案（如HNSW、IVF-PQ）如何应对？`,
+        points:["Embedding 将任务相关语义压缩到向量几何关系；高维空间距离区分度下降，精确扫描成本随数据量增长","HNSW 用多层近邻图搜索，召回和延迟表现好，但索引内存较大、构建和删除维护有成本","IVF 先按聚类倒排缩小候选，PQ 再压缩向量节省内存，代价是量化误差和训练/调参复杂度","通过 efSearch/nprobe、索引规模、过滤和更新模式联合压测 Recall@K、P95/P99、QPS 与内存"]
+      },
+      {
+        id:104, category:"重点", company:"腾讯", title:"实际 RAG 场景如何选择 Embedding 模型？",
+        requirement:"Embedding 选型必会：不能只看公开榜单，需要用自己的查询和文档做端到端评测。",
+        original:`在实际场景中选择embedding模型时，需权衡哪些关键技术指标（如语义粒度、领域适配性、长文本支持、向量维度与检索效率）？请说明典型取舍依据。`,
+        points:["先确认语言、领域术语、query/document 长度与任务粒度，以及模型是否需要不同查询/文档前缀","离线用真实标注集比较 Recall@K、MRR/NDCG、难负样本和跨场景稳定性，不只看通用榜单","向量维度、最大长度、推理吞吐影响存储、索引构建和查询延迟；高维不必然更准确","同时评估模型版本稳定性、许可证、部署硬件、批处理成本，并结合 hybrid retrieval 与 reranker 看最终答案质量"]
+      },
+      {
+        id:105, category:"重点", company:"腾讯", title:"RAG 查询何时可以直接向量检索，何时需要预处理或路由？",
+        requirement:"RAG 查询链路必会：掌握改写、拆分、元数据过滤、混合检索和跳过检索的边界。",
+        original:`在RAG系统中，用户查询是否直接用于向量检索？若否，通常需经过哪些预处理或路由步骤（如查询重写、路由分类、混合检索触发）？`,
+        points:["语义明确、单意图且与语料表达接近的查询可直接编码检索，但仍需做权限和 metadata 过滤","口语、省略、多轮指代或复杂问题需补全上下文、改写、拆分子问题或生成多个检索查询","路由先判断知识库/工具/结构化数据库/无需检索，再决定 dense、BM25 或 hybrid retrieval","保留原查询防止改写漂移，并用召回、忠实性、延迟和无效检索率评估路由策略"]
+      },
+      {
+        id:106, category:"拔高", company:"腾讯", title:"GraphRAG 如何构建图谱并完成检索与利用？",
+        requirement:"RAG 拔高：理解实体关系、社区摘要、局部/全局查询和图向量混合检索。",
+        original:`GraphRAG中，图结构如何构建与利用？其检索过程如何结合子图匹配、社区聚合或路径推理来提升长程语义召回效果？`,
+        points:["从文档中抽取实体、关系和事件，做实体消歧、来源绑定与版本更新，构建可追溯的知识图","按社区聚类生成分层摘要，支持面向全局主题的问题；实体邻域和路径适合局部关系查询","检索可先做实体链接，再扩展相关子图/路径，并与向量检索结果融合后交给模型生成","优势是跨文档关系和全局归纳；代价是抽取误差、构建更新成本、图膨胀与复杂评测，普通 RAG 足够时不要过度设计"]
+      },
+      {
+        id:107, category:"原理", company:"腾讯", title:"自回归解码中的 KV Cache 有什么作用？",
+        requirement:"推理基础原理：需要准确说明它缓存什么、节省什么计算，以及显存代价。",
+        original:`Transformer自回归解码中，KV Cache的核心作用是什么？它如何改变时间复杂度？`,
+        points:["每一层缓存历史 token 的 Key/Value；生成新 token 时只计算新 token 的 Q/K/V，并复用历史 K/V","无缓存时每一步会重复计算整个前缀的投影和注意力；缓存后单步只做新 token 对历史序列的注意力","按生成长度 T 粗略看，重复全前缀计算可从立方级降为总计二次级；单步注意力仍随当前长度线性增长","代价是每个请求占用随层数、序列长度、KV 头数和精度增长的显存，并带来内存带宽瓶颈"]
+      },
+      {
+        id:108, category:"重点", company:"荣耀", title:"多 Agent 如何共享跨 Agent、跨轮次的长期记忆？",
+        requirement:"多 Agent 状态设计重点：能比较向量记忆、结构化知识和显式状态传递。",
+        original:`多Agent系统中，如何设计跨Agent、跨轮次的长期记忆机制？请对比向量记忆库、结构化知识图谱、隐式状态传递等方案在一致性、检索效率与更新开销上的权衡。`,
+        points:["向量记忆适合按语义召回经验和文本证据，写入简单但精确更新、冲突处理和一致性较弱","结构化表/知识图适合稳定事实、关系和状态约束，可精确查询但 schema 与维护成本更高","消息或共享上下文中的隐式状态传递实现快，却容易随轮次丢失、复制错误且难以审计","生产方案分层存储并绑定来源、时间、作用域和版本；写入需验证去重，读取需权限过滤和冲突合并"]
+      },
+      {
+        id:109, category:"重点", company:"荣耀", title:"复杂任务应该使用单 Agent 还是多 Agent？",
+        requirement:"架构选型必会：不要默认多 Agent 更高级，需要说明收益何时超过协调成本。",
+        original:`在复杂任务分解场景下，相比单Agent架构，多Agent系统在分工协作、容错性、可解释性及模块化演进方面分别带来哪些本质优势与额外开销？`,
+        points:["任务可明确分解、需要不同权限/工具/专业能力或可并行执行时，多 Agent 更有价值","角色化边界便于独立演进和失败隔离，trace 也能按责任节点归因；但并不自动提升答案质量","额外成本包括多次模型调用、消息传递、共享状态一致性、冲突仲裁、循环和组合错误","短任务或强耦合推理优先单 Agent+工具；用成功率、延迟、成本和维护复杂度证明多 Agent 必要性"]
+      },
+      {
+        id:110, category:"重点", company:"蚂蚁", title:"Context Engineering 除了 Prompt 模板还包括什么？",
+        requirement:"Agent 开发核心：需要从完整上下文装配流程回答，而不是只谈提示词写法。",
+        original:`上下文工程（Context Engineering）中，除Prompt模板设计外，有哪些可复用的技术手段用于提升长上下文利用效率？请举例说明其作用机制（如位置编码优化、检索增强策略、动态截断/压缩方法）。`,
+        points:["按系统规则、任务状态、记忆、检索证据、工具定义和用户输入分区结构化注入，并明确优先级与信任边界","只检索当前步骤需要的上下文，结合 rerank、去重、metadata 过滤和引用保留提高信息密度","用滑动窗口、结构化摘要、动态截断和 retrieval-aware compression 控制 token 预算","把上下文选择视为可评测管线：记录每段来源与用途，回归任务成功率、忠实性、延迟和成本"]
+      },
+      {
+        id:111, category:"重点", company:"蚂蚁", title:"RAG 的核心组件和端到端数据流是什么？",
+        requirement:"RAG 基础必会：能从用户查询讲到检索、重排、上下文注入和生成，并定位每层故障。",
+        original:`RAG系统的核心组件与数据流是怎样的？请说明检索、重排序、上下文注入、生成响应四个阶段的关键技术挑战及典型解决方案。`,
+        points:["离线链路是文档解析/清洗→切块→Embedding→索引并保存来源、权限、版本等 metadata","在线先做查询理解/改写和过滤，再由 dense/BM25/hybrid retrieval 召回候选","对候选 rerank、去重和冲突处理后，按 token 预算构造带引用的上下文交给模型生成","用分层 trace 和指标分别验证召回、排序、上下文忠实性和答案质量，不能只看最终回答"]
+      },
+      {
+        id:112, category:"重点", company:"蚂蚁国际", title:"模型不认识私有 API 时，如何让 Agent 学会调用？",
+        requirement:"企业 Agent 必会：掌握工具注册、文档/schema 注入、示例、校验和安全执行。",
+        original:`当大模型缺乏对私有/内部API或SDK的先验知识时，如何通过数据、提示或架构设计提升其对私有组件的准确调用能力？`,
+        points:["将 API 封装为有清晰名称、描述、JSON Schema、错误码和版本的工具注册到 Agent Runtime","检索并注入最相关的接口文档、约束和少量正确调用示例，避免把全部 SDK 文档塞进上下文","服务端做参数类型、业务规则、权限和环境校验，在沙箱/测试环境执行并把结构化错误反馈给模型修正","稳定高频模式可用 SFT 提升选工具和填参数能力，但接口变更仍需运行时 schema、契约测试与审计兜底"]
+      },
+      {
+        id:113, category:"重点", company:"蚂蚁国际", title:"如何设计能辅助工程师定位长尾故障的诊断 Agent？",
+        requirement:"AI 工程落地题：需要构建证据链、工具权限和人机协作，而不是让模型直接猜根因。",
+        original:`面对线上突发、训练数据未覆盖的长尾故障（如新型OOM、竞态条件、硬件异常），AI辅助诊断系统应如何设计才能有效支持人类工程师完成根因定位与修复？`,
+        points:["统一采集 metrics、logs、traces、变更记录、profile、错误栈和硬件事件，按时间与请求关联为证据图","Agent 先分类症状、提出可证伪假设，再调用只读查询/诊断工具逐步排除并给出证据与置信度","未知故障需检索历史案例、代码和运行手册，但必须区分事实、推断与待验证结论","写操作、扩容、重启和修复需审批；沉淀最小复现、最终根因和回归检测规则形成反馈闭环"]
+      },
+      {
+        id:114, category:"重点", company:"蚂蚁", title:"AI Coding 任务如何选择合适大小的模型？",
+        requirement:"模型路由重点：根据任务难度、上下文、质量、延迟和预算做分层，而不是固定用最大模型。",
+        original:`在AI编程（AI coding）任务中，如何根据任务特性、延迟约束和资源预算系统性地选择大模型的参数量？请说明关键权衡因素。`,
+        points:["补全、格式化和局部修改可用小模型；跨文件理解、复杂调试和架构变更需要更强模型或多阶段流程","参数量只是代理变量，还要实测上下文长度、代码语言、工具调用、结构化输出和目标仓库任务成功率","联合评估首 token/总延迟、吞吐、单任务 token 与重试成本，失败升级模型而非所有请求走最大模型","建立任务分类与路由、置信度/验证器和回退策略，用真实代码评测集持续校准质量—成本曲线"]
+      },
+      {
+        id:115, category:"重点", company:"蚂蚁", title:"对话模型与推理模型如何选择和路由？",
+        requirement:"Agent 模型选型题：理解交互型与长推理型任务的质量、延迟和成本差异。",
+        original:`对话型模型（如ChatGLM、Qwen-Chat）与推理增强型模型（如DeepSeek-R1、o1-style reasoning models）在架构设计、训练目标和解码行为上有何本质区别？各自适用的核心任务边界是什么？`,
+        points:["不能只凭产品标签推断底层架构；更稳定的区别是训练侧重点、推理时计算预算和输出行为","对话模型偏重指令遵循、交互自然度和低延迟，适合客服、抽取、改写和常规工具路由","推理模型愿意使用更多推理 token/时间，适合复杂数学、代码、规划和多约束决策，但成本与延迟更高","生产中按任务难度路由，并用最终任务成功率和验证器决定是否升级，避免简单任务滥用推理模型"]
+      },
+      {
+        id:116, category:"重点", company:"蚂蚁", title:"LangChain、LlamaIndex、DSPy、vLLM 分别解决什么问题？",
+        requirement:"工具链选型必会：先区分应用编排、RAG 数据层、Prompt 优化和推理服务层。",
+        original:`当前大模型应用开发中，有哪些主流的开源框架或工具链（如LangChain、LlamaIndex、DSPy、vLLM等）能系统性降低RAG或Agent开发复杂度？请对比它们在抽象层级、可扩展性和生产就绪性上的关键差异。`,
+        points:["LangChain/LangGraph 偏应用组件与有状态工作流编排；LlamaIndex 偏数据连接、索引、检索和 RAG 抽象","DSPy 用声明式模块和评测数据优化提示/程序；vLLM 是模型推理服务与调度层，不是 Agent 框架","这些工具可组合而非互斥；选型要看是否需要显式状态图、数据连接器、自动优化或自托管推理","生产就绪取决于团队补齐持久化、可观测性、权限、安全、评测和版本治理，不能由框架名称直接保证"]
+      },
+      {
+        id:117, category:"算法", company:"蚂蚁", title:"哈希表如何实现平均 O(1) 查找？",
+        requirement:"数据结构基础题：掌握哈希函数、冲突处理、负载因子和扩容。",
+        original:`哈希表如何通过哈希函数与冲突处理机制实现平均O(1)查找？请说明开放寻址与链地址法的核心思想及典型失败场景。`,
+        points:["哈希函数把 key 映射到桶位置，分布均匀且负载受控时，查找只需常数次桶访问","链地址法在桶内保存链表/树，删除简单但指针和缓存局部性成本较高","开放寻址在数组内按探测序列找空位，缓存友好但高负载下聚集严重，删除需墓碑标记","通过负载因子阈值扩容并 rehash 保持平均 O(1)；极端碰撞或恶意 key 时最坏可退化到 O(n)"]
+      },
+      {
+        id:118, category:"算法", company:"蚂蚁", title:"用哈希表和双向链表实现 LRU Cache。",
+        requirement:"高频系统设计算法题，需要实现 get/put 均摊 O(1) 并处理容量边界。",
+        original:`LRU缓存淘汰策略的核心思想是什么？如何用O(1)时间复杂度实现其get和put操作？`,
+        points:["哈希表实现 key→节点 O(1) 定位，双向链表按最近使用顺序维护节点","get 命中后把节点移动到链表头；未命中返回约定值，链表头代表最近使用","put 更新已有节点并移到头部；新增后超过容量则删除尾部最久未使用节点并同步删哈希表","使用头尾哨兵简化插入删除，处理 capacity=0、重复 put 和更新 value 等边界"]
+      },
+      {
+        id:119, category:"重点", company:"蚂蚁国际", title:"为什么要构建垂直领域 Agent，而不是直接调用通用模型 API？",
+        requirement:"Agent 产品与架构必会：需要说明垂直系统增加了哪些可控、可执行、可评测的能力。",
+        original:`相比直接调用通用大模型API，构建垂直领域Agent系统的核心价值与技术难点分别是什么？`,
+        points:["垂直 Agent 将领域知识、业务状态、工具和确定性工作流接入模型，使输出能执行真实任务而非只生成文本","通过权限、规则、结构化输出、审计和人工接管提高可控性，并可围绕业务指标持续评测","技术难点包括知识新鲜度、工具选择/参数准确性、状态一致性、幻觉、安全和端到端故障归因","系统成本高于单次 API：需证明任务成功率、自动化收益和风险降低足以覆盖工程与运维复杂度"]
+      },
+      {
+        id:120, category:"重点", company:"蚂蚁国际", title:"把大模型异步调用链改成同步调用，需要评估什么？",
+        requirement:"AI 系统集成题：重点掌握线程占用、超时、错误传播、幂等和用户体验。",
+        original:`在已有基于大模型的业务系统中（如订单服务），将异步调用链改为同步调用时，需重点评估和调整哪些技术环节？请结合可观测性、错误传播、超时控制与用户体验说明改造要点。`,
+        points:["同步后请求线程会等待模型、检索和工具链，需核算连接池/线程池、并发容量、尾延迟和级联阻塞","设置端到端 deadline，并把预算分配给各步骤；重试只针对可恢复错误且需退避、限次和幂等","错误要保留类型与 trace 跨层传播，设计熔断、降级和补偿，避免超时后下游仍继续产生副作用","前端需加载/流式进度和可取消能力；长任务通常保留异步 Job+状态查询，比强行同步更安全"]
+      },
+      {
+        id:121, category:"重点", company:"蚂蚁国际", title:"多 Agent 通信协议如何保证一致、安全和幂等？",
+        requirement:"多 Agent 工程重点：需要定义消息契约、因果关系、权限和重复投递处理。",
+        original:`多Agent系统中，Agent间通信如何设计？上下文（如对话历史、任务状态、工具调用结果）如何在Agent间一致、安全地传递与隔离？`,
+        points:["消息信封包含 task/run/message ID、发送方/接收方、schema 版本、时间、因果父节点和内容引用","传递结构化任务状态与证据引用，不复制无限对话；共享状态用版本号/CAS 或事件日志解决并发更新","每个 Agent 使用最小权限和独立作用域，对敏感字段脱敏/加密，并验证发送者与工具结果来源","用幂等键、去重表、确认/重试和死信队列处理至少一次投递；完整 trace 支持重放和审计"]
+      },
+      {
+        id:122, category:"重点", company:"蚂蚁国际", title:"分层 Agent 中，主 Agent 必须承担哪些系统级职责？",
+        requirement:"Supervisor 架构重点：能说明协调、恢复、资源、权限和循环控制，而不把主 Agent 做成万能模型。",
+        original:`在分层Agent架构中，主Agent需承担哪些关键协调职责？除交互外，列举并解释至少两类必需系统级逻辑（如失败恢复、资源调度、权限控制或循环检测）。`,
+        points:["理解目标并路由/分解任务，维护全局计划、依赖和完成条件，将子任务分配给合适 Agent","统一管理共享状态与证据，聚合结果、检测冲突并决定重规划、降级或结束","执行失败分类、超时/重试/回滚，控制 token、时间、并发和工具预算，防止循环与无进展执行","在中心层实施权限和高风险审批并保留审计；专业推理下放给子 Agent，避免 Supervisor 成为不可维护的 God Agent"]
+      },
+      {
+        id:123, category:"重点", company:"京东", title:"Agent 与基础语言模型 LLM 的核心区别是什么？",
+        requirement:"概念边界必会：不能把一次模型调用等同于一个 Agent 系统。",
+        original:`Agent与基础语言模型（LLM）在架构目标、运行机制和能力边界上的核心区别是什么？`,
+        points:["LLM 是根据上下文生成 token 的概率模型，本身不会自动拥有真实工具、持久状态或业务权限","Agent 以目标为中心，在 LLM 外增加规划/路由、工具执行、记忆/状态、反馈循环和停止条件","LLM 的输出是建议或结构化调用意图，真正的执行、校验、重试、安全和副作用由应用运行时负责","简单问答一次调用即可；需要多步行动、外部信息和状态推进时才使用 Agent，并接受额外延迟与复杂度"]
+      },
+      {
+        id:124, category:"原理", company:"京东", title:"熵、交叉熵与 KL 散度有什么关系？",
+        requirement:"信息论基础：会写离散定义、解释含义，并推导交叉熵等于熵加 KL。",
+        original:`从信息论角度，熵、交叉熵与KL散度的数学定义、物理含义及三者之间的恒等关系是什么？`,
+        points:["熵 H(P)=-Σp(x)log p(x)，衡量真实分布 P 的平均不确定性或最优编码长度","交叉熵 H(P,Q)=-Σp(x)log q(x)，表示真实样本来自 P、却用模型 Q 编码时的平均代价","KL(P‖Q)=Σp(x)log[p(x)/q(x)]，衡量用 Q 近似 P 产生的额外编码代价，非对称且不是真正距离","恒等式 H(P,Q)=H(P)+KL(P‖Q)；训练数据 P 固定时，最小化交叉熵等价于最小化 KL(P‖Q)"]
+      },
+      {
+        id:125, category:"原理", company:"京东", title:"多分类为什么通常使用交叉熵而不是 MSE？",
+        requirement:"理解概率建模和梯度差异，不要只回答“交叉熵收敛更快”。",
+        original:`在多分类任务中，为何通常选用交叉熵损失而非均方误差（MSE）？请从梯度特性、概率建模假设及优化行为三方面说明。`,
+        points:["Softmax+交叉熵对应类别分布的最大似然估计，是对概率预测合适的对数评分规则","其对 logits 的梯度简化为 p-y，错误且自信时仍能提供直接、有效的修正信号","MSE 把类别概率当连续回归值，梯度还乘 softmax Jacobian，饱和区域可能更小、优化更慢","MSE 并非数学上不可用，但分类任务的概率假设、校准与优化性质通常更匹配交叉熵"]
+      },
+      {
+        id:126, category:"原理", company:"多模态", title:"Cross-Attention 与 Self-Attention 有什么本质区别？",
+        requirement:"Transformer 基础：需要明确 Q 与 K/V 的来源，以及二者各自建模的关系。",
+        original:`交叉注意力机制在Transformer中的核心作用是什么？其计算如何体现信息源与查询来源的分离？它与自注意力的核心结构差异和建模意义是什么？`,
+        points:["Self-Attention 的 Q/K/V 来自同一序列，用于建模序列内部 token 之间的依赖","Cross-Attention 的 Q 来自当前/目标序列，K/V 来自另一信息源，让查询有选择地读取外部表示","两者计算形式都可写成 softmax(QKᵀ/√dₖ)V，差异主要在张量来源、长度和 mask","Encoder-Decoder 翻译、图文融合和多源条件生成常用 Cross-Attention；它带来细粒度交互但计算成本更高"]
+      },
+      {
+        id:127, category:"重点", company:"小红书", title:"Agent 意图分类的标签体系应该如何设计？",
+        requirement:"Agent 路由基础：标签既要覆盖业务，又要互斥、稳定并能被模型学会。",
+        original:`设计意图分类（Intent Classification）任务的标签体系时，需考虑哪些核心原则？如何平衡业务覆盖性、语义互斥性与模型可学习性？`,
+        points:["从下游动作、工具和处理流程反推标签，避免只按语言表面主题划分而无法驱动系统行为","同层标签尽量互斥且定义清晰；多意图用层级/多标签或先拆分，不强行塞进单一类别","设置 other/unknown 和澄清路径，覆盖长尾与分布外输入；标签粒度受可用数据量约束","用混淆矩阵、分场景召回、路由后任务成功率和人工复核持续合并/拆分标签"]
+      },
+      {
+        id:128, category:"重点", company:"小红书", title:"RAG 如何估计检索结果置信度并做检索后验证？",
+        requirement:"RAG 可靠性重点：不能把向量相似度直接当成可信概率。",
+        original:`检索结果置信度建模的常见方法有哪些？知识图谱可用于检索后验证的典型范式是什么？`,
+        points:["可组合相似度/距离、top1-top2 margin、召回来源一致性、reranker 分数和历史命中数据做置信度校准","单一 embedding 分数跨查询不可直接比较，应在标注集上做阈值、分桶或概率校准并监控漂移","检索后将回答拆成实体—关系—实体 claim，与知识图谱约束、路径或权威事实做一致性检查","低置信或冲突时扩大/切换检索、要求引用、拒答或转人工，并记录触发原因用于回归"]
+      },
+      {
+        id:129, category:"重点", company:"小红书", title:"UGC 评论、点赞和标签如何进入 RAG 检索与重排？",
+        requirement:"业务 RAG 重点：区分内容语义、行为信号和质量/时效信号，并处理噪声与偏差。",
+        original:`在以UGC评论、标签为重要语义信号的平台（如社交/电商），如何将非结构化用户反馈（评论、点赞、话题标签）有效融入RAG的检索阶段或重排序阶段？`,
+        points:["评论/标签可清洗聚合为文档补充语义或独立索引；点赞、停留等行为转成质量和偏好特征而非原样拼入文本","初召回可融合内容 embedding、标签倒排和个性化向量，重排阶段再加入热度、时效、可信度和用户匹配","做时间衰减、反作弊、去重和冷启动平滑，避免热门偏置、刷量和情绪噪声淹没相关证据","严格处理隐私和反馈回路，用离线相关性、在线任务指标及分群公平性验证收益"]
+      },
+      {
+        id:130, category:"重点", company:"小红书", title:"高并发 RAG 的性能瓶颈通常在哪里？",
+        requirement:"RAG 性能工程重点：需要沿查询链路定位，而不是只回答“换更快的向量数据库”。",
+        original:`在高并发场景下，RAG系统中检索模块（如向量相似度搜索）的性能瓶颈通常在哪？可采取哪些通用技术方案进行优化？`,
+        points:["瓶颈可能在 query embedding、网络往返、向量索引搜索、metadata 过滤、rerank 或大上下文生成，需分段 trace","Embedding 批处理/缓存，索引分片与副本，选择合适 HNSW/IVF 参数并预过滤，减少无效候选","控制初召回 K 和 rerank N，复用连接、异步并行独立检索源，并对热点查询/结果做版本化缓存","用限流、背压、超时和降级保障 P99；联合观察 QPS、Recall@K、延迟、缓存命中和最终质量"]
+      },
+      {
+        id:131, category:"算法", company:"小鹏", title:"旋转排序数组查找及重复元素、边界变体。",
+        requirement:"二分查找进阶题，需要明确每次如何判断有序半区以及重复值为什么会破坏判断。",
+        original:`在旋转排序数组查找、含重复元素数组或寻找边界（如左/右插入位置）等常见变体中，二分查找的核心逻辑需如何调整？请指出关键判断条件的变化依据。`,
+        points:["无重复旋转数组每轮至少一半有序：判断 target 是否落在有序区间，决定收缩哪侧","当 nums[left]=nums[mid]=nums[right] 时无法判断有序侧，可收缩两端，但最坏会退化到 O(n)","寻找左/右边界时，命中不立即返回：左边界继续收缩 right，右边界继续推进 left","统一使用明确的闭区间或左闭右开循环不变量，防止 mid、±1 和终止条件混用"]
+      },
+      {
+        id:132, category:"原理", company:"快手", title:"Temperature 如何影响大模型采样分布？",
+        requirement:"生成参数基础：会解释公式、典型现象，以及 Agent 场景为何通常偏低温度。",
+        original:`温度系数（temperature）在大模型采样阶段如何影响输出分布？过高或过低分别导致什么典型现象？`,
+        points:["采样前用 softmax(logits/T)：T<1 放大 logit 差异使分布更尖，T>1 缩小差异使分布更平","低温输出更稳定、重复和确定，极低时接近 argmax；高温增加多样性，也提高跑题、错误和格式破坏风险","Temperature 不改变候选截断规则本身，常与 top-p/top-k 联合使用，参数效果取决于原始 logit 分布","工具选择、JSON 和事实任务通常使用较低温度；创意生成可提高，但必须用评测而非固定经验值决定"]
+      },
+      {
+        id:133, category:"算法", company:"拼多多", title:"每次可走 1 到 m 阶的爬楼梯方案数。",
+        requirement:"动态规划基础题，需要会普通 DP 和滑动窗口优化。",
+        original:`给定n阶楼梯和最大单步跨度m（每次可走1到m阶），求到达第n阶的方案总数（需手写代码）。`,
+        points:["定义 dp[i] 为到达第 i 阶的方案数，dp[0]=1，转移为 dp[i]=Σdp[i-j]，1≤j≤min(m,i)","直接实现时间 O(nm)、空间 O(n)，注意 n=0、m≤0 等输入约定","转移是最近 m 项之和，可维护滑动窗口把时间优化到 O(n)","若只需结果，保存最近 m 个状态即可将空间降到 O(m)；大数时按题意取模"]
+      },
+      {
+        id:134, category:"重点", company:"淘天", title:"Prompt 自动推荐、压缩和向量化表示分别适合什么场景？",
+        requirement:"Prompt 工程进阶：需要区分生成/搜索 Prompt、压缩上下文和检索历史 Prompt 三类问题。",
+        original:`在Prompt自动推荐任务中，有哪些典型的优化策略？Prompt压缩与基于Embedding的Prompt表示分别适用于哪些场景，各自的技术挑战是什么？`,
+        points:["可基于模板/搜索/模型生成候选，再用离线任务集、LLM Judge+人工和在线实验选择，不只优化文案相似度","Prompt 压缩用于长指令和上下文降 token/延迟，需保留约束、示例和关键证据，防止语义与安全规则丢失","Embedding 表示适合从 Prompt/案例库检索相似策略或聚类去重，不等同于直接生成最终 Prompt","挑战包括任务迁移、版本漂移、评测泄露和反馈偏置；需版本化候选、模型与真实任务成功率"]
+      },
+      {
+        id:135, category:"重点", company:"淘天", title:"Agent 串行调用多个工具时如何降低端到端延迟？",
+        requirement:"Agent 性能重点：需要从依赖图、调度、缓存、异步化和失败预算优化。",
+        original:`当Agent系统需串行调用多个外部工具且面临高并发请求时，常见的端到端延迟瓶颈有哪些？可从架构、调度、缓存、异步化等角度列举具体优化手段。`,
+        points:["先画调用 DAG，区分真正数据依赖与可并行步骤；减少模型—工具往返和重复的规划调用","独立工具并行执行，连接池/HTTP2 复用，批量接口和就近部署降低网络、排队与握手开销","对稳定只读结果做带版本/权限/TTL 的缓存；长任务转异步 Job，向用户流式反馈中间进度","设置全链路 deadline、并发上限、熔断和可取消操作；以关键路径 P95/P99 和任务成功率验证优化"]
+      },
+      {
+        id:136, category:"重点", company:"滴滴", title:"RRF 如何融合多个检索器的排序结果？",
+        requirement:"混合检索必会：掌握计算公式、无需分数标定的优势，以及参数和工程取舍。",
+        original:`RRF（Reciprocal Rank Fusion）如何融合多个检索器的排序结果？其对低秩项的鲁棒性优势源于什么数学性质？`,
+        points:["核心公式为 score(d)=Σ 1/(k+rankᵢ(d))，按文档在各检索列表中的名次累加，不直接比较原始分数","只依赖 rank，可融合 BM25、向量检索等尺度不同的结果，省去复杂的跨检索器分数标定","倒数衰减会强化多个列表中稳定靠前的文档，同时限制低排名或单个噪声结果的贡献","工程上需统一文档 ID、去重并调节 k/检索器权重，联合 Recall@K、nDCG、最终回答质量和延迟评估"]
+      },
+      {
+        id:137, category:"重点", company:"百度", title:"面向大模型检索的 Chunk 应如何区别于原始文档？",
+        requirement:"RAG 数据工程必会：围绕可检索、可引用、语义自洽和噪声控制说明设计。",
+        original:`在RAG场景中，面向大模型检索的文档（chunk）在结构、粒度、语义完整性及噪声控制上，应如何区别于面向人类阅读的原始文档？`,
+        points:["Chunk 要能独立成为证据单元，并携带标题路径、来源、版本、时间和权限等检索与引用元数据","粒度依据问题可回答范围和模型上下文预算设计，不照搬页面、章节或视觉段落边界","清理导航、页脚和重复模板噪声，但保留表格、代码、定义与引用关系，避免脱离上下文后语义残缺","可用父子块、相邻块和原文指针补上下文，并以召回率、忠实度、噪声率和可维护性验证切分策略"]
+      },
+      {
+        id:138, category:"重点", company:"百度", title:"BM25 与 DPR 的根本差异是什么？",
+        requirement:"混合检索基础：能从表示、匹配、优缺点和组合方案四个角度回答。",
+        original:`稀疏检索（如BM25）与稠密检索（如DPR）在表示空间、匹配机制和查询-文档相关性建模方式上有何根本差异？各自的主要优势与局限是什么？`,
+        points:["BM25 基于稀疏词项统计和精确词汇匹配，无需训练，对专有名词、编号和罕见词强，但不擅长同义改写","DPR 把查询和文档编码到稠密语义空间，用向量相似度和 ANN 检索，擅长语义召回但依赖训练与领域适配","稠密检索可能漏掉精确数字或新词，BM25 可能漏掉无词面重合的相关文档，两者错误模式互补","生产中常并行召回后用 RRF 或归一化融合，再用 reranker 精排，并在真实查询集上调召回配额"]
+      },
+      {
+        id:139, category:"重点", company:"百度", title:"Agent 记忆摘要应该在什么时候触发？",
+        requirement:"长上下文 Agent 必会：不能只按固定轮数截断，要结合预算和任务语义。",
+        original:`在长上下文Agent中，设计记忆摘要（memory summarization）的触发机制时，应综合考虑哪些关键指标？轮数、token消耗、语义边界或任务阶段各自有何优劣？`,
+        points:["同时监控 token 使用、轮数、主题切换、任务阶段和关键状态变化；固定轮数简单但无法反映每轮信息量","设置硬阈值防止窗口溢出，并在接近预算时软触发；在语义边界或子任务结束时摘要通常更完整","摘要必须保留目标、约束、决策、工具结果、未解决事项和证据来源，不能只压缩自然语言对话","为摘要版本化并保留原始轨迹指针，检测关键信息召回、冲突和重复压缩造成的语义漂移"]
+      },
+      {
+        id:140, category:"重点", company:"百度", title:"超大工具返回结果如何做可控压缩？",
+        requirement:"Tool Calling 工程重点：掌握结构感知压缩、原始数据外存和按需读取。",
+        original:`当外部工具（如量表评测API）返回的结构化结果超出LLM上下文窗口时，如何在保留关键指标的前提下进行无损或可控有损的预压缩？请说明典型策略及其适用约束。`,
+        points:["优先按 schema 选择字段、统计聚合、分块查询和异常提取，而不是直接从尾部截断或让模型自由摘要","明确保留主键、单位、阈值、时间戳、异常项和业务不变量，按任务定义可丢弃的明细与精度","原始 payload 存对象存储或数据库，向上下文传摘要、URI、版本和哈希，需要细节时再按字段或分页读取","用字段覆盖率、聚合校验和关键不变量验证压缩；同时执行权限、隐私脱敏和最大响应体限制"]
+      },
+      {
+        id:141, category:"重点", company:"百度", title:"如何让大模型在缺乏依据时可靠拒答？",
+        requirement:"可靠性必会：拒答必须由证据和策略驱动，而不是依赖模型自报置信度。",
+        original:`如何通过Prompt工程引导大模型在缺乏可靠依据时主动拒答？有哪些关键设计原则和常见失败模式？`,
+        points:["Prompt 明确回答必须基于给定证据、先引用再下结论，并为证据不足规定固定的拒答输出结构","拒答门槛应结合检索命中、reranker 分数、来源一致性和外部验证，不把模型自报置信度当唯一依据","区分无证据、工具失败、证据冲突和问题越权，分别触发补检索、澄清、拒答或人工处理","常见失败是过度拒答、伪造引用和被文档提示注入绕过；需用边界样本和对抗样本持续回归"]
+      },
+      {
+        id:142, category:"算法", company:"百度", title:"无重复字符的最长子串。",
+        requirement:"滑动窗口高频题，需要手写 O(n) 解法并解释窗口左边界为何不会回退。",
+        original:`手写代码：求字符串中无重复字符的最长子串长度（要求O(n)时间复杂度）。`,
+        points:["维护窗口左边界 left 和字符最后出现位置 last；右指针逐个扫描字符串","若字符出现过，更新 left=max(left,last[ch]+1)，max 防止左边界回退到当前窗口之外","每轮更新 last[ch] 和最大长度，时间 O(n)，空间 O(min(n,字符集大小))","覆盖空串、全相同、重复字符位于窗口外和 Unicode 字符等边界；能说明集合版与索引版差异"]
+      },
+      {
+        id:143, category:"算法", company:"百度", title:"在行列有序二维矩阵中查找目标值。",
+        requirement:"二维搜索基础题，需要手写阶梯搜索并证明每次能排除一行或一列。",
+        original:`如何在行和列均升序排列的二维矩阵中高效查找目标值？时间复杂度下限是多少？`,
+        points:["从右上角或左下角开始：当前值大于目标就排除一列，小于目标就排除一行","每步至少让行或列指针推进一次，因此时间 O(m+n)、额外空间 O(1)","说明正确性：右上角同时是所在行最大候选与所在列最小候选，比较结果能安全排除一个方向","处理空矩阵、单行单列和目标不存在；题目通常假设规则矩形，复杂度下限需说明比较模型与输入约束"]
+      },
+      {
+        id:144, category:"重点", company:"百度", title:"多 Agent 系统如何动态切换子 Agent？",
+        requirement:"多 Agent 编排重点：需要覆盖触发、交接、状态一致性、权限和循环控制。",
+        original:`在多Agent系统中，如何设计子Agent间的动态切换机制？需考虑哪些关键因素（如触发条件、状态一致性、任务交接）？`,
+        points:["切换可由子任务完成、能力不匹配、低置信、失败、权限边界或预算耗尽触发，并由路由器/主 Agent 决策","交接使用结构化 envelope，包含目标、已完成步骤、证据与产物、未决问题、约束和期望输出","共享状态采用版本号、checkpoint、幂等键和明确所有权，避免重复执行有副作用的工具调用","设置最大跳转次数、重复路由和无进展检测；关键操作重新鉴权并保留全链路审计和人工接管"]
+      },
+      {
+        id:145, category:"重点", company:"百度", title:"Planning Agent 执行失败如何容错与恢复？",
+        requirement:"Agent 运行时必会：从故障发现、分类、恢复动作和一致性四层回答。",
+        original:`在Planning Agent架构中，若高层规划模块生成的任务未被底层执行模块响应或执行失败，应如何设计容错与恢复机制？`,
+        points:["用任务确认、心跳、超时和状态机识别未接收、执行中失联、明确失败等不同故障，而非统一重试","区分计划错误、执行器错误和外部环境错误，选择限次重试、换执行器、重规划、降级或转人工","计划表示为带依赖和完成条件的 DAG，保存 checkpoint；有副作用的步骤使用幂等键和补偿操作","为每步设置 deadline、预算与错误类型，完整记录输入、执行结果和恢复决策，防止无限重试和重复提交"]
+      },
+      {
+        id:146, category:"重点", company:"百度", title:"RAG 如何在检索阶段拦截有害内容？",
+        requirement:"RAG 安全重点：掌握入库、检索、生成三层防线以及权限与审计。",
+        original:`在RAG系统的检索阶段，若召回文档包含违法、有害或偏见性内容，应如何在架构层面进行前置拦截与安全过滤？`,
+        points:["入库阶段做来源白名单、内容分类、恶意指令检测和隔离，给文档片段写入风险、权限与租户元数据","检索时先执行 ACL/metadata 过滤，再对候选做安全分类和策略判断，禁止把不可信内容直接拼入 Prompt","reranker 只优化相关性，不能代替安全过滤；生成后仍需事实引用检查和输出安全策略形成纵深防御","记录命中规则、文档来源和处置结果，监控误杀/漏放，并用语料投毒与 prompt injection 样本做回归"]
+      },
+      {
+        id:147, category:"重点", company:"百度", title:"ReAct 的推理—行动—观察循环如何落地？",
+        requirement:"Agent 基础架构必会：要能把概念解释成可执行状态机和安全工具循环。",
+        original:`ReAct框架中，“推理-行动-观察”循环在Agent系统中如何具体实现？关键状态管理与控制流设计要点是什么？`,
+        points:["运行时维护 Thought/Action/Observation 状态机；模型输出结构化 action，不能直接执行任意文本指令","应用校验工具名、参数、权限和 schema 后执行，将结果或错误作为 observation 写回上下文，再决定下一步","状态需保存目标、计划、工具历史、关键证据、预算和错误，并用 run/step ID 支持恢复、去重与审计","设置最大步数、超时、重复动作/无进展检测和完成条件；高风险操作审批，失败时重试、改计划或安全终止"]
+      },
+      {
+        id:148, category:"重点", company:"美团", title:"系统指令与业务约束冲突时如何治理？",
+        requirement:"Prompt 与安全工程必会：需要说明优先级、确定性校验和冲突后的安全退路。",
+        original:`当大模型高指令遵循率与业务约束（如安全红线、领域术语规范、输出结构要求）发生冲突时，有哪些系统性优化手段？请从Prompt设计、后处理、监督信号构造等角度说明。`,
+        points:["建立明确的指令层级：平台安全与权限高于业务流程，业务规则高于用户临时要求，并避免在同一层放入互相矛盾的指令","将不可违反的权限、金额、状态机和输出 schema 放到代码/规则校验层，不能只依赖 Prompt 自觉遵守","生成前做意图与风险分类，生成后做结构、事实和合规验证；冲突时澄清、拒答、降级或转人工","训练或 few-shot 数据要覆盖冲突样本和正确拒绝行为，并以越权率、格式合规率和任务成功率做回归"]
+      },
+      {
+        id:149, category:"拔高", company:"美团", title:"CoT、ReAct 与 ToT 三种推理范式如何取舍？",
+        requirement:"理解定位和工程代价即可：重点说明是否调用工具、是否搜索多条路径及如何控制成本。",
+        original:`CoT、ReAct、ToT 是典型的 Agent 推理范式，请对比它们在推理结构、决策粒度和可控性上的核心差异。`,
+        points:["CoT 在单条推理路径上逐步分解，适合可由模型内部知识完成的分析，但过程未必可验证或可控","ReAct 在推理、行动与观察之间循环，可用真实工具结果修正决策，适合外部信息和多步执行任务","ToT 显式扩展多条候选思路并评估、回溯或剪枝，探索能力强，但模型调用、延迟和状态管理成本更高","工程上优先使用最简单可验证的方案；敏感推理不直接暴露，依靠结构化计划、工具 trace 和结果校验提供可观测性"]
+      },
+      {
+        id:150, category:"重点", company:"美团", title:"大模型文本生成 HTTP API 如何设计流式响应？",
+        requirement:"LLM 服务接口必会：掌握请求契约、SSE/分块流、取消、统计与异常语义。",
+        original:`设计一个面向大模型文本生成服务的HTTP API：请说明请求体中需包含哪些关键字段（如输入提示、采样参数、流式开关等），响应体应如何组织（含token流、finish_reason、usage统计等），并简述服务端实现流式返回（SSE或chunked transfer）的核心机制。`,
+        points:["请求包含 model、messages/input、temperature/top-p、max tokens、stop、stream 和请求/幂等 ID，并对范围和权限做校验","非流式返回完整内容、finish_reason、usage 和错误；流式按事件发送增量 token/delta，结束事件再给终止原因与统计","SSE 使用 text/event-stream 和持续 flush；服务端需把模型异步流映射为事件，并传播客户端断连和取消信号","设置首 token/总超时、背压、限流与统一错误事件；记录 trace、模型版本、token、延迟和取消原因以便计费与排障"]
+      },
+      {
+        id:151, category:"重点", company:"美团", title:"代码 Agent 的 Prompt 与验证闭环如何设计？",
+        requirement:"AI Coding 场景重点：回答必须覆盖上下文选择、约束、工具执行和可重复验证。",
+        original:`在AI辅助编程（AI Coding）场景中，针对代码生成任务，Prompt Engineering的关键设计原则有哪些？如何系统性验证生成代码的正确性与鲁棒性？`,
+        points:["Prompt 给出目标、语言/框架、仓库约定、相关文件、接口契约、不可修改范围和验收条件，避免无边界地倾倒整个仓库","先让 Agent 检索真实代码与依赖，再生成最小补丁；高风险变更要求说明假设、影响面和回滚路径","验证链包括格式/静态检查、类型检查、单元与集成测试、构建和针对边界/失败路径的新增测试","在隔离工作区运行工具，限制命令和权限，并基于测试失败迭代；最终审查 diff、测试证据、依赖与安全问题"]
+      },
+      {
+        id:152, category:"算法", company:"腾讯", title:"买卖股票的最佳时机（只允许一次交易）。",
+        requirement:"数组贪心基础题，需要手写 O(n)、O(1) 解法并说明为何只需维护历史最低价。",
+        original:`给定股价数组，最多完成一笔买卖（先买后卖），求最大利润。请手写O(n)时间复杂度的解法并解释状态转移逻辑。`,
+        points:["从左到右维护当前位置之前的最低买入价 minPrice，以及当前最大利润 maxProfit","遍历价格 price 时先计算 price-minPrice 更新利润，再更新最低价；同一天买卖利润为 0 不影响结果","每个卖出日的最优买入必是此前最低价，因此一次扫描覆盖所有合法交易，时间 O(n)、空间 O(1)","处理空数组、单元素和持续下跌：无法获利时返回 0；不要把多次交易或允许做空的规则混进来"]
+      },
+      {
+        id:153, category:"重点", company:"腾讯", title:"多轮对话 Agent 如何保证状态一致性？",
+        requirement:"Agent 状态工程必会：掌握状态模型、工具幂等、上下文压缩和并发控制。",
+        original:`Agent在多轮对话中面临哪些典型技术挑战？请从状态一致性、工具调用可靠性、长期规划与错误恢复等角度说明。`,
+        points:["把用户目标、约束、槽位、任务阶段、已完成步骤和待办事项建成显式状态，不只依赖自然语言聊天记录","工具调用使用 step/tool_call ID、幂等键和状态机，结果与发起请求正确关联；超时按错误类型重试或补偿","长对话通过摘要和外部记忆控制 token，但保留关键决策、证据和原始引用，防止压缩后遗忘或语义漂移","并发请求用版本号/CAS 或串行队列避免覆盖；设置 checkpoint、重规划、循环检测、预算与人工接管"]
+      },
+      {
+        id:154, category:"算法", company:"腾讯", title:"在升序数组中实现二分查找。",
+        requirement:"算法生存线基础题，需要写对区间不变量、边界更新和不存在时的返回值。",
+        original:`在升序排列的整型数组中实现二分查找，要求返回目标值的下标（未找到返回-1），并分析时间/空间复杂度。`,
+        points:["选择闭区间 [left,right] 时循环条件为 left<=right，mid=left+(right-left)//2 避免直接相加溢出","nums[mid] 小于目标令 left=mid+1，大于目标令 right=mid-1，相等立即返回 mid","每轮搜索区间至少减半，因此时间 O(log n)，迭代写法额外空间 O(1)","覆盖空数组、单元素、目标在两端或不存在；若题目要求首个/最后一个位置，命中后不能立即返回"]
+      },
+      {
+        id:155, category:"重点", company:"腾讯", title:"Function Calling、JSON Mode 与后处理校验如何取舍？",
+        requirement:"结构化输出必会：能说明三者保证的层级不同，以及生产环境为何仍需服务端验证。",
+        original:`在大模型应用中，如何确保LLM输出严格符合指定JSON Schema？请对比函数调用（Function Calling）、JSON模式强制（JSON Mode）、后处理校验等方案的可靠性与适用边界。`,
+        points:["Function Calling/Structured Outputs 可将工具或响应 schema 交给模型并约束结构，适合动作调用和稳定机器消费，但仍不保证业务语义正确","JSON Mode 通常只保证输出可解析为 JSON，不一定满足指定字段、类型、枚举和跨字段约束","服务端必须再次执行 JSON Schema、类型、范围、权限和业务规则校验；失败时可带结构化错误限次修复","无法修复时降级或转人工，并记录原输出、校验错误和模型版本；禁止直接执行未经验证的模型参数"]
+      },
+      {
+        id:156, category:"重点", company:"腾讯", title:"Agent 与传统 ChatBot 的核心区别是什么？",
+        requirement:"岗位概念边界必会：重点从目标、执行循环、状态和系统能力回答，而不是只比较模型大小。",
+        original:`Agent与传统ChatBot在架构目标、执行机制和系统能力上的核心区别是什么？`,
+        points:["ChatBot 通常以生成一轮回复为完成条件，Agent 以推进目标和改变外部状态为完成条件","Agent 在模型外增加规划/路由、工具执行、观察反馈、状态/记忆和停止条件，形成多步执行循环","真实权限、幂等、重试、审计和副作用控制属于 Agent Runtime，不是语言模型自动具备的能力","简单咨询和固定流程优先 ChatBot/确定性工作流；只有任务需要动态决策和外部行动时才值得引入 Agent 复杂度"]
+      },
+      {
+        id:157, category:"重点", company:"腾讯", title:"如何设计高精度、低延迟、可扩展的 AI 问答系统？",
+        requirement:"综合系统设计题：需要画出端到端链路，并围绕质量、延迟、扩展性和故障治理做取舍。",
+        original:`设计一个支持高精度、低延迟、可扩展的AI问答系统，需考虑哪些核心模块及其关键技术权衡（如检索、生成、缓存、降级）？`,
+        points:["链路包括意图/权限、查询改写与路由、混合检索、过滤/rerank、证据组装、生成与引用校验，并为每层记录 trace","精度靠高质量语料、hybrid retrieval、精排、无证据拒答和分层评测；不能只靠换更大的生成模型","延迟通过并行检索、结果/Embedding/Prompt 缓存、候选数与上下文预算、流式输出和模型路由控制","服务保持无状态并外置 Session，索引分片副本、异步队列和弹性扩容；用超时、熔断、降级及版本回滚保障可用性"]
+      },
+      {
+        id:158, category:"重点", company:"腾讯", title:"ChatMemory 与 Session State 应该如何划分？",
+        requirement:"Agent 状态设计必会：必须区分“给模型看的上下文”和“系统真实运行状态”。",
+        original:`在对话系统中，ChatMemory通常指什么？其与传统session state管理的关键区别是什么？长期记忆建模面临哪些核心挑战（如遗忘、一致性、检索效率）？`,
+        points:["ChatMemory 保存模型继续对话所需的消息、摘要、偏好或语义记忆；Session State 保存用户、权限、任务阶段和业务对象等运行状态","业务数据库/状态机是事实源，ChatMemory 是可压缩、可检索的上下文视图，不能用模型摘要替代准确业务状态","短期记忆按 token 预算摘要或淘汰；长期记忆写入需验证、去重、来源/时间/作用域绑定和冲突处理","读取时做权限过滤、相关性与新鲜度排序；持续评估关键信息召回、错误记忆、延迟和删除/隐私合规"]
+      },
+      {
+        id:159, category:"重点", company:"腾讯", title:"高并发 LLM 服务如何设计请求限流？",
+        requirement:"生产服务重点：不能只按 HTTP 请求数限流，要考虑 token、并发、租户和排队预算。",
+        original:`在高并发LLM服务中，如何设计有效的请求限流策略？需考虑token级、请求级及用户级等不同粒度的限制维度。`,
+        points:["同时限制每秒请求、输入/输出 token、在途并发和队列长度；一个超长请求不能与短请求按同一成本计算","按租户、用户、API Key、模型和优先级分配配额，使用 token bucket/leaky bucket 并设置突发容量与公平调度","在入口预估 token 并预留额度，结束后按真实 usage 结算；排队超过 deadline 直接拒绝或降级，避免无界等待","返回明确的 429、重试时间与剩余额度；监控拒绝率、队列延迟、token 吞吐和 GPU/KV 占用，防止重试风暴"]
+      },
+      {
+        id:160, category:"重点", company:"腾讯", title:"Prompt 模板如何安全解析并注入变量？",
+        requirement:"Prompt 工程安全题：掌握模板语法、角色边界、转义、白名单和提示注入防护。",
+        original:`Prompt模板引擎（如LangChain4j中的Template类）如何解析并安全注入变量？需说明占位符语法、转义机制及防注入关键设计。`,
+        points:["模板与变量分离，使用明确占位符和缺失字段校验，不用字符串拼接让外部输入改变 system/developer 指令结构","按目标格式转义分隔符、Markdown/XML/JSON 特殊字符；结构化数据优先序列化并标注为 data，而非可执行指令","敏感模板和工具参数使用字段白名单、长度/类型限制、来源标签与权限检查，外部文档中的指令默认不可信","模板、变量和最终 Prompt 分别记录版本与哈希；用角色逃逸、分隔符闭合和文档注入样本做安全回归"]
+      },
+      {
+        id:161, category:"重点", company:"腾讯", title:"生产级 Prompt 管理系统应该包含什么？",
+        requirement:"Agent 平台工程重点：需要覆盖版本、发布、实验、上下文装配、评测和回滚闭环。",
+        original:`设计一个支持版本控制、A/B测试、上下文注入和效果追踪的Prompt管理系统时，关键架构组件有哪些？需解决哪些一致性、可观测性和安全隔离问题？`,
+        points:["Prompt 作为不可变版本资产保存模板、变量 schema、模型参数、作者和变更说明，通过草稿—审核—灰度—生产流程发布","运行时按应用/场景/租户装配 system、业务规则、检索上下文和工具定义，并记录最终版本与依赖版本","A/B 按用户或会话稳定分流，绑定模型、知识库和工具版本；跟踪任务成功率、质量、安全、延迟、token 与成本","支持权限隔离、敏感变量脱敏、自动回归、异常熔断和一键回滚，防止缓存或多实例读取到不一致版本"]
+      },
+      {
+        id:162, category:"重点", company:"腾讯", title:"Agent Workflow 与确定性 DAG Workflow 有什么区别？",
+        requirement:"架构选型必会：说明动态决策与确定性编排的边界，以及为什么生产系统通常混合使用。",
+        original:`Agent workflow与传统确定性workflow（如Airflow DAG）在执行机制、状态管理与决策逻辑上的核心区别是什么？`,
+        points:["确定性 Workflow 的节点、依赖和转移大多预先定义，适合可重复、可审计和强 SLA 流程；Agent 可根据观察动态选工具和改计划","DAG 状态是显式节点/任务状态，Agent 还需保存对话、计划、证据、工具结果和预算，并防止循环与无进展","确定性流程按规则转移、容易重放测试；Agent 决策是概率性的，需结构化约束、评测、checkpoint 和人工接管","生产中常用 Workflow 控制关键骨架、权限与副作用，在局部开放节点使用 Agent 处理不确定性，而不是全链路自治"]
+      },
+      {
+        id:163, category:"重点", company:"腾讯", title:"Skills、MCP、Memory 与推理策略分别解决什么问题？",
+        requirement:"Agent 技术栈边界必会：不要把指令、工具协议、状态存储和推理方法混成一个概念。",
+        original:`Skills与MCP在Agent系统中分别解决什么抽象层级的问题？长期记忆（如向量数据库）与短期记忆（如token上下文）在信息生命周期、检索机制和一致性上存在哪些根本性挑战？CoT与ToT在搜索空间建模上的结构性差异是什么？`,
+        points:["Skill 封装可复用的任务说明、领域规则和操作流程，解决模型该如何完成一类任务；它本身不等于外部执行能力","MCP 标准化工具/资源的发现、schema、调用与返回，解决 Agent 如何连接外部能力；执行权限和业务校验仍由运行时负责","短期记忆服务当前任务并受 token 窗口约束，长期记忆跨会话持久化且需检索、验证、版本、权限、遗忘和冲突治理","CoT 沿单条思路推进，ToT 搜索多条候选并评估/回溯；二者是决策策略，与 Skill、MCP 和 Memory 可组合但层级不同"]
+      },
+      {
+        id:164, category:"算法", company:"腾讯", title:"三数之和（3Sum）。",
+        requirement:"数组双指针高频题，需要手写排序解法并正确去重。",
+        original:`请手写代码实现三数之和（3Sum）问题：给定整数数组，返回所有不重复的三元组，使其和为0。`,
+        points:["先排序，枚举第一个数 i，再用 left/right 双指针在右侧寻找两数之和为 -nums[i]","和小于 0 时 left++，大于 0 时 right--；命中后记录三元组并同时移动两端","i 与命中后的 left/right 都要跳过相同值，保证结果三元组不重复；排序后 nums[i]>0 可提前结束","排序 O(n log n)，双指针总时间 O(n²)，不计输出的额外空间取决于排序实现；注意加法溢出和全零边界"]
+      },
+      {
+        id:165, category:"重点", company:"腾讯", title:"实际业务中如何选择基础大模型？",
+        requirement:"Agent 模型选型必会：需要用真实任务、质量、延迟、显存和成本联合决策，不能只看公开榜单。",
+        original:`在实际业务场景中，选择基础大模型（如Llama3、Qwen、Phi-3）时，需综合评估哪些技术指标（如推理延迟、KV缓存内存占用、指令遵循能力、多轮对话一致性）？如何通过轻量级基准（如MT-Bench子集、AlpacaEval）快速验证适配性？`,
+        points:["先从真实任务抽样构建小型评测集，覆盖指令遵循、领域正确性、工具/JSON 输出、多轮状态和拒答安全","性能联合测 TTFT、TPOT、吞吐、长上下文退化、KV Cache/权重显存和目标硬件上的量化支持","通用榜单只能初筛；轻量基准需加入业务样本、确定性校验和校准过的人工/LLM Judge，并记录重试后的真实成本","生产中按任务难度和风险路由大小模型，灰度比较任务成功率、延迟、成本与失败类型，并保留升级和回退路径"]
+      },
+      {
+        id:166, category:"重点", company:"荣耀", title:"多 Agent 通信有哪些常见范式？",
+        requirement:"多 Agent 架构重点：能比较消息队列、共享状态、黑板和请求—响应的适用边界。",
+        original:`多Agent系统中，Agent间通信的常见范式有哪些（如消息总线、共享内存、黑板模型、显式请求-响应）？各自适用于什么任务耦合度与实时性要求的场景？`,
+        points:["显式请求—响应简单直观、低延迟，适合同步强依赖步骤，但调用链耦合高且容易级联超时","消息队列/事件总线解耦生产消费并支持削峰重试，适合异步任务；需处理重复、乱序、积压和最终一致性","共享内存或黑板便于多个 Agent 围绕共同状态协作，适合探索/汇聚，但必须定义所有权、版本、锁/CAS 和冲突规则","选型依据任务依赖、延迟、吞吐和一致性；统一消息 schema、幂等键、权限、trace 和失败恢复，常采用混合架构"]
+      },
+      {
+        id:167, category:"算法", company:"蚂蚁", title:"AVL 平衡二叉树的旋转与高度证明。",
+        requirement:"数据结构基础题：掌握平衡因子、四类失衡旋转，以及为什么树高保持 O(log n)。",
+        original:`平衡二叉树（如AVL树）的核心定义和自平衡机制是什么？如何证明其高度为O(log n)？`,
+        points:["AVL 是二叉搜索树，任一节点左右子树高度差的绝对值不超过 1，节点通常维护 height 或 balance factor","插入/删除后自底向上更新高度；LL/RR 分别单旋，LR/RL 先对子树旋转再对失衡节点旋转","高度为 h 的 AVL 最少节点满足 N(h)=N(h-1)+N(h-2)+1，按斐波那契速度增长，因此 h=O(log n)","查找、插入、删除均保持 O(log n)；旋转必须同时维护 BST 顺序、父子链接和高度，删除可能连续向上再平衡"]
+      },
+      {
+        id:168, category:"拔高", company:"字节", title:"Agent 如何在快思考与慢思考之间动态路由？",
+        requirement:"理解路由思想和工程实现即可：重点是难度判断、升级条件和质量—延迟权衡，不要求训练路由头。",
+        original:`Qwen3提出的“快思考”与“慢思考”机制，本质上对应哪些推理路径分离设计？其在模型结构或推理流程中可能的实现范式（如early-exit、cascade decoding、or verification head）有哪些？`,
+        points:["快路径用于抽取、改写、简单问答和确定性工具路由；慢路径给复杂规划、多约束推理和高风险决策更多计算预算","可在应用层用任务分类/不确定性路由小模型→验证器→大模型，也可通过 early-exit、级联解码或验证头决定是否继续计算","升级信号包括验证失败、低置信、证据冲突、工具错误和任务复杂度；阈值需在真实任务集上按风险和成本校准","Agent 开发重点是可观测路由、最大预算、降级与回退，并联合评估任务成功率、TTFT、总延迟、token 和调用成本"]
+      },
+      {
+        id:169, category:"重点", company:"小红书", title:"UGC 知识库如何识别并过滤低质量内容？",
+        requirement:"RAG 数据治理重点：需要说明入库过滤、质量评分、检索约束和持续反馈闭环。",
+        original:`面向RAG知识库构建，如何对低质量、高噪声的UGC文本（如含事实错误、主观臆断的内容）进行自动化可信度识别与过滤？`,
+        points:["入库前结合规则、重复/广告检测、内容安全分类器、事实核验和 LLM Judge 识别垃圾、冲突、过时与恶意内容","可信度不只看文本：结合来源、作者历史、时间、引用证据、用户反馈和跨来源一致性，输出可解释的质量分与风险标签","高风险内容隔离或待审，普通内容把质量、时效和权限写入 metadata，在检索过滤和 rerank 中降权而非一刀切删除","建立人工抽检、申诉与线上 bad case 回流，监控误杀/漏放、分布漂移和检索后答案忠实度，并保留来源与处置审计"]
+      },
+      {
+        id:170, category:"重点", company:"腾讯", title:"大模型服务上线后应该监控哪些指标？",
+        requirement:"生产可观测性必会：要把输入、输出质量、系统性能、成本和版本关联到同一条 trace。",
+        original:`大模型AI服务上线后，应监控哪些关键维度（如输入分布漂移、输出质量退化、延迟异常、token消耗突增）及对应的可观测性手段？`,
+        points:["输入侧监控语言/场景、长度、意图、敏感内容与 Prompt injection 命中，比较线上分布和评测基线发现漂移","质量侧跟踪任务成功率、正确性/忠实性、安全、拒答、JSON/工具调用合规率，并通过抽样人工与回归集校准 Judge","系统侧监控 TTFT、TPOT、P50/P95/P99、吞吐、队列、错误/超时/取消率及 GPU、KV Cache 和下游工具状态","成本侧看输入/输出 token、缓存命中、重试与工具调用次数；按模型、Prompt、知识库、工具和发布版本切分 trace，设置告警与自动回滚"]
+      }
+    ];
+
+    const descriptions = {
+      "全部":"先学“重点准备”，算法题用于通用编程轮，拔高题只需达到页面标注的理解深度。",
+      "重点":"与 AI Agent / LLM 应用开发相关性最高，需要能给出结论、原理和工程取舍。",
+      "算法":"不是 Agent 专业知识，但可能出现在通用编程轮；按每题的标注准备。",
+      "原理":"通用机器学习基础，会写核心公式并能做简短推导。",
+      "拔高":"只需理解动机、核心机制和对 Agent 工程的影响，不要在手写和训练细节上过度投入。"
+    };
+
+    const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+    const list = document.getElementById("questionList");
+    const title = document.getElementById("sectionTitle");
+    const description = document.getElementById("sectionDescription");
+    const empty = document.getElementById("emptyState");
+    const questionNavList = document.getElementById("questionNavList");
+    const questionNavCount = document.getElementById("questionNavCount");
+    const navTopButton = document.getElementById("navTopButton");
+    let activeQuestionId = null;
+
+    function syncCounts() {
+      const counts = questions.reduce((result, question) => {
+        result[question.category] = (result[question.category] || 0) + 1;
+        return result;
+      }, {});
+      document.querySelectorAll("[data-summary-category]").forEach(element => {
+        element.textContent = counts[element.dataset.summaryCategory] || 0;
+      });
+      document.querySelectorAll("#tabs [data-category]").forEach(tab => {
+        const category = tab.dataset.category;
+        const count = category === "全部" ? questions.length : (counts[category] || 0);
+        tab.querySelector("small").textContent = `${count} 题`;
+      });
+    }
+
+    function renderQuestionNav(selected) {
+      questionNavCount.textContent = `${selected.length} 道`;
+      questionNavList.innerHTML = selected.map(question => `
+        <button class="question-nav-link" type="button" data-question-id="${question.id}" title="${escapeHTML(question.title)}">
+          <span class="question-nav-number">#${question.id}</span>
+          <span class="question-nav-text">${escapeHTML(question.title)}</span>
+        </button>
+      `).join("");
+      activeQuestionId = null;
+    }
+
+    function setActiveQuestion(questionId) {
+      if (!questionId || activeQuestionId === questionId) return;
+      activeQuestionId = questionId;
+      questionNavList.querySelectorAll(".question-nav-link").forEach(link => {
+        link.classList.toggle("active", Number(link.dataset.questionId) === questionId);
+      });
+      const activeLink = questionNavList.querySelector(`.question-nav-link[data-question-id="${questionId}"]`);
+      if (activeLink) activeLink.scrollIntoView({block:"nearest"});
+    }
+
+    function updateActiveQuestion() {
+      const cards = [...list.querySelectorAll(".card")];
+      if (!cards.length) return;
+      let active = cards[0];
+      for (const card of cards) {
+        if (card.getBoundingClientRect().top <= 165) active = card;
+        else break;
+      }
+      setActiveQuestion(Number(active.dataset.questionId));
+    }
+
+    function render(category) {
+      const selected = category === "全部" ? questions : questions.filter(question => question.category === category);
+      title.textContent = category === "全部" ? "全部题目" : `${category}题目`;
+      description.textContent = descriptions[category];
+      empty.style.display = selected.length ? "none" : "block";
+      list.innerHTML = selected.map(question => `
+        <article class="card" id="question-${question.id}" data-question-id="${question.id}" data-category="${escapeHTML(question.category)}">
+          <header class="card-head">
+            <span class="number">#${question.id}</span>
+            <div>
+              <h3>${escapeHTML(question.title)}</h3>
+              <p class="requirement">${escapeHTML(question.requirement)}</p>
+              <div class="meta">
+                <span class="tag focus">${escapeHTML(question.category)}</span>
+                <span class="tag company">${escapeHTML(question.company)}</span>
+              </div>
+              <details class="original-question">
+                <summary>查看题库原题</summary>
+                <p class="original-copy">${escapeHTML(question.original)}</p>
+              </details>
+            </div>
+          </header>
+          <div class="mastery">
+            <div class="mastery-label">你需要掌握</div>
+            <ul>${question.points.map(point => `<li>${escapeHTML(point)}</li>`).join("")}</ul>
+          </div>
+        </article>
+      `).join("");
+      renderQuestionNav(selected);
+      requestAnimationFrame(updateActiveQuestion);
+    }
+
+    const tabs = document.getElementById("tabs");
+    tabs.addEventListener("click", event => {
+      const button = event.target.closest("[data-category]");
+      if (!button) return;
+      tabs.querySelectorAll(".tab").forEach(tab => {
+        const active = tab === button;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", String(active));
+      });
+      render(button.dataset.category);
+    });
+    tabs.addEventListener("keydown", event => {
+      if (!['ArrowLeft','ArrowRight'].includes(event.key)) return;
+      const allTabs = [...tabs.querySelectorAll('.tab')];
+      const current = allTabs.indexOf(document.activeElement);
+      if (current < 0) return;
+      event.preventDefault();
+      const next = event.key === 'ArrowRight' ? (current + 1) % allTabs.length : (current - 1 + allTabs.length) % allTabs.length;
+      allTabs[next].focus();
+      allTabs[next].click();
+    });
+
+    questionNavList.addEventListener("click", event => {
+      const button = event.target.closest("[data-question-id]");
+      if (!button) return;
+      const questionId = Number(button.dataset.questionId);
+      const card = document.getElementById(`question-${questionId}`);
+      if (!card) return;
+      setActiveQuestion(questionId);
+      card.scrollIntoView({behavior:"smooth", block:"start"});
+      try { history.replaceState(null, "", `#question-${questionId}`); } catch (_) {}
+    });
+    navTopButton.addEventListener("click", () => {
+      document.querySelector(".tabs-shell").scrollIntoView({behavior:"smooth", block:"start"});
+    });
+
+    const root = document.documentElement;
+    const themeButton = document.getElementById("themeButton");
+    try { const saved = localStorage.getItem("agent-interview-focus-theme"); if (saved) root.dataset.theme = saved; } catch (_) {}
+    themeButton.addEventListener("click", () => {
+      root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+      try { localStorage.setItem("agent-interview-focus-theme", root.dataset.theme); } catch (_) {}
+    });
+    const progressBar = document.getElementById("progressBar");
+    function updateProgress() {
+      const total = document.documentElement.scrollHeight - innerHeight;
+      progressBar.style.width = `${total > 0 ? scrollY / total * 100 : 0}%`;
+    }
+    addEventListener("scroll", () => {
+      updateProgress();
+      updateActiveQuestion();
+    }, {passive:true});
+    syncCounts();
+    render("全部");
+    updateProgress();
+  </script>
+</body>
+</html>

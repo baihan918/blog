@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="消息中间件 ACK、重投、死信队列与任务执行 Lease、Heartbeat、Reconciler、Outbox、幂等副作用完整解析。">
+  <meta name="theme-color" content="#f5f2e9">
+  <link rel="icon" href="data:,">
+  <title>消息可靠投递与任务执行恢复：ACK、Lease、Outbox 与幂等</title>
+  <style>
+    :root{color-scheme:light;--page:#f5f2e9;--paper:#fffdf8;--paper-strong:#fff;--ink:#17202f;--muted:#687182;--line:#dedbd1;--line-soft:#ebe8df;--blue:#3776ab;--blue-deep:#24557d;--blue-soft:#e7f2fb;--yellow:#efbd16;--yellow-deep:#745c00;--yellow-soft:#fff5c7;--mint:#2d8a73;--mint-soft:#e7f5ef;--purple:#8260b3;--purple-soft:#f1ebf8;--coral:#e56b4e;--coral-soft:#fff0eb;--code:#18202c;--code-ink:#e8eef7;--shadow:0 22px 60px rgba(51,46,34,.10);--sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+    [data-theme="dark"]{color-scheme:dark;--page:#121720;--paper:#19212c;--paper-strong:#1f2936;--ink:#edf2f7;--muted:#a8b2c1;--line:#344151;--line-soft:#2b3645;--blue-soft:#172d42;--blue-deep:#78b9ec;--yellow-soft:#3c3517;--yellow-deep:#f6d654;--mint-soft:#17352f;--purple-soft:#2e2540;--coral-soft:#3d2521;--code:#0d1118;--code-ink:#e9eef7;--shadow:0 24px 70px rgba(0,0,0,.28)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:90px}body{margin:0;color:var(--ink);background:radial-gradient(circle at 7% 2%,color-mix(in srgb,var(--blue) 14%,transparent),transparent 29rem),radial-gradient(circle at 94% 13%,color-mix(in srgb,var(--yellow) 18%,transparent),transparent 27rem),var(--page);font-family:var(--sans);line-height:1.76;-webkit-font-smoothing:antialiased}button,a{-webkit-tap-highlight-color:transparent}button{color:inherit;font:inherit;cursor:pointer}code{font-family:var(--mono)}::selection{background:color-mix(in srgb,var(--blue) 23%,transparent)}
+    .skip-link{position:fixed;top:8px;left:8px;z-index:200;transform:translateY(-160%);padding:9px 13px;color:var(--paper);background:var(--ink);border-radius:10px}.skip-link:focus{transform:translateY(0)}.progress-track{position:fixed;inset:0 0 auto;z-index:110;height:4px}.progress-bar{width:0;height:100%;background:linear-gradient(90deg,var(--blue),var(--purple),var(--yellow))}
+    .topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;min-height:68px;padding:10px clamp(16px,4vw,48px);border-bottom:1px solid color-mix(in srgb,var(--line) 78%,transparent);background:color-mix(in srgb,var(--page) 84%,transparent);backdrop-filter:blur(5px)}.brand,.top-actions{display:flex;align-items:center;gap:11px}.brand{min-width:0;font-weight:850}.brand-mark{display:grid;place-items:center;width:40px;height:40px;flex:0 0 auto;border-radius:13px;color:#fff;background:linear-gradient(135deg,var(--blue),var(--purple));box-shadow:0 8px 20px rgba(55,118,171,.2);font:800 9px/1 var(--mono)}.top-actions a,.icon-button{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 13px;border:1px solid var(--line);border-radius:11px;color:var(--ink);background:var(--paper);text-decoration:none}.icon-button{width:40px;padding:0}.top-actions a:hover,.icon-button:hover{border-color:var(--blue);transform:translateY(-1px)}
+    .hero{position:relative;max-width:1280px;margin:0 auto;padding:clamp(58px,8vw,104px) clamp(20px,5vw,70px) 48px;overflow:hidden}.hero::after{content:"ACK";position:absolute;right:1%;top:7%;color:color-mix(in srgb,var(--blue) 7%,transparent);font:900 clamp(90px,18vw,220px)/1 Georgia,serif;transform:rotate(-7deg);pointer-events:none}.eyebrow{position:relative;z-index:1;display:flex;align-items:center;gap:9px;color:var(--blue-deep);font:800 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase}.eyebrow::before{content:"";width:28px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--yellow))}h1{position:relative;z-index:1;max-width:1080px;margin:20px 0 0;font-size:clamp(39px,6.8vw,76px);line-height:1.04;letter-spacing:-.05em}h1 span{color:var(--blue)}.hero-copy{position:relative;z-index:1;max-width:900px;margin:24px 0 0;color:var(--muted);font-size:clamp(16px,2vw,20px)}.hero-facts{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,180px));gap:12px;margin-top:32px}.fact{padding:15px 17px;border:1px solid var(--line);border-radius:15px;background:color-mix(in srgb,var(--paper) 92%,transparent)}.fact b{display:block;color:var(--blue);font:900 19px/1 var(--mono)}.fact:nth-child(2) b{color:var(--purple)}.fact:nth-child(3) b{color:var(--mint)}.fact:nth-child(4) b{color:var(--coral)}.fact span{display:block;margin-top:7px;color:var(--muted);font-size:12px}
+    .overview{max-width:1240px;margin:0 auto;padding:0 22px 28px}.lab{padding:21px;border:1px solid var(--line);border-radius:20px;background:var(--paper);box-shadow:var(--shadow)}.lab-title{display:flex;align-items:end;justify-content:space-between;gap:20px}.lab-title h2{margin:0;font-size:22px}.lab-title p{margin:0;color:var(--muted);font-size:12px}.scenario-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.scenario-tab{padding:9px 12px;border:1px solid var(--line);border-radius:11px;background:var(--paper-strong);font-weight:750;font-size:12px}.scenario-tab[aria-pressed="true"]{color:var(--blue-deep);border-color:var(--blue);background:var(--blue-soft)}.scenario-stage{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,.6fr);gap:16px;margin-top:16px}.timeline{padding:17px;border-radius:15px;color:var(--code-ink);background:var(--code);font:12px/1.7 var(--mono)}.timeline-row{display:grid;grid-template-columns:28px 104px 1fr;gap:8px;padding:5px 7px;border-left:3px solid transparent}.timeline-row.active{border-left-color:var(--yellow);background:rgba(239,189,22,.12)}.timeline-row em{color:#8190a5;font-style:normal}.timeline-row b{color:#7dc3f3}.scenario-reading{padding:17px 19px;border:1px solid color-mix(in srgb,var(--yellow) 42%,var(--line));border-radius:15px;background:linear-gradient(115deg,var(--yellow-soft),var(--paper))}.scenario-reading b{color:var(--yellow-deep)}.scenario-reading p{margin:7px 0 0;color:var(--muted);font-size:13px}.scenario-rule{margin-top:12px;color:var(--blue-deep);font:750 11px/1.6 var(--mono)}
+    .layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:clamp(28px,5vw,70px);max-width:1240px;margin:0 auto;padding:58px 22px 100px}.toc{position:sticky;top:88px;max-height:calc(100vh - 110px);padding:17px;overflow-y:auto;border:1px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--paper) 93%,transparent);box-shadow:0 12px 32px rgba(45,40,28,.06)}.toc-title{margin:0 0 10px;color:var(--muted);font:800 11px/1 var(--mono);letter-spacing:.1em}.toc a{display:grid;grid-template-columns:24px 1fr;gap:3px;margin:2px 0;padding:7px 8px;border-radius:9px;color:var(--muted);text-decoration:none;font-size:11px;line-height:1.4}.toc a span{font:700 9px/1.6 var(--mono)}.toc a:hover,.toc a.active{color:var(--blue-deep);background:var(--blue-soft)}
+    .article{min-width:0}.article>h2{margin:84px 0 10px;padding-top:5px;font-size:clamp(28px,4vw,43px);line-height:1.18;letter-spacing:-.035em}.article>h2:first-child{margin-top:0}.article h3{margin:42px 0 10px;font-size:22px;line-height:1.3}.article h4{margin:28px 0 8px;font-size:17px}.article p{margin:10px 0;color:var(--muted)}.article h2+p{font-size:16px}.article strong{color:var(--ink)}.article p code,.article li code,.article h2 code,.article h3 code,.article td code{padding:2px 6px;border-radius:6px;color:var(--blue-deep);background:var(--blue-soft);font-size:.88em}.article ul,.article ol{margin:12px 0;padding:16px 20px 16px 42px;border:1px solid var(--line-soft);border-radius:14px;background:color-mix(in srgb,var(--paper) 78%,transparent);color:var(--muted)}.article li+li{margin-top:6px}.article>h2:nth-of-type(3n+1)::before{background:var(--blue)}.article>h2:nth-of-type(3n+2)::before{background:var(--purple)}.article>h2:nth-of-type(3n)::before{background:var(--mint)}.article>h2::before{content:"";display:block;width:38px;height:4px;margin-bottom:13px;border-radius:4px}
+    blockquote{margin:16px 0;padding:17px 20px;border:1px solid color-mix(in srgb,var(--yellow) 42%,var(--line));border-left:5px solid var(--yellow);border-radius:14px;background:linear-gradient(105deg,var(--yellow-soft),var(--paper));color:var(--ink);font-weight:750}.code-card{margin:14px 0 20px;overflow:hidden;border:1px solid #303a48;border-radius:17px;background:var(--code);box-shadow:0 12px 30px rgba(15,20,28,.12)}.code-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #303a48;color:#bfc9d8;font:700 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase}.copy-button{padding:4px 8px;border:1px solid #465365;border-radius:7px;color:#c9d3e1;background:transparent;font:700 10px/1 var(--mono)}.copy-button:hover{color:#fff;border-color:#7890aa}.code-card pre{margin:0;padding:18px;overflow:auto;color:var(--code-ink);background:var(--code);font:12px/1.72 var(--mono);tab-size:4}.table-wrap{margin:15px 0 22px;overflow:auto;border:1px solid var(--line);border-radius:15px;background:var(--paper)}table{width:100%;border-collapse:collapse;min-width:620px}th,td{padding:13px 15px;border-bottom:1px solid var(--line-soft);text-align:left;vertical-align:top;font-size:13px}th{color:var(--ink);background:var(--blue-soft)}td{color:var(--muted)}tr:last-child td{border-bottom:0}.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0 22px}.compare-card{padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--paper)}.compare-card.message{border-top:4px solid var(--blue)}.compare-card.execution{border-top:4px solid var(--mint)}.compare-card h3{margin:0 0 8px}.compare-card p{font-size:13px}.diagram{margin:18px 0 30px;overflow:hidden;border:1px solid var(--line);border-radius:20px;background:var(--paper);box-shadow:var(--shadow)}.diagram img{display:block;width:100%;height:auto}.diagram figcaption{padding:12px 16px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}.pill{display:inline-block;padding:3px 8px;border-radius:999px;font:750 10px/1.4 var(--mono)}.pill.message{color:var(--blue-deep);background:var(--blue-soft)}.pill.execution{color:var(--mint);background:var(--mint-soft)}.pill.bridge{color:var(--purple);background:var(--purple-soft)}
+    footer{max-width:1240px;margin:0 auto;padding:0 22px 50px;color:var(--muted);font-size:12px}
+    @media(max-width:1000px){.layout{grid-template-columns:1fr}.toc{position:relative;top:0;display:grid;grid-template-columns:repeat(3,1fr);max-height:none}.toc-title{grid-column:1/-1}.scenario-stage{grid-template-columns:1fr}}
+    @media(max-width:700px){.topbar{min-height:60px}.brand span:last-child,.top-actions a{display:none}.hero{padding-top:52px}.hero h1 span{display:inline-block}.hero-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.lab-title{align-items:start;flex-direction:column}.layout{padding-inline:14px}.toc{grid-template-columns:1fr 1fr}.article>h2{margin-top:66px}.code-card pre{font-size:11px}.compare{grid-template-columns:1fr}.timeline-row{grid-template-columns:24px 82px 1fr;font-size:10px}}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">RELY</span><span>Distributed Tasks · Reliability</span></div>
+    <div class="top-actions"><a href="4-2.分布式_Worker_集群可靠调度与故障恢复.html">上一篇：分布式 Worker</a><button class="icon-button" id="themeButton" type="button" aria-label="切换深浅色">◐</button></div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">MESSAGE DELIVERY × TASK EXECUTION</div>
+    <h1>消息不能丢，任务也<span>不能卡死</span></h1>
+    <p class="hero-copy">把两套可靠性机制彻底分开：ACK、重投、死信队列管理消息生命周期；Lease、Heartbeat、Reconciler 管理一次任务执行是否仍然有效。再用 Outbox、幂等键和 fencing token 把它们连接起来。</p>
+    <div class="hero-facts">
+      <div class="fact"><b>ACK</b><span>成功处理后确认消息</span></div>
+      <div class="fact"><b>Retry / DLQ</b><span>失败重投与隔离</span></div>
+      <div class="fact"><b>Lease</b><span>有期限的任务执行权</span></div>
+      <div class="fact"><b>Reconcile</b><span>发现并修复异常状态</span></div>
+    </div>
+  </section>
+
+  <section class="overview" aria-labelledby="scenario-title">
+    <div class="lab">
+      <div class="lab-title"><div><div class="eyebrow">FAILURE SIMULATOR</div><h2 id="scenario-title">同一条任务，在不同故障点会发生什么</h2></div><p>点击场景，观察消息层与执行层分别负责哪一步</p></div>
+      <div class="scenario-tabs" id="scenarioTabs"></div>
+      <div class="scenario-stage">
+        <div class="timeline" id="scenarioTimeline" aria-live="polite"></div>
+        <div class="scenario-reading"><b id="scenarioTitle"></b><p id="scenarioText"></p><div class="scenario-rule" id="scenarioRule"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <main class="layout" id="main">
+    <nav class="toc" aria-label="章节目录">
+      <p class="toc-title">12 CHAPTERS</p>
+      <a href="#c1"><span>01</span>先区分两条生命周期</a>
+      <a href="#c2"><span>02</span>ACK 是什么</a>
+      <a href="#c3"><span>03</span>重投怎么工作</a>
+      <a href="#c4"><span>04</span>死信队列是什么</a>
+      <a href="#c5"><span>05</span>哪些错误应该重试</a>
+      <a href="#c6"><span>06</span>Lease 与 Heartbeat</a>
+      <a href="#c7"><span>07</span>Reconciler 调度什么</a>
+      <a href="#c8"><span>08</span>两套机制怎样配合</a>
+      <a href="#c9"><span>09</span>Outbox 可靠发件箱</a>
+      <a href="#c10"><span>10</span>重投副作用只生效一次</a>
+      <a href="#c11"><span>11</span>attempt 与 fencing</a>
+      <a href="#c12"><span>12</span>完整工业链路</a>
+    </nav>
+
+    <article class="article">
+      <figure class="diagram">
+        <img src="assets/reliability/message-task-reliability-handpainted.png" alt="消息层的 ACK、重投、死信队列，以及执行层的 Lease、Heartbeat、Reconciler 完整流程图">
+        <figcaption>一张图先记住：消息机制防止通知丢失；租约机制防止业务执行永久卡死。</figcaption>
+      </figure>
+
+      <h2 id="c1">1. 先区分两条生命周期</h2>
+      <p>这次讨论最重要的结论，是不要把“消息被消费”和“任务被正确完成”当成同一件事。</p>
+      <div class="compare">
+        <section class="compare-card message"><span class="pill message">MESSAGE LIFECYCLE</span><h3>消息生命周期</h3><p><strong>ACK、重投、死信队列</strong>回答：消息是否送达、失败后要不要再送、一直失败放到哪里。</p></section>
+        <section class="compare-card execution"><span class="pill execution">EXECUTION LIFECYCLE</span><h3>执行生命周期</h3><p><strong>Lease、Heartbeat、Reconciler</strong>回答：哪个 Worker 仍有执行权、任务是否卡死、异常后怎样接管。</p></section>
+      </div>
+      <div class="code-card"><div class="code-head"><span>two state machines</span><button class="copy-button" type="button">复制</button></div><pre><code>消息状态：ready → delivered → acknowledged
+                         ↘ retry → dead-letter
+
+任务状态：pending → running → completed
+                    ↘ lease expired → pending</code></pre></div>
+      <blockquote>消息机制保证任务通知不会悄悄丢失；租约机制保证收到通知后的业务执行不会永久卡死。</blockquote>
+
+      <h2 id="c2">2. ACK：什么时候才能确认消息</h2>
+      <p><code>ACK</code> 是 Acknowledgement。Worker 收到消息后，消息中间件先把它视为“正在处理”，直到收到 ACK 才认为消费成功。</p>
+      <div class="code-card"><div class="code-head"><span>correct order</span><button class="copy-button" type="button">复制</button></div><pre><code>message = queue.consume()
+
+result = execute_task(message)
+database.save(result)
+database.mark_completed(message.task_id)
+queue.ack(message)  # 最后确认</code></pre></div>
+      <p>如果刚拿到消息就 ACK，Worker 随后崩溃，队列会认为消息已经完成，但业务结果并不存在，任务会永久丢失。</p>
+      <div class="code-card"><div class="code-head"><span>too early</span><button class="copy-button" type="button">复制</button></div><pre><code>message = queue.consume()
+queue.ack(message)          # 错误：确认得太早
+result = execute_task(message)
+# Worker 在这里崩溃，队列不会再次投递</code></pre></div>
+
+      <h2 id="c3">3. 重投：没有 ACK 的消息再次执行</h2>
+      <p>Worker 连接断开、ACK 超时或显式返回可重试错误时，消息重新变成可消费状态，由原 Worker 或其他 Worker 再次领取。</p>
+      <div class="code-card"><div class="code-head"><span>redelivery</span><button class="copy-button" type="button">复制</button></div><pre><code>task_1 attempt=1 → Worker 1 超时
+                     ↓ 没有 ACK
+              延迟重新投递
+                     ↓
+task_1 attempt=2 → Worker 3 接管</code></pre></div>
+      <p>不能无限立即重试。外部服务故障时，立即循环会制造重试风暴，因此通常使用指数退避：</p>
+      <div class="code-card"><div class="code-head"><span>exponential backoff</span><button class="copy-button" type="button">复制</button></div><pre><code>第 1 次失败 → 5 秒后
+第 2 次失败 → 30 秒后
+第 3 次失败 → 2 分钟后
+第 4 次失败 → 10 分钟后
+
+delay = min(base_delay * 2 ** retry_count, max_delay)</code></pre></div>
+      <p>队列通常提供的是“至少投递一次”，所以它允许重复；业务侧必须让重复执行安全。</p>
+
+      <h2 id="c4">4. 死信队列：一直失败的消息放哪里</h2>
+      <p>参数错误、权限不足、消息格式不兼容等确定性错误，重复多少次都不会自行恢复。超过最大重试次数后，消息进入 DLQ（Dead Letter Queue）。</p>
+      <div class="code-card"><div class="code-head"><span>retry policy</span><button class="copy-button" type="button">复制</button></div><pre><code>attempt=1 → 失败
+attempt=2 → 失败
+attempt=3 → 失败
+达到最大重试次数
+→ Dead Letter Queue
+→ 任务标记 failed / manual_review
+→ 告警和人工处理</code></pre></div>
+      <p>死信不是垃圾桶。它需要保留原消息、错误类型、重试次数、首次与最后失败时间，便于修复代码或数据后重新入队。</p>
+      <div class="code-card"><div class="code-head"><span>dead letter record</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  "research_id": "research_123",
+  "subtask_id": "task_2",
+  "attempt": 4,
+  "error_type": "InvalidPayloadError",
+  "error_message": "缺少 query 字段",
+  "first_failed_at": "2026-08-18T12:00:00",
+  "last_failed_at": "2026-08-18T12:10:00"
+}</code></pre></div>
+
+      <h2 id="c5">5. 哪些错误应该重试</h2>
+      <div class="table-wrap"><table><thead><tr><th>错误</th><th>处理方式</th><th>原因</th></tr></thead><tbody>
+        <tr><td>网络断开、请求超时</td><td>延迟重试</td><td>外部环境可能恢复</td></tr>
+        <tr><td>HTTP 429</td><td>更长延迟并尊重 Retry-After</td><td>服务端正在限流</td></tr>
+        <tr><td>HTTP 500 / 503</td><td>指数退避重试</td><td>服务暂时不可用</td></tr>
+        <tr><td>参数缺失或格式错误</td><td>直接进入死信或失败</td><td>原消息不变，重试没有意义</td></tr>
+        <tr><td>权限不足</td><td>通常不重试</td><td>需要修改权限或凭证</td></tr>
+        <tr><td>消息版本不兼容</td><td>死信并告警</td><td>需要升级消费者或转换数据</td></tr>
+      </tbody></table></div>
+      <div class="code-card"><div class="code-head"><span>error classification</span><button class="copy-button" type="button">复制</button></div><pre><code>try:
+    execute(message)
+except RetryableError:
+    queue.retry(message, delay=calculate_backoff(message.attempt))
+except NonRetryableError as error:
+    queue.send_to_dead_letter(message, error)</code></pre></div>
+
+      <h2 id="c6">6. Lease 与 Heartbeat：谁仍然拥有执行权</h2>
+      <p>Lease 是有期限的任务执行权。Worker claim 任务时，数据库记录 <code>worker_id</code>、<code>attempt</code> 和 <code>lease_expires_at</code>，不能只写一个永久的 <code>running</code>。</p>
+      <div class="code-card"><div class="code-head"><span>lease record</span><button class="copy-button" type="button">复制</button></div><pre><code>status             running
+worker_id          worker_3
+attempt            1
+lease_expires_at   12:01:00</code></pre></div>
+      <p>Heartbeat 是 Worker 对具体任务的续租，不只是进程健康检查。即使 Worker 进程还活着，某个任务线程卡死、没有续租，这个任务的 Lease 仍会过期。</p>
+      <div class="code-card"><div class="code-head"><span>heartbeat timeline</span><button class="copy-button" type="button">复制</button></div><pre><code>12:00:00 领取，租约到 12:01:00
+12:00:20 心跳，延长到 12:01:20
+12:00:40 心跳，延长到 12:01:40
+12:00:45 Worker 崩溃，心跳停止
+12:01:40 Lease 过期</code></pre></div>
+      <p>续租必须同时校验 <code>subtask_id + worker_id + attempt + status</code>，防止旧 Worker 给已经被接管的任务续租。</p>
+
+      <h2 id="c7">7. Reconciler：它到底调度什么</h2>
+      <p>Reconciler 不是正常业务的主调度器，而是定时巡检和纠偏的后台恢复器。Orchestrator 负责向前推进；Reconciler 负责把卡住或走偏的任务拉回正确轨道。</p>
+      <div class="code-card"><div class="code-head"><span>periodic recovery</span><button class="copy-button" type="button">复制</button></div><pre><code>while True:
+    reconcile_expired_leases()
+    reconcile_stuck_workflows()
+    reconcile_unpublished_outbox()
+    time.sleep(10)</code></pre></div>
+      <div class="table-wrap"><table><thead><tr><th>数据库实际状态</th><th>期望状态</th><th>Reconciler 的修复</th></tr></thead><tbody>
+        <tr><td>running，但 Lease 已过期</td><td>必须有有效执行者</td><td>pending、attempt+1、写 Outbox</td></tr>
+        <tr><td>所有 SubTask completed，父任务仍 researching</td><td>应该进入汇总</td><td>触发 ready_to_synthesize</td></tr>
+        <tr><td>报告地址已存在，父任务仍 synthesizing</td><td>应该 completed</td><td>幂等补齐最终状态</td></tr>
+        <tr><td>planning 长时间没有更新</td><td>应该继续或明确失败</td><td>重新调度、失败或告警</td></tr>
+      </tbody></table></div>
+      <p>Reconciler 通常不直接执行 <code>worker.execute()</code>，而是在数据库事务中修复状态、写 Outbox，让正常队列和 Worker 链路重新接手。</p>
+
+      <h2 id="c8">8. 两套机制怎样互相兜底</h2>
+      <div class="table-wrap"><table><thead><tr><th>机制</th><th>负责者</th><th>解决的问题</th></tr></thead><tbody>
+        <tr><td><span class="pill message">ACK</span></td><td>消息中间件</td><td>消息是否已经成功处理</td></tr>
+        <tr><td><span class="pill message">Retry</span></td><td>消息中间件 / 调度系统</td><td>失败消息何时再次消费</td></tr>
+        <tr><td><span class="pill message">DLQ</span></td><td>消息中间件</td><td>一直失败的消息如何隔离</td></tr>
+        <tr><td><span class="pill execution">Lease</span></td><td>任务数据库</td><td>哪个 Worker 暂时拥有执行权</td></tr>
+        <tr><td><span class="pill execution">Heartbeat</span></td><td>Worker + 数据库</td><td>这一次执行是否仍然活跃</td></tr>
+        <tr><td><span class="pill execution">Reconciler</span></td><td>调度后台服务</td><td>异常状态如何被发现和修复</td></tr>
+      </tbody></table></div>
+      <div class="code-card"><div class="code-head"><span>combined failure path</span><button class="copy-button" type="button">复制</button></div><pre><code>消息投递 task_1
+→ Worker claim，数据库获得 Lease
+→ 执行期间持续 Heartbeat
+→ Worker 直接崩溃
+   ├─ 没有 ACK：队列可能重新投递
+   └─ 没有 Heartbeat：Lease 过期
+→ Reconciler 生成新 attempt
+→ 新 Worker 只有 claim 成功后才能执行</code></pre></div>
+      <p>队列重投和 Reconciler 可能同时行动，所以数据库 claim 必须是原子条件更新，保证只有一个 Worker 获得合法执行权。</p>
+
+      <h2 id="c9">9. Outbox：数据库里的可靠发件箱</h2>
+      <p>业务状态写数据库、消息发到队列，是对两个系统的双写。没有 Outbox，服务可能在两步之间崩溃：</p>
+      <div class="code-card"><div class="code-head"><span>dual-write gap</span><button class="copy-button" type="button">复制</button></div><pre><code>1. INSERT research_subtasks 成功
+2. 准备 publish subtask.ready
+3. 服务崩溃
+
+结果：数据库有 pending 任务，队列没有消息</code></pre></div>
+      <p>Outbox 是数据库中的“待发送消息表”。业务记录和 Outbox 记录放在同一个事务，保证二者一起成功或一起失败：</p>
+      <div class="code-card"><div class="code-head"><span>transactional outbox</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+INSERT INTO research_subtasks (...);
+INSERT INTO outbox_events (event_type, payload, status)
+VALUES ('subtask.ready', '{...}', 'pending');
+COMMIT;
+
+Outbox Publisher:
+  扫描 pending → publish → 标记 published</code></pre></div>
+      <p>Publisher 如果“发送成功但标记 published 前崩溃”，消息会重复发送。因此 Outbox 解决的是<strong>不漏发</strong>，消费端幂等负责吸收<strong>重复发送</strong>。</p>
+      <blockquote>Outbox 不是消息队列：它是数据库里的可靠发件箱；消息中间件才是真正的运输系统。</blockquote>
+
+      <h2 id="c10">10. 重投时，怎样让副作用只生效一次</h2>
+      <p>工业系统通常无法保证任务代码只运行一次，而是保证任务可以运行多次、同一个业务副作用最终只生效一次，也叫 effectively-once outcome。</p>
+      <h3>稳定幂等键必须跨 attempt 不变</h3>
+      <div class="code-card"><div class="code-head"><span>stable business key</span><button class="copy-button" type="button">复制</button></div><pre><code>idempotency_key =
+  research_id + ":" + subtask_id + ":" + effect_type
+
+research_123:task_2:send_report_email</code></pre></div>
+      <p>重试时 <code>attempt=1、2、3</code> 会变化，但“发送这份报告邮件”仍是同一个业务动作，所以不能把 attempt 放进业务幂等键。</p>
+      <h3>本地数据库副作用：唯一约束 + 事务</h3>
+      <div class="code-card"><div class="code-head"><span>idempotent transaction</span><button class="copy-button" type="button">复制</button></div><pre><code>BEGIN;
+
+INSERT INTO processed_effects (idempotency_key)
+VALUES ('research_123:task_2:save_result')
+ON CONFLICT DO NOTHING;
+
+-- 只有首次插入成功时才修改业务数据
+UPDATE business_table ...;
+UPDATE research_subtasks SET status = 'completed' ...;
+
+COMMIT;
+ACK message;</code></pre></div>
+      <h3>外部副作用：把幂等键传给下游</h3>
+      <div class="code-card"><div class="code-head"><span>external idempotency</span><button class="copy-button" type="button">复制</button></div><pre><code>POST /payments
+Idempotency-Key: research_123:task_2:charge</code></pre></div>
+      <p>第一次调用真正扣款并保存结果；相同幂等键再次调用时，下游不再扣款，只返回第一次结果。短信、邮件、支付、建单等外部接口最好原生支持幂等键或业务单号查询。</p>
+      <h3>下游不支持幂等时的危险窗口</h3>
+      <div class="code-card"><div class="code-head"><span>uncertain outcome</span><button class="copy-button" type="button">复制</button></div><pre><code>1. 短信发送成功
+2. Worker 准备写 processed_effects
+3. Worker 崩溃
+
+本地数据库没有成功记录，但短信已经发出。
+重投后可能再次发送。</code></pre></div>
+      <p>本地事务无法包住外部系统。可靠程度依次是：下游原生幂等键、按业务单号查询结果、Saga 补偿、最后才是接受可能重复并通过业务规则去重。</p>
+
+      <h2 id="c11">11. attempt 与 fencing：拒绝旧 Worker</h2>
+      <p><code>idempotency_key</code> 防重复副作用，<code>attempt</code> 则是执行版本，也叫 fencing token，用于拒绝已经失去 Lease 的旧 Worker。</p>
+      <div class="code-card"><div class="code-head"><span>late worker</span><button class="copy-button" type="button">复制</button></div><pre><code>Worker A：attempt=1，心跳停止
+Reconciler：Lease 过期，创建 attempt=2
+Worker B：获得 attempt=2
+Worker A：网络恢复，迟到提交 attempt=1</code></pre></div>
+      <div class="code-card"><div class="code-head"><span>compare-and-set</span><button class="copy-button" type="button">复制</button></div><pre><code>UPDATE research_subtasks
+SET status = 'completed', result = :result
+WHERE id = :subtask_id
+  AND status = 'running'
+  AND worker_id = :worker_id
+  AND attempt = :attempt;</code></pre></div>
+      <p>数据库当前是 Worker B 的 <code>attempt=2</code>，Worker A 携带 <code>attempt=1</code>，更新行数为 0，因此旧结果不能覆盖新结果。</p>
+      <div class="table-wrap"><table><thead><tr><th>标识</th><th>是否跨重试变化</th><th>用途</th></tr></thead><tbody>
+        <tr><td><code>event_id</code></td><td>每个事件唯一</td><td>防止同一事件重复消费</td></tr>
+        <tr><td><code>idempotency_key</code></td><td>同一业务动作保持不变</td><td>防止业务副作用重复生效</td></tr>
+        <tr><td><code>attempt</code></td><td>每次接管递增</td><td>拒绝旧 Worker 的迟到执行</td></tr>
+      </tbody></table></div>
+
+      <h2 id="c12">12. 一条完整的工业链路</h2>
+      <div class="code-card"><div class="code-head"><span>end-to-end reliable workflow</span><button class="copy-button" type="button">复制</button></div><pre><code>Orchestrator 数据库事务
+  → 创建父任务和 SubTask
+  → 写入 Outbox
+
+Outbox Publisher
+  → 发布消息到持久化队列
+
+Message Queue
+  → 投递消息，但等待 ACK
+
+Worker
+  → 原子 claim：pending → running
+  → 获得 Lease + attempt
+  → Heartbeat 续租
+  → 使用稳定 idempotency_key 执行副作用
+  → 结果与 completed 状态落库
+  → 最后 ACK
+
+失败分支
+  → 临时错误：指数退避重投
+  → 永久错误：DLQ + failed/manual_review
+  → Worker 崩溃：无 ACK + 心跳停止
+  → Reconciler：Lease 过期、attempt+1、写 Outbox
+  → 旧 Worker 迟到：fencing token 拒绝
+
+最终目标
+  → At-least-once Delivery
+  + Idempotent Processing
+  = Effectively-once Outcome</code></pre></div>
+      <div class="table-wrap"><table><thead><tr><th>检查项</th><th>必须回答的问题</th></tr></thead><tbody>
+        <tr><td>ACK 时机</td><td>是否在结果和 completed 状态安全提交之后？</td></tr>
+        <tr><td>重试策略</td><td>是否区分临时错误与永久错误，并设置退避和上限？</td></tr>
+        <tr><td>死信处理</td><td>是否同步更新任务失败状态、告警并支持人工重放？</td></tr>
+        <tr><td>任务执行权</td><td>claim 是否原子，Lease 是否由任务级 Heartbeat 续期？</td></tr>
+        <tr><td>异常恢复</td><td>Reconciler 是否能修复租约过期和停滞工作流？</td></tr>
+        <tr><td>可靠发布</td><td>业务数据和 Outbox 是否处于同一数据库事务？</td></tr>
+        <tr><td>重复副作用</td><td>是否有跨 attempt 稳定的幂等键和下游幂等支持？</td></tr>
+        <tr><td>迟到执行</td><td>是否用 attempt/fencing token 拒绝旧 Worker？</td></tr>
+      </tbody></table></div>
+      <blockquote>真正的可靠性不是依赖“消息只来一次”或“Worker 永不崩溃”，而是允许重复、崩溃和重启发生，同时让最终业务状态仍然正确。</blockquote>
+    </article>
+  </main>
+
+  <footer>基于分布式 Worker 调度讨论完整沉淀 · 消息可靠性、任务恢复、Outbox 与幂等副作用。</footer>
+
+  <script>
+    (() => {
+      const baseFlow = [
+        ['01','Outbox','发布 subtask.ready'],
+        ['02','Queue','投递并等待 ACK'],
+        ['03','Worker','claim + Lease'],
+        ['04','Database','running + attempt'],
+        ['05','Worker','Heartbeat + 执行'],
+        ['06','Database','结果 + completed'],
+        ['07','Queue','ACK / Retry / DLQ']
+      ];
+      const scenarios = [
+        {label:'正常完成',active:5,title:'先落库，最后 ACK',text:'Worker 获得 Lease，持续 Heartbeat，业务结果和 completed 状态提交成功后才 ACK。',rule:'结果落库 → completed → ACK'},
+        {label:'临时超时',active:6,title:'指数退避后重投',text:'网络超时或 503 属于可恢复错误。消息不 ACK，按退避策略重新投递，但业务处理必须幂等。',rule:'RetryableError → backoff → redelivery'},
+        {label:'永久错误',active:6,title:'进入 DLQ 并同步任务失败',text:'参数错误或权限问题不会通过重试自动恢复。达到策略上限后进入死信队列，同时任务标记 failed/manual_review。',rule:'NonRetryableError → DLQ + alert'},
+        {label:'Worker 崩溃',active:4,title:'消息层和执行层同时兜底',text:'没有 ACK，队列可能重投；没有 Heartbeat，Lease 会过期。Reconciler 生成新 attempt，原子 claim 决定谁能接管。',rule:'no ACK + expired Lease → attempt+1'},
+        {label:'ACK 前崩溃',active:5,title:'副作用成功，但消息会重投',text:'重投无法避免，因此使用跨 attempt 稳定的 idempotency_key；下游再次收到相同键时返回第一次结果。',rule:'at-least-once + idempotency = effectively-once'},
+        {label:'旧 Worker 恢复',active:3,title:'attempt 拒绝迟到执行',text:'新 Worker 已经获得 attempt=2，旧 Worker 携带 attempt=1 更新数据库时条件不匹配，结果不会生效。',rule:'attempt = fencing token'}
+      ];
+      const tabs = document.getElementById('scenarioTabs');
+      const timeline = document.getElementById('scenarioTimeline');
+      function renderScenario(index){
+        const selected=scenarios[index];
+        [...tabs.children].forEach((button,i)=>button.setAttribute('aria-pressed',String(i===index)));
+        timeline.innerHTML=baseFlow.map((row,i)=>'<div class="timeline-row '+(i===selected.active?'active':'')+'"><em>'+row[0]+'</em><b>'+row[1]+'</b><span>'+row[2]+'</span></div>').join('');
+        document.getElementById('scenarioTitle').textContent=selected.title;
+        document.getElementById('scenarioText').textContent=selected.text;
+        document.getElementById('scenarioRule').textContent=selected.rule;
+      }
+      scenarios.forEach((scenario,index)=>{
+        const button=document.createElement('button');
+        button.type='button';button.className='scenario-tab';button.textContent=scenario.label;
+        button.addEventListener('click',()=>renderScenario(index));tabs.appendChild(button);
+      });
+      renderScenario(0);
+
+      document.querySelectorAll('.copy-button').forEach(button=>button.addEventListener('click',async()=>{
+        const code=button.closest('.code-card').querySelector('code').innerText;
+        try{await navigator.clipboard.writeText(code);button.textContent='已复制';setTimeout(()=>button.textContent='复制',1200)}catch{button.textContent='复制失败'}
+      }));
+      const themeButton=document.getElementById('themeButton');
+      themeButton.addEventListener('click',()=>{
+        const root=document.documentElement;const next=root.dataset.theme==='dark'?'light':'dark';
+        root.dataset.theme=next;localStorage.setItem('reliability-theme',next);
+      });
+      const savedTheme=localStorage.getItem('reliability-theme');if(savedTheme)document.documentElement.dataset.theme=savedTheme;
+      const progressBar=document.getElementById('progressBar');
+      const updateProgress=()=>{const max=document.documentElement.scrollHeight-innerHeight;progressBar.style.width=(max>0?scrollY/max*100:0)+'%'};
+      addEventListener('scroll',updateProgress,{passive:true});addEventListener('resize',updateProgress);updateProgress();
+      const tocLinks=[...document.querySelectorAll('.toc a')];const sections=tocLinks.map(link=>document.querySelector(link.getAttribute('href'))).filter(Boolean);
+      const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){tocLinks.forEach(link=>link.classList.toggle('active',link.getAttribute('href')==='#'+entry.target.id))}})},{rootMargin:'-18% 0px -72%'});
+      sections.forEach(section=>observer.observe(section));
+    })();
+  </script>
+</body>
+</html>

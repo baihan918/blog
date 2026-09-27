@@ -1,0 +1,578 @@
+- generic [active] [ref=e1]:
+  - link "跳到正文" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: MD
+      - generic [ref=e7]: Python 异步编程：进程、线程、协程、async/await、yield 与 Agent 流式输出
+    - generic [ref=e8]:
+      - link "查看 Markdown" [ref=e9] [cursor=pointer]:
+        - /url: answers/Python%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%E4%B8%8EAgent%E6%B5%81%E5%BC%8F%E8%BE%93%E5%87%BA%E5%AE%8C%E6%95%B4%E7%90%86%E8%A7%A3.md
+      - button "切换深浅主题" [ref=e10] [cursor=pointer]: ◐
+  - generic [ref=e11]:
+    - generic [ref=e12]: Markdown Reading Page
+    - heading "Python 异步编程：进程、线程、协程、async/await、yield 与 Agent 流式输出" [level=1] [ref=e13]
+    - text: MD
+  - main [ref=e14]:
+    - complementary [ref=e15]:
+      - navigation "页面目录" [ref=e16]:
+        - paragraph [ref=e17]: READING MAP
+        - link "1. 进程、线程和协程的核心差异" [ref=e18] [cursor=pointer]:
+          - /url: "#1-进程-线程和协程的核心差异"
+        - link "选择原则" [ref=e19] [cursor=pointer]:
+          - /url: "#选择原则"
+        - link "2. Python 协程和 JS 微任务是什么关系？" [ref=e20] [cursor=pointer]:
+          - /url: "#2-python-协程和-js-微任务是什么关系"
+        - link "3. async / await 如何暂停和恢复协程？" [ref=e21] [cursor=pointer]:
+          - /url: "#3-async-await-如何暂停和恢复协程"
+        - link "4. await 和 yield 有什么区别？" [ref=e22] [cursor=pointer]:
+          - /url: "#4-await-和-yield-有什么区别"
+        - link "5. yield 为什么可以用于流式输出？" [ref=e23] [cursor=pointer]:
+          - /url: "#5-yield-为什么可以用于流式输出"
+        - link "6. Agent 中 yield 是怎么工作的？" [ref=e24] [cursor=pointer]:
+          - /url: "#6-agent-中-yield-是怎么工作的"
+        - link "7. async for 为什么可以一直等 yield？" [ref=e25] [cursor=pointer]:
+          - /url: "#7-async-for-为什么可以一直等-yield"
+        - link "8. async for 到底是怎么\"等\"的？" [ref=e26] [cursor=pointer]:
+          - /url: "#8-async-for-到底是怎么-等-的"
+        - link "9. yield 出现后为什么 async for 会继续？" [ref=e27] [cursor=pointer]:
+          - /url: "#9-yield-出现后为什么-async-for-会继续"
+        - link "10. Agent 中 await + yield 的完整配合" [ref=e28] [cursor=pointer]:
+          - /url: "#10-agent-中-await-yield-的完整配合"
+        - link "11. 从 LLM 到浏览器的真正流式链路" [ref=e29] [cursor=pointer]:
+          - /url: "#11-从-llm-到浏览器的真正流式链路"
+        - link "12. yield 间隔很久会不会丢数据？" [ref=e30] [cursor=pointer]:
+          - /url: "#12-yield-间隔很久会不会丢数据"
+        - link "13. 什么情况下 async for 拿不到后续 yield？" [ref=e31] [cursor=pointer]:
+          - /url: "#13-什么情况下-async-for-拿不到后续-yield"
+        - link "14. 最终心智模型" [ref=e32] [cursor=pointer]:
+          - /url: "#14-最终心智模型"
+        - link "15. 面试记忆版" [ref=e33] [cursor=pointer]:
+          - /url: "#15-面试记忆版"
+        - link "进程、线程、协程" [ref=e34] [cursor=pointer]:
+          - /url: "#进程-线程-协程"
+        - link "await" [ref=e35] [cursor=pointer]:
+          - /url: "#await"
+        - link "yield" [ref=e36] [cursor=pointer]:
+          - /url: "#yield"
+        - link "await 与 yield" [ref=e37] [cursor=pointer]:
+          - /url: "#await-与-yield"
+        - link "async for" [ref=e38] [cursor=pointer]:
+          - /url: "#async-for"
+        - link "Agent Streaming" [ref=e39] [cursor=pointer]:
+          - /url: "#agent-streaming"
+        - link "16. 最值得记住的几句话" [ref=e40] [cursor=pointer]:
+          - /url: "#16-最值得记住的几句话"
+    - article [ref=e41]:
+      - heading "SECTION 01 1. 进程、线程和协程的核心差异" [level=2] [ref=e42]
+      - paragraph [ref=e43]: 可以先用一个简单类比理解：
+      - list [ref=e44]:
+        - listitem [ref=e45]:
+          - strong [ref=e46]: 进程（Process）
+          - text: ：多个人，各自拥有一套独立办公室。
+        - listitem [ref=e47]:
+          - strong [ref=e48]: 线程（Thread）
+          - text: ：一个办公室里的多个人，共享办公室资源。
+        - listitem [ref=e49]:
+          - strong [ref=e50]: 协程（Coroutine）
+          - text: ：一个人同时维护很多任务，一个任务需要等待时，就先去处理其他任务。
+      - table [ref=e52]:
+        - rowgroup [ref=e53]:
+          - row "对比项 进程 Process 线程 Thread 协程 Coroutine" [ref=e54]:
+            - columnheader "对比项" [ref=e55]
+            - columnheader "进程 Process" [ref=e56]
+            - columnheader "线程 Thread" [ref=e57]
+            - columnheader "协程 Coroutine" [ref=e58]
+        - rowgroup [ref=e59]:
+          - row "调度者 操作系统 操作系统 程序 / Event Loop" [ref=e60]:
+            - cell "调度者" [ref=e61]
+            - cell "操作系统" [ref=e62]
+            - cell "操作系统" [ref=e63]
+            - cell "程序 / Event Loop" [ref=e64]
+          - row "内存 独立 共享进程内存 共享线程内存" [ref=e65]:
+            - cell "内存" [ref=e66]
+            - cell "独立" [ref=e67]
+            - cell "共享进程内存" [ref=e68]
+            - cell "共享线程内存" [ref=e69]
+          - row "切换成本 高 中 很低" [ref=e70]:
+            - cell "切换成本" [ref=e71]
+            - cell "高" [ref=e72]
+            - cell "中" [ref=e73]
+            - cell "很低" [ref=e74]
+          - row "创建成本 高 中 很低" [ref=e75]:
+            - cell "创建成本" [ref=e76]
+            - cell "高" [ref=e77]
+            - cell "中" [ref=e78]
+            - cell "很低" [ref=e79]
+          - row "Python GIL 多进程可绕开 CPU 密集场景受影响 本身不解决 GIL" [ref=e80]:
+            - cell "Python GIL" [ref=e81]
+            - cell "多进程可绕开" [ref=e82]
+            - cell "CPU 密集场景受影响" [ref=e83]
+            - cell "本身不解决 GIL" [ref=e84]
+          - row "典型场景 CPU 密集 阻塞式 I/O 高并发 I/O" [ref=e85]:
+            - cell "典型场景" [ref=e86]
+            - cell "CPU 密集" [ref=e87]
+            - cell "阻塞式 I/O" [ref=e88]
+            - cell "高并发 I/O" [ref=e89]
+          - row "常见 API multiprocessing threading asyncio" [ref=e90]:
+            - cell "常见 API" [ref=e91]
+            - cell "multiprocessing" [ref=e92]
+            - cell "threading" [ref=e93]
+            - cell "asyncio" [ref=e94]
+      - heading "选择原则" [level=3] [ref=e95]
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]: text
+          - button "复制" [ref=e99] [cursor=pointer]
+        - code [ref=e101]: 任务 │ ├── CPU 密集 │ ↓ │ 多进程 │ └── I/O 密集 │ ├── 阻塞式库 / 普通并发 │ ↓ │ 多线程 │ └── 大量网络 I/O / 高并发 ↓ 协程
+      - paragraph [ref=e102]: Agent、RAG、LLM、数据库、MCP、HTTP API 等场景通常存在大量网络 I/O，因此协程非常常见。
+      - separator [ref=e103]
+      - heading "SECTION 02 2. Python 协程和 JS 微任务是什么关系？" [level=2] [ref=e104]
+      - paragraph [ref=e105]:
+        - strong [ref=e106]: Python 协程不能直接理解为 JS 微任务。
+      - paragraph [ref=e107]: 更准确的类比：
+      - generic [ref=e108]:
+        - generic [ref=e109]:
+          - generic [ref=e110]: text
+          - button "复制" [ref=e111] [cursor=pointer]
+        - code [ref=e113]: JavaScript Python asyncio async function ≈ async def Promise ≈ Future / Task await ≈ await Event Loop ≈ asyncio Event Loop 异步函数执行过程 ≈ Coroutine Microtask Queue ≠ Coroutine
+      - paragraph [ref=e114]: Python：
+      - generic [ref=e115]:
+        - generic [ref=e116]:
+          - generic [ref=e117]: python
+          - button "复制" [ref=e118] [cursor=pointer]
+        - code [ref=e120]: "async def task(): result = await fetch_data() print(result)"
+      - paragraph [ref=e121]: JavaScript：
+      - generic [ref=e122]:
+        - generic [ref=e123]:
+          - generic [ref=e124]: javascript
+          - button "复制" [ref=e125] [cursor=pointer]
+        - code [ref=e127]: "async function task() { const result = await fetchData() console.log(result) }"
+      - paragraph [ref=e128]: 两者的核心心智模型类似：
+      - generic [ref=e129]:
+        - generic [ref=e130]:
+          - generic [ref=e131]: text
+          - button "复制" [ref=e132] [cursor=pointer]
+        - code [ref=e134]: 开始执行 ↓ 遇到 await ↓ 当前任务暂停 ↓ 执行权交还 Event Loop ↓ Event Loop 执行其他任务 ↓ 异步操作完成 ↓ 恢复之前的任务
+      - paragraph [ref=e135]:
+        - text: JS 中
+        - code [ref=e136]: await
+        - text: 后续执行基于 Promise 调度，通常会进入微任务机制；因此
+        - strong [ref=e137]: async function 可以类比 Python 协程，但 Coroutine 本身不能等同于 Microtask。
+      - separator [ref=e138]
+      - heading "SECTION 03 3. async / await 如何暂停和恢复协程？" [level=2] [ref=e139]
+      - paragraph [ref=e140]: 核心：
+      - blockquote [ref=e141]:
+        - paragraph [ref=e142]:
+          - code [ref=e143]: await
+          - text: 遇到未完成的异步操作时，会挂起当前协程，将控制权交还 Event Loop；异步操作完成后，Event Loop 再重新调度该协程，从
+          - code [ref=e144]: await
+          - text: 后继续执行。
+      - paragraph [ref=e145]: 例如：
+      - generic [ref=e146]:
+        - generic [ref=e147]:
+          - generic [ref=e148]: python
+          - button "复制" [ref=e149] [cursor=pointer]
+        - code [ref=e151]: "async def fetch_data(): print(\"1. 开始\") result = await request() print(\"2. 请求完成\") return result"
+      - paragraph [ref=e152]: 执行过程：
+      - generic [ref=e153]:
+        - generic [ref=e154]:
+          - generic [ref=e155]: text
+          - button "复制" [ref=e156] [cursor=pointer]
+        - code [ref=e158]: fetch_data 开始 ↓ 执行 request() ↓ 结果没有准备好 ↓ await 挂起 fetch_data ↓ 保存当前执行状态 ↓ 控制权交还 Event Loop ↓ Event Loop 执行其他 Task ↓ request 完成 ↓ Event Loop 重新调度 fetch_data ↓ 从 await 后恢复 ↓ 继续执行
+      - paragraph [ref=e159]:
+        - text: 这里暂停的是
+        - strong [ref=e160]: Coroutine
+        - text: ，不是整个线程。
+      - paragraph [ref=e161]: 因此一个线程中的 Event Loop 可以同时维护大量等待 I/O 的协程。
+      - separator [ref=e162]
+      - heading "SECTION 04 4. await 和 yield 有什么区别？" [level=2] [ref=e163]
+      - paragraph [ref=e164]: 两者共同点：
+      - blockquote [ref=e165]:
+        - paragraph [ref=e166]: 都可以暂停当前执行，并保存执行现场，之后再从暂停的位置继续。
+      - paragraph [ref=e167]: 但目的不同。
+      - table [ref=e169]:
+        - rowgroup [ref=e170]:
+          - row "对比项 yield await" [ref=e171]:
+            - columnheader "对比项" [ref=e172]
+            - columnheader "yield" [ref=e173]
+            - columnheader "await" [ref=e174]
+        - rowgroup [ref=e175]:
+          - row "主要对象 Generator / Async Generator Coroutine" [ref=e176]:
+            - cell "主要对象" [ref=e177]
+            - cell "Generator / Async Generator" [ref=e178]
+            - cell "Coroutine" [ref=e179]
+          - row "暂停目的 产生一个值 等待异步结果" [ref=e180]:
+            - cell "暂停目的" [ref=e181]
+            - cell "产生一个值" [ref=e182]
+            - cell "等待异步结果" [ref=e183]
+          - row "数据给谁 调用者 获取异步操作结果" [ref=e184]:
+            - cell "数据给谁" [ref=e185]
+            - cell "调用者" [ref=e186]
+            - cell "获取异步操作结果" [ref=e187]
+          - row "谁驱动恢复 next() / for / async for Event Loop" [ref=e188]:
+            - cell "谁驱动恢复" [ref=e189]
+            - cell "next() / for / async for" [ref=e190]
+            - cell "Event Loop" [ref=e191]
+          - row "常见场景 惰性迭代、流式生产数据 HTTP、数据库、LLM、RAG 等 I/O" [ref=e192]:
+            - cell "常见场景" [ref=e193]
+            - cell "惰性迭代、流式生产数据" [ref=e194]
+            - cell "HTTP、数据库、LLM、RAG 等 I/O" [ref=e195]
+          - row "核心思想 生产一个给一个 等待期间让出执行权" [ref=e196]:
+            - cell "核心思想" [ref=e197]
+            - cell "生产一个给一个" [ref=e198]
+            - cell "等待期间让出执行权" [ref=e199]
+      - paragraph [ref=e200]: 可以记成：
+      - generic [ref=e201]:
+        - generic [ref=e202]:
+          - generic [ref=e203]: text
+          - button "复制" [ref=e204] [cursor=pointer]
+        - code [ref=e206]: yield： “我先给你一个值。 我暂停一下， 你下次再要数据时我继续。” await： “这个异步结果还没回来。 我先暂停， Event Loop 你先执行别人， 结果好了再恢复我。”
+      - separator [ref=e207]
+      - heading "SECTION 05 5. yield 为什么可以用于流式输出？" [level=2] [ref=e208]
+      - paragraph [ref=e209]: 首先要明确：
+      - blockquote [ref=e210]:
+        - paragraph [ref=e211]:
+          - strong [ref=e212]: yield 本身不负责网络传输。
+      - paragraph [ref=e213]: 它解决的是：
+      - blockquote [ref=e214]:
+        - paragraph [ref=e215]:
+          - strong [ref=e216]: 数据不需要全部准备完成，可以生产一个就交给调用方一个。
+      - paragraph [ref=e217]:
+        - text: 普通
+        - code [ref=e218]: return
+        - text: ：
+      - generic [ref=e219]:
+        - generic [ref=e220]:
+          - generic [ref=e221]: python
+          - button "复制" [ref=e222] [cursor=pointer]
+        - code [ref=e224]: "def get_data(): return 1"
+      - paragraph [ref=e225]:
+        - text: 执行
+        - code [ref=e226]: return
+        - text: 后函数直接结束。
+      - paragraph [ref=e227]: 而：
+      - generic [ref=e228]:
+        - generic [ref=e229]:
+          - generic [ref=e230]: python
+          - button "复制" [ref=e231] [cursor=pointer]
+        - code [ref=e233]: "def get_data(): yield 1 yield 2 yield 3"
+      - paragraph [ref=e234]: 会产生 Generator：
+      - generic [ref=e235]:
+        - generic [ref=e236]:
+          - generic [ref=e237]: python
+          - button "复制" [ref=e238] [cursor=pointer]
+        - code [ref=e240]: "gen = get_data() print(next(gen)) # 1 print(next(gen)) # 2 print(next(gen)) # 3"
+      - paragraph [ref=e241]: 执行过程：
+      - generic [ref=e242]:
+        - generic [ref=e243]:
+          - generic [ref=e244]: text
+          - button "复制" [ref=e245] [cursor=pointer]
+        - code [ref=e247]: 第一次 next() ↓ yield 1 ↓ 返回 1 ↓ 函数暂停 第二次 next() ↓ 从 yield 1 后继续 ↓ yield 2 ↓ 返回 2 ↓ 再次暂停
+      - paragraph [ref=e248]: 因此：
+      - generic [ref=e249]:
+        - generic [ref=e250]:
+          - generic [ref=e251]: text
+          - button "复制" [ref=e252] [cursor=pointer]
+        - code [ref=e254]: return： 等所有数据准备完成 → 一次返回 yield： 生产 A → 给出去 生产 B → 给出去 生产 C → 给出去
+      - paragraph [ref=e255]: 这就是流式处理的基础能力。
+      - separator [ref=e256]
+      - heading "SECTION 06 6. Agent 中 yield 是怎么工作的？" [level=2] [ref=e257]
+      - paragraph [ref=e258]: Agent 中最常见的是异步生成器：
+      - generic [ref=e259]:
+        - generic [ref=e260]:
+          - generic [ref=e261]: python
+          - button "复制" [ref=e262] [cursor=pointer]
+        - code [ref=e264]: "async def agent(): yield \"开始\" result = await rag_search() yield result result = await call_tool() yield result"
+      - paragraph [ref=e265]: Agent 可以不断产生阶段性数据。
+      - paragraph [ref=e266]: 调用方：
+      - generic [ref=e267]:
+        - generic [ref=e268]:
+          - generic [ref=e269]: python
+          - button "复制" [ref=e270] [cursor=pointer]
+        - code [ref=e272]: "async for chunk in agent(): print(chunk)"
+      - paragraph [ref=e273]:
+        - text: 会依次得到每一次
+        - code [ref=e274]: yield
+        - text: 的内容。
+      - generic [ref=e275]:
+        - generic [ref=e276]:
+          - generic [ref=e277]: text
+          - button "复制" [ref=e278] [cursor=pointer]
+        - code [ref=e280]: agent │ ├── yield "开始" │ ↓ │ async for 收到 │ ├── await rag_search() │ ├── yield rag_result │ ↓ │ async for 收到 │ ├── await call_tool() │ └── yield tool_result ↓ async for 收到
+      - paragraph [ref=e281]: 所以可以记：
+      - blockquote [ref=e282]:
+        - paragraph [ref=e283]:
+          - strong [ref=e284]: yield = 生产一个。
+          - strong [ref=e285]: async for = 消费一个。
+      - separator [ref=e286]
+      - heading "SECTION 07 7. async for 为什么可以一直等 yield？" [level=2] [ref=e287]
+      - paragraph [ref=e288]: 假设：
+      - generic [ref=e289]:
+        - generic [ref=e290]:
+          - generic [ref=e291]: python
+          - button "复制" [ref=e292] [cursor=pointer]
+        - code [ref=e294]: "async def agent(): yield \"A\" await asyncio.sleep(5) yield \"B\" await asyncio.sleep(10) yield \"C\""
+      - paragraph [ref=e295]: 消费：
+      - generic [ref=e296]:
+        - generic [ref=e297]:
+          - generic [ref=e298]: python
+          - button "复制" [ref=e299] [cursor=pointer]
+        - code [ref=e301]: "async for chunk in agent(): print(chunk)"
+      - paragraph [ref=e302]: 输出时间大致是：
+      - generic [ref=e303]:
+        - generic [ref=e304]:
+          - generic [ref=e305]: text
+          - button "复制" [ref=e306] [cursor=pointer]
+        - code [ref=e308]: 立即：A 等待 5 秒 B 等待 10 秒 C
+      - paragraph [ref=e309]:
+        - code [ref=e310]: async for
+        - text: 不会因为暂时没有新的
+        - code [ref=e311]: yield
+        - text: 就结束。
+      - paragraph [ref=e312]: 只要：
+      - list [ref=e313]:
+        - listitem [ref=e314]: 异步生成器没有执行结束；
+        - listitem [ref=e315]: 没有抛出异常；
+        - listitem [ref=e316]: 没有被取消；
+      - paragraph [ref=e317]: 它就会继续等待下一个值。
+      - separator [ref=e318]
+      - heading "SECTION 08 8. async for 到底是怎么\"等\"的？" [level=2] [ref=e319]
+      - paragraph [ref=e320]: 这是理解整个机制最关键的一步。
+      - paragraph [ref=e321]:
+        - code [ref=e322]: async for
+        - strong [ref=e323]: 本身不是一个协程
+        - text: ，它是一种异步迭代语法，一般运行在
+        - code [ref=e324]: async def
+        - text: 协程内部。
+      - paragraph [ref=e325]: 例如：
+      - generic [ref=e326]:
+        - generic [ref=e327]:
+          - generic [ref=e328]: python
+          - button "复制" [ref=e329] [cursor=pointer]
+        - code [ref=e331]: "async def main(): async for chunk in agent(): print(chunk)"
+      - paragraph [ref=e332]: 可以把：
+      - generic [ref=e333]:
+        - generic [ref=e334]:
+          - generic [ref=e335]: python
+          - button "复制" [ref=e336] [cursor=pointer]
+        - code [ref=e338]: "async for chunk in agent(): print(chunk)"
+      - paragraph [ref=e339]: 粗略理解成：
+      - generic [ref=e340]:
+        - generic [ref=e341]:
+          - generic [ref=e342]: python
+          - button "复制" [ref=e343] [cursor=pointer]
+        - code [ref=e345]: "iterator = agent() while True: chunk = await iterator.__anext__() print(chunk)"
+      - paragraph [ref=e346]: 关键就在：
+      - generic [ref=e347]:
+        - generic [ref=e348]:
+          - generic [ref=e349]: python
+          - button "复制" [ref=e350] [cursor=pointer]
+        - code [ref=e352]: await iterator.__anext__()
+      - paragraph [ref=e353]: 也就是说：
+      - blockquote [ref=e354]:
+        - paragraph [ref=e355]:
+          - strong [ref=e356]: async for 本质上是在不断异步等待"下一个值"。
+      - separator [ref=e357]
+      - heading "SECTION 09 9. yield 出现后为什么 async for 会继续？" [level=2] [ref=e358]
+      - paragraph [ref=e359]: 完整流程：
+      - generic [ref=e360]:
+        - generic [ref=e361]:
+          - generic [ref=e362]: text
+          - button "复制" [ref=e363] [cursor=pointer]
+        - code [ref=e365]: main 协程 │ │ async for 想获取下一个值 ▼ await agent.__anext__() │ ▼ agent 开始 / 恢复执行 │ ├── await 某个异步操作 │ │ ↓ │ agent 暂停 │ ↓ │ Event Loop 执行其他任务 │ ↓ │ 异步操作完成 │ ↓ │ agent 恢复 │ └── yield "A" │ ▼ __anext__() 得到结果 │ ▼ main 协程恢复 │ ▼ chunk = "A" │ ▼ print("A") │ ▼ async for 再请求下一个值
+      - paragraph [ref=e366]: 因此更准确地说：
+      - blockquote [ref=e367]:
+        - paragraph [ref=e368]:
+          - text: 不是
+          - code [ref=e369]: yield
+          - text: 像事件一样"触发 async for"。
+      - paragraph [ref=e370]: 而是：
+      - blockquote [ref=e371]:
+        - paragraph [ref=e372]:
+          - strong [ref=e373]:
+            - text: async for 正在
+            - code [ref=e374]: await
+            - text: 下一个值；当生成器执行到
+            - code [ref=e375]: yield
+            - text: 时，这次等待得到结果，因此消费者协程可以继续执行。
+      - separator [ref=e376]
+      - heading "SECTION 10 10. Agent 中 await + yield 的完整配合" [level=2] [ref=e377]
+      - paragraph [ref=e378]: 这是 Agent Streaming 最值得掌握的模型：
+      - generic [ref=e379]:
+        - generic [ref=e380]:
+          - generic [ref=e381]: python
+          - button "复制" [ref=e382] [cursor=pointer]
+        - code [ref=e384]: "async def agent(): result1 = await rag_search() yield result1 result2 = await call_tool() yield result2 async for token in llm.astream(): yield token"
+      - paragraph [ref=e385]: 消费者：
+      - generic [ref=e386]:
+        - generic [ref=e387]:
+          - generic [ref=e388]: python
+          - button "复制" [ref=e389] [cursor=pointer]
+        - code [ref=e391]: "async for chunk in agent(): print(chunk)"
+      - paragraph [ref=e392]: 整体过程：
+      - generic [ref=e393]:
+        - generic [ref=e394]:
+          - generic [ref=e395]: text
+          - button "复制" [ref=e396] [cursor=pointer]
+        - code [ref=e398]: async for：给我下一个 ↓ agent：开始执行 ↓ await rag_search() ↓ RAG 没返回 ↓ agent 暂停 ↓ Event Loop 执行其他任务 ↓ RAG 返回 ↓ agent 恢复 ↓ yield result1 ↓ async for 等待完成 ↓ 处理 result1 ↓ async for：再给我下一个 ↓ agent 从上一次 yield 后继续 ↓ await call_tool() ↓ ……
+      - paragraph [ref=e399]: 一句话：
+      - blockquote [ref=e400]:
+        - paragraph [ref=e401]:
+          - strong [ref=e402]: await：没结果时先等。
+          - strong [ref=e403]: yield：有阶段性结果时先往外给。
+      - separator [ref=e404]
+      - heading "SECTION 11 11. 从 LLM 到浏览器的真正流式链路" [level=2] [ref=e405]
+      - paragraph [ref=e406]:
+        - code [ref=e407]: yield
+        - text: 只是 Python 内部的数据生产机制。
+      - paragraph [ref=e408]: 真正发到浏览器还需要 SSE、WebSocket 或 HTTP Streaming。
+      - paragraph [ref=e409]: 例如：
+      - generic [ref=e410]:
+        - generic [ref=e411]:
+          - generic [ref=e412]: python
+          - button "复制" [ref=e413] [cursor=pointer]
+        - code [ref=e415]: "async def agent(): async for chunk in llm.astream(\"介绍一下 RAG\"): yield chunk"
+      - paragraph [ref=e416]: 上层：
+      - generic [ref=e417]:
+        - generic [ref=e418]:
+          - generic [ref=e419]: python
+          - button "复制" [ref=e420] [cursor=pointer]
+        - code [ref=e422]: "async def stream(): async for chunk in agent(): yield f\"data: {chunk}\\n\\n\""
+      - paragraph [ref=e423]: 完整链路：
+      - generic [ref=e424]:
+        - generic [ref=e425]:
+          - generic [ref=e426]: text
+          - button "复制" [ref=e427] [cursor=pointer]
+        - code [ref=e429]: LLM │ │ 产生 token / chunk ▼ Agent │ │ yield chunk ▼ async for │ │ 消费 chunk ▼ SSE / WebSocket / StreamingResponse │ │ 网络发送 ▼ 浏览器 │ │ 收到一个 chunk ▼ 立即渲染
+      - paragraph [ref=e430]: 因此三个职责要分清：
+      - generic [ref=e431]:
+        - generic [ref=e432]:
+          - generic [ref=e433]: text
+          - button "复制" [ref=e434] [cursor=pointer]
+        - code [ref=e436]: yield ↓ 生产一个给一个 async for ↓ 消费一个拿一个 SSE / WebSocket ↓ 拿到一个往浏览器发送一个
+      - separator [ref=e437]
+      - heading "SECTION 12 12. yield 间隔很久会不会丢数据？" [level=2] [ref=e438]
+      - paragraph [ref=e439]: 正常不会。
+      - paragraph [ref=e440]: 例如：
+      - generic [ref=e441]:
+        - generic [ref=e442]:
+          - generic [ref=e443]: python
+          - button "复制" [ref=e444] [cursor=pointer]
+        - code [ref=e446]: "async def agent(): yield \"A\" await very_slow_tool() # 30 秒 yield \"B\""
+      - paragraph [ref=e447]: 消费者：
+      - generic [ref=e448]:
+        - generic [ref=e449]:
+          - generic [ref=e450]: python
+          - button "复制" [ref=e451] [cursor=pointer]
+        - code [ref=e453]: "async for chunk in agent(): print(chunk)"
+      - paragraph [ref=e454]: 仍然会：
+      - generic [ref=e455]:
+        - generic [ref=e456]:
+          - generic [ref=e457]: text
+          - button "复制" [ref=e458] [cursor=pointer]
+        - code [ref=e460]: A 等待 30 秒 B
+      - paragraph [ref=e461]: Python 异步迭代层面没有问题。
+      - paragraph [ref=e462]: 但是工程上还有一个额外问题：
+      - generic [ref=e463]:
+        - generic [ref=e464]:
+          - generic [ref=e465]: text
+          - button "复制" [ref=e466] [cursor=pointer]
+        - code [ref=e468]: Agent ↓ SSE ↓ Nginx ↓ Load Balancer ↓ Browser
+      - paragraph [ref=e469]: 如果长时间完全没有网络数据，一些网关或代理可能因为超时关闭连接。
+      - paragraph [ref=e470]: 所以真实系统可能需要：
+      - list [ref=e471]:
+        - listitem [ref=e472]: heartbeat
+        - listitem [ref=e473]: keepalive
+        - listitem [ref=e474]: SSE ping
+        - listitem [ref=e475]: 合理设置代理超时时间
+      - paragraph [ref=e476]: 例如 SSE 定期发送：
+      - generic [ref=e477]:
+        - generic [ref=e478]:
+          - generic [ref=e479]: text
+          - button "复制" [ref=e480] [cursor=pointer]
+        - code [ref=e482]: ": ping"
+      - paragraph [ref=e483]:
+        - text: 这是
+        - strong [ref=e484]: 网络连接保活问题
+        - text: ，不是
+        - code [ref=e485]: yield
+        - text: /
+        - code [ref=e486]: async for
+        - text: 本身的问题。
+      - separator [ref=e487]
+      - heading "SECTION 13 13. 什么情况下 async for 拿不到后续 yield？" [level=2] [ref=e488]
+      - paragraph [ref=e489]: 主要包括：
+      - list [ref=e490]:
+        - listitem [ref=e491]:
+          - code [ref=e492]: agent()
+          - text: 执行结束；
+        - listitem [ref=e493]:
+          - code [ref=e494]: agent()
+          - text: 抛出异常；
+        - listitem [ref=e495]: Task 被取消；
+        - listitem [ref=e496]: 用户点击"停止生成"导致任务取消；
+        - listitem [ref=e497]: 如果涉及网络 Streaming，SSE / WebSocket / HTTP 连接被断开。
+      - paragraph [ref=e498]: 否则异步生成器会继续被消费。
+      - separator [ref=e499]
+      - heading "SECTION 14 14. 最终心智模型" [level=2] [ref=e500]
+      - paragraph [ref=e501]: 把整个 Python Agent 异步流式机制压缩成下面这张图：
+      - generic [ref=e502]:
+        - generic [ref=e503]:
+          - generic [ref=e504]: text
+          - button "复制" [ref=e505] [cursor=pointer]
+        - code [ref=e507]: Event Loop │ ┌──────────┴──────────┐ │ │ 消费者协程 Agent │ │ async for chunk │ │ │ await __anext__() ───────→ 开始执行 │ │ │ await RAG / Tool │ │ │ 暂停等待 │ │ │ I/O 完成恢复 │ │ │ yield chunk │ │ └──── 得到 chunk ←────┘ │ 处理 / SSE 发送 │ 再 await __anext__() │ └──────────────→ Agent 从上次 yield 后继续
+      - separator [ref=e508]
+      - heading "SECTION 15 15. 面试记忆版" [level=2] [ref=e509]
+      - heading "进程、线程、协程" [level=3] [ref=e510]
+      - blockquote [ref=e511]:
+        - paragraph [ref=e512]: CPU 密集型任务通常使用多进程利用多核；传统阻塞式 I/O 可以使用多线程；大量网络 I/O、高并发任务适合 asyncio 协程。
+      - heading "await" [level=3] [ref=e513]
+      - blockquote [ref=e514]:
+        - paragraph [ref=e515]:
+          - code [ref=e516]: await
+          - text: 遇到未完成的异步操作时挂起当前协程，把控制权交还 Event Loop；异步操作完成后再恢复当前协程。
+      - heading "yield" [level=3] [ref=e517]
+      - blockquote [ref=e518]:
+        - paragraph [ref=e519]:
+          - code [ref=e520]: yield
+          - text: 会产出一个值并暂停生成器，调用方获取这个值后，下一次请求数据时再从上次暂停的位置继续执行。
+      - heading "await 与 yield" [level=3] [ref=e521]
+      - blockquote [ref=e522]:
+        - paragraph [ref=e523]:
+          - code [ref=e524]: await
+          - text: 主要解决"异步等待"，
+          - code [ref=e525]: yield
+          - text: 主要解决"逐步产出"。
+      - heading "async for" [level=3] [ref=e526]
+      - blockquote [ref=e527]:
+        - paragraph [ref=e528]:
+          - code [ref=e529]: async for
+          - text: 用于消费异步迭代器，可以粗略理解为不断执行
+          - code [ref=e530]: await iterator.__anext__()
+          - text: ，因此它能够异步等待下一次
+          - code [ref=e531]: yield
+          - text: 的结果。
+      - heading "Agent Streaming" [level=3] [ref=e532]
+      - blockquote [ref=e533]:
+        - paragraph [ref=e534]:
+          - text: Agent 中通常通过
+          - code [ref=e535]: await
+          - text: 非阻塞地等待 LLM、RAG、Tool 等 I/O，通过
+          - code [ref=e536]: yield
+          - text: 将已经得到的阶段性结果逐步交给上层，再由 SSE、WebSocket 或 HTTP Streaming 推送给前端。
+      - separator [ref=e537]
+      - heading "SECTION 16 16. 最值得记住的几句话" [level=2] [ref=e538]
+      - generic [ref=e539]:
+        - generic [ref=e540]:
+          - generic [ref=e541]: text
+          - button "复制" [ref=e542] [cursor=pointer]
+        - code [ref=e544]: await = 没结果，我先等，让别人跑。 yield = 有一个结果，我先给出去。 async for = 我不断异步等你下一个结果。 Event Loop = 谁可以继续执行，我来调度。 SSE / WebSocket = 把 yield 出来的结果真正传给浏览器。
+      - paragraph [ref=e545]: 最终：
+      - generic [ref=e546]:
+        - generic [ref=e547]:
+          - generic [ref=e548]: text
+          - button "复制" [ref=e549] [cursor=pointer]
+        - code [ref=e551]: await 解决等待 ↓ yield 解决生产 ↓ async for 解决消费 ↓ SSE / WebSocket 解决网络传输 ↓ 前端解决实时渲染
+  - button "返回顶部": ↑
+  - contentinfo [ref=e552]: Python 异步编程：进程、线程、协程、async/await、yield 与 Agent 流式输出

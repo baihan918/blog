@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="基于从零-RAG大师 22 个 Notebook 整理的交互式 RAG 学习地图：从基础检索、切块、查询转换、混合检索与重排，到 Self-RAG、CRAG、Graph RAG、HyDE 和反馈闭环，并修正原示例中的关键实现错误。">
+  <title>RAG 学习地图 · 从“找资料”到“有证据地回答”</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f2e9;
+      --paper: #fffdf8;
+      --paper-strong: #ffffff;
+      --ink: #17202f;
+      --muted: #687182;
+      --line: #dedbd1;
+      --line-soft: #ebe8df;
+      --blue: #3776ab;
+      --blue-deep: #24557d;
+      --blue-soft: #e7f2fb;
+      --yellow: #efbd16;
+      --yellow-deep: #745c00;
+      --yellow-soft: #fff5c7;
+      --mint: #2d8a73;
+      --mint-soft: #e7f5ef;
+      --purple: #8260b3;
+      --purple-soft: #f1ebf8;
+      --coral: #e56b4e;
+      --coral-soft: #fff0eb;
+      --code: #18202c;
+      --code-ink: #e8eef7;
+      --shadow: 0 22px 60px rgba(51, 46, 34, .10);
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page: #121720;
+      --paper: #19212c;
+      --paper-strong: #1f2936;
+      --ink: #edf2f7;
+      --muted: #a8b2c1;
+      --line: #344151;
+      --line-soft: #2b3645;
+      --blue-soft: #172d42;
+      --blue-deep: #78b9ec;
+      --yellow-soft: #3c3517;
+      --yellow-deep: #f6d654;
+      --mint-soft: #17352f;
+      --purple-soft: #2e2540;
+      --coral-soft: #3d2521;
+      --code: #0d1118;
+      --code-ink: #e9eef7;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 7% 2%, color-mix(in srgb, var(--blue) 14%, transparent), transparent 29rem),
+        radial-gradient(circle at 94% 13%, color-mix(in srgb, var(--yellow) 18%, transparent), transparent 27rem),
+        var(--page);
+      font-family: var(--sans);
+      line-height: 1.72;
+    }
+    button, input { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    code { font-family: var(--mono); }
+    ::selection { background: color-mix(in srgb, var(--blue) 23%, transparent); }
+    .skip-link { position: fixed; top: 8px; left: 8px; z-index: 200; transform: translateY(-160%); padding: 9px 13px; color: var(--paper); background: var(--ink); border-radius: 10px; }
+    .skip-link:focus { transform: translateY(0); }
+    .progress-track { position: fixed; inset: 0 0 auto; z-index: 110; height: 4px; }
+    .progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple), var(--yellow)); }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 68px;
+      padding: 10px clamp(16px, 4vw, 42px);
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+      background: color-mix(in srgb, var(--page) 84%, transparent);
+      backdrop-filter: blur(5px);
+    }
+    .brand, .top-actions { display: flex; align-items: center; gap: 11px; }
+    .brand { min-width: 0; font-weight: 850; }
+    .brand span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      flex: 0 0 auto;
+      border-radius: 13px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      box-shadow: 0 8px 20px rgba(55, 118, 171, .2);
+      font: 800 10px/1 var(--mono);
+    }
+    .source-link, .icon-button, .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 8px 13px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      color: var(--ink);
+      background: var(--paper);
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+    .icon-button { width: 40px; padding: 0; }
+    .source-link:hover, .icon-button:hover, .button:hover { border-color: var(--blue); transform: translateY(-1px); }
+    .button.primary, .source-link.primary { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .hero {
+      position: relative;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: clamp(60px, 8vw, 108px) clamp(20px, 5vw, 70px) 56px;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "RAG";
+      position: absolute;
+      right: 2%;
+      top: 8%;
+      color: color-mix(in srgb, var(--blue) 7%, transparent);
+      font: 900 clamp(100px, 19vw, 250px)/1 Georgia, serif;
+      transform: rotate(-7deg);
+      pointer-events: none;
+    }
+    .eyebrow {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--blue-deep);
+      font: 800 12px/1 var(--mono);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { content: ""; width: 28px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--yellow)); }
+    h1 { position: relative; z-index: 1; max-width: 960px; margin: 20px 0 0; font-size: clamp(38px, 7vw, 76px); line-height: 1.04; letter-spacing: -.045em; }
+    h1 span { color: var(--blue); }
+    .hero-copy { position: relative; z-index: 1; max-width: 860px; margin: 25px 0 0; color: var(--muted); font-size: clamp(16px, 2vw, 20px); }
+    .hero-copy strong { color: var(--ink); }
+    .hero-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .hero-facts { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 180px)); gap: 12px; margin-top: 34px; }
+    .fact { padding: 15px 17px; border: 1px solid var(--line); border-radius: 15px; background: color-mix(in srgb, var(--paper) 92%, transparent); }
+    .fact b { display: block; color: var(--blue); font: 900 23px/1 var(--mono); }
+    .fact:nth-child(2) b { color: var(--purple); }
+    .fact:nth-child(3) b { color: var(--mint); }
+    .fact:nth-child(4) b { color: var(--coral); }
+    .fact span { display: block; margin-top: 7px; color: var(--muted); font-size: 12px; }
+    .truth-strip { max-width: 1240px; margin: 0 auto; padding: 0 22px 28px; }
+    .truth-grid { display: grid; grid-template-columns: repeat(3, 1fr); overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); box-shadow: var(--shadow); }
+    .truth { padding: 20px 22px; border-right: 1px solid var(--line-soft); }
+    .truth:last-child { border-right: 0; }
+    .truth b, .truth span { display: block; }
+    .truth b { color: var(--blue-deep); }
+    .truth:nth-child(2) b { color: var(--purple); }
+    .truth:nth-child(3) b { color: var(--mint); }
+    .truth span { margin-top: 5px; color: var(--muted); font-size: 13px; }
+    .layout { display: grid; grid-template-columns: 214px minmax(0, 1fr); gap: clamp(28px, 5vw, 70px); max-width: 1240px; margin: 0 auto; padding: 62px 22px 100px; }
+    .toc { position: sticky; top: 88px; max-height: calc(100vh - 110px); padding: 17px; overflow-y: auto; border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--paper) 93%, transparent); box-shadow: 0 12px 32px rgba(45, 40, 28, .06); }
+    .toc-title { margin: 0 0 10px; color: var(--muted); font: 800 11px/1 var(--mono); letter-spacing: .1em; }
+    .toc a { display: block; margin: 2px 0; padding: 7px 9px; border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 12px; line-height: 1.4; }
+    .toc a:hover, .toc a.active { color: var(--blue-deep); background: var(--blue-soft); }
+    .toc-status { margin-top: 14px; padding: 11px; border-radius: 11px; color: var(--mint); background: var(--mint-soft); font-size: 11px; }
+    .content { min-width: 0; }
+    .section { margin-top: 88px; scroll-margin-top: 94px; }
+    .section:first-child { margin-top: 0; }
+    .section-kicker { color: var(--blue-deep); font: 800 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+    h2 { margin: 12px 0 9px; font-size: clamp(27px, 4vw, 43px); line-height: 1.15; letter-spacing: -.028em; }
+    h3 { margin: 0; font-size: 18px; line-height: 1.35; }
+    h4 { margin: 0; font-size: 14px; }
+    .section-lead { max-width: 850px; margin: 0 0 26px; color: var(--muted); }
+    .card, .concept, .code-card, .pipeline-lab, .chunk-lab, .router-lab, .notebook-panel, .quiz-card {
+      border: 1px solid var(--line);
+      border-radius: 19px;
+      background: var(--paper);
+      box-shadow: 0 12px 30px rgba(45, 40, 28, .055);
+    }
+    .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+    .three-col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .concept { padding: 21px; }
+    .concept p { margin: 9px 0 0; color: var(--muted); font-size: 13px; }
+    .concept ul { margin: 12px 0 0; padding-left: 19px; color: var(--muted); font-size: 13px; }
+    .concept li + li { margin-top: 6px; }
+    .plain-box, .insight, .warning { margin-top: 16px; padding: 18px 20px; border-radius: 16px; font-size: 13px; }
+    .plain-box { border: 1px solid color-mix(in srgb, var(--yellow) 44%, var(--line)); background: linear-gradient(105deg, var(--yellow-soft), var(--paper)); }
+    .plain-box strong { color: var(--yellow-deep); }
+    .insight { border: 1px solid color-mix(in srgb, var(--mint) 34%, var(--line)); background: var(--mint-soft); }
+    .insight strong { color: var(--mint); }
+    .warning { border: 1px solid color-mix(in srgb, var(--coral) 34%, var(--line)); background: var(--coral-soft); }
+    .warning strong { color: var(--coral); }
+    .code-card { margin-top: 16px; overflow: hidden; border-color: #303a48; background: var(--code); }
+    .code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #303a48; color: #bfc9d8; background: var(--code); font: 700 11px/1 var(--mono); }
+    pre { margin: 0; padding: 18px; overflow-x: auto; color: var(--code-ink); background: var(--code); font: 12px/1.72 var(--mono); tab-size: 4; }
+    .cm { color: #8996a8; } .kw { color: #f08d81; } .fn { color: #82c7f3; } .st { color: #b7dc8a; } .num { color: #d8b5ff; }
+    details { margin-top: 13px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper); }
+    details summary { padding: 13px 16px; cursor: pointer; font-weight: 800; }
+    details .code-card { margin: 0; border: 0; border-radius: 0 0 12px 12px; }
+    details .detail-body { padding: 0 16px 16px; color: var(--muted); font-size: 13px; }
+    .pipeline-lab { padding: 20px; }
+    .pipeline-mode { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .mode-button, .filter-button, .preset-button {
+      min-height: 34px;
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--muted);
+      background: var(--paper-strong);
+      cursor: pointer;
+    }
+    .mode-button.active, .filter-button.active, .preset-button:hover { color: var(--blue-deep); border-color: var(--blue); background: var(--blue-soft); }
+    .pipeline-steps { display: grid; grid-template-columns: repeat(8, minmax(78px, 1fr)); gap: 8px; }
+    .pipeline-button { position: relative; min-height: 92px; padding: 13px 9px; border: 1px solid var(--line); border-radius: 14px; color: var(--muted); background: var(--paper-strong); cursor: pointer; text-align: left; }
+    .pipeline-button::after { content: "→"; position: absolute; right: -9px; top: 33px; z-index: 2; color: var(--muted); font-weight: 900; }
+    .pipeline-button:last-child::after { display: none; }
+    .pipeline-button b, .pipeline-button small { display: block; }
+    .pipeline-button b { color: var(--ink); font-size: 12px; }
+    .pipeline-button small { margin-top: 5px; font: 700 9px/1.4 var(--mono); }
+    .pipeline-button.active { color: var(--blue-deep); border-color: var(--blue); background: var(--blue-soft); }
+    .pipeline-button.offline { border-top: 4px solid var(--mint); }
+    .pipeline-button.online { border-top: 4px solid var(--purple); }
+    .pipeline-reading { min-height: 105px; margin-top: 16px; padding: 17px 19px; border-radius: 14px; background: var(--blue-soft); }
+    .pipeline-reading b { color: var(--blue-deep); }
+    .pipeline-reading p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    .stage-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; color: var(--muted); font-size: 11px; }
+    .dot { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 50%; }
+    .dot.offline { background: var(--mint); }
+    .dot.online { background: var(--purple); }
+    .notebook-panel { padding: 18px; }
+    .notebook-tools { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 12px; align-items: center; }
+    .search-input, .router-input {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--ink);
+      background: var(--paper-strong);
+      outline: none;
+    }
+    .search-input:focus, .router-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 14%, transparent); }
+    .filters { display: flex; flex-wrap: wrap; gap: 7px; }
+    .notebook-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    .notebook-card { position: relative; min-height: 188px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper-strong); }
+    .notebook-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; border-radius: 16px 0 0 16px; background: var(--blue); }
+    .notebook-card[data-stage="build"]::before { background: var(--mint); }
+    .notebook-card[data-stage="retrieve"]::before { background: var(--blue); }
+    .notebook-card[data-stage="post"]::before { background: var(--yellow); }
+    .notebook-card[data-stage="control"]::before { background: var(--purple); }
+    .notebook-top { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+    .notebook-num { color: var(--blue-deep); font: 900 20px/1 var(--mono); }
+    .tag { display: inline-flex; align-items: center; min-height: 23px; padding: 3px 7px; border-radius: 8px; color: var(--muted); background: var(--blue-soft); font: 750 10px/1 var(--mono); }
+    .notebook-card h3 { margin-top: 10px; font-size: 16px; }
+    .notebook-card p { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+    .notebook-card footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 13px; padding: 0; }
+    .notebook-card a { color: var(--blue-deep); font-size: 11px; font-weight: 800; text-decoration: none; }
+    .notebook-card small { color: var(--muted); }
+    .empty-state { display: none; padding: 42px 20px; color: var(--muted); text-align: center; }
+    .chunk-lab { padding: 20px; }
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .control label { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; font-weight: 800; }
+    .control output { color: var(--blue-deep); font-family: var(--mono); }
+    .control input { width: 100%; margin-top: 10px; accent-color: var(--blue); }
+    .chunk-track { position: relative; height: 116px; margin-top: 20px; overflow: hidden; border: 1px dashed var(--line); border-radius: 14px; background: var(--paper-strong); }
+    .chunk-block { position: absolute; top: 15px; height: 72px; padding: 8px; overflow: hidden; border: 2px solid var(--blue); border-radius: 10px; color: var(--blue-deep); background: color-mix(in srgb, var(--blue-soft) 86%, transparent); font: 750 10px/1.35 var(--mono); }
+    .chunk-block:nth-child(2) { top: 29px; border-color: var(--purple); color: var(--purple); background: color-mix(in srgb, var(--purple-soft) 88%, transparent); }
+    .chunk-readout { margin-top: 12px; color: var(--muted); font-size: 12px; }
+    .strategy-table { width: 100%; margin-top: 16px; overflow: hidden; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); font-size: 12px; }
+    .strategy-table th, .strategy-table td { padding: 12px 14px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: top; }
+    .strategy-table tr:last-child td { border-bottom: 0; }
+    .strategy-table th { color: var(--muted); background: color-mix(in srgb, var(--blue-soft) 55%, var(--paper)); }
+    .strategy-table td:first-child { color: var(--blue-deep); font-weight: 850; }
+    .router-lab { padding: 20px; overflow: hidden; }
+    .router-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+    .router-presets { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+    .router-result { margin-top: 18px; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; }
+    .route-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 17px; background: var(--purple-soft); }
+    .route-head b { color: var(--purple); }
+    .confidence { color: var(--muted); font: 800 10px/1 var(--mono); }
+    .route-flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line-soft); }
+    .route-step { min-height: 116px; padding: 15px; background: var(--paper-strong); }
+    .route-step span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; color: #fff; background: var(--blue); font: 800 10px/1 var(--mono); }
+    .route-step b, .route-step small { display: block; }
+    .route-step b { margin-top: 9px; font-size: 12px; }
+    .route-step small { margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .router-note { padding: 12px 17px; color: var(--muted); background: var(--yellow-soft); font-size: 11px; }
+    .technique-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .technique { position: relative; padding: 19px; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
+    .technique::after { content: attr(data-stage); position: absolute; right: -6px; top: 10px; padding: 5px 10px; color: var(--blue-deep); background: var(--blue-soft); border-radius: 8px 0 0 8px; font: 800 9px/1 var(--mono); }
+    .technique h3 { padding-right: 68px; font-size: 16px; }
+    .technique p { margin: 9px 0 0; color: var(--muted); font-size: 12px; }
+    .technique .when { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); color: var(--mint); font-size: 11px; font-weight: 800; }
+    .loop-map { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 11px; align-items: stretch; }
+    .loop-node { padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
+    .loop-node b, .loop-node span { display: block; }
+    .loop-node b { color: var(--purple); }
+    .loop-node span { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .loop-arrow { align-self: center; color: var(--muted); font-weight: 900; }
+    .correction-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+    .correction { padding: 19px; border: 1px solid var(--line); border-radius: 17px; background: var(--paper); }
+    .correction-top { display: flex; align-items: center; gap: 9px; }
+    .severity { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 7px; border-radius: 8px; color: var(--coral); background: var(--coral-soft); font: 850 9px/1 var(--mono); }
+    .severity.concept { color: var(--purple); background: var(--purple-soft); }
+    .correction h3 { font-size: 15px; }
+    .wrong, .right { margin-top: 12px; padding: 12px 13px; border-radius: 12px; font-size: 12px; }
+    .wrong { color: color-mix(in srgb, var(--coral) 85%, var(--ink)); background: var(--coral-soft); }
+    .right { color: color-mix(in srgb, var(--mint) 88%, var(--ink)); background: var(--mint-soft); }
+    .wrong b, .right b { display: block; margin-bottom: 3px; }
+    .debug-list { display: grid; gap: 9px; margin-top: 16px; }
+    .debug-step { display: grid; grid-template-columns: 42px 1fr auto; gap: 13px; align-items: center; padding: 15px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+    .debug-step span:first-child { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: #fff; background: var(--blue); font: 850 11px/1 var(--mono); }
+    .debug-step:nth-child(2) span:first-child { background: var(--mint); }
+    .debug-step:nth-child(3) span:first-child { background: var(--purple); }
+    .debug-step:nth-child(4) span:first-child { background: var(--yellow); color: var(--yellow-deep); }
+    .debug-step:nth-child(5) span:first-child { background: var(--coral); }
+    .debug-step b, .debug-step small { display: block; }
+    .debug-step small { margin-top: 3px; color: var(--muted); }
+    .debug-step code { color: var(--blue-deep); font-size: 10px; }
+    .quiz-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+    .quiz-card { padding: 19px; }
+    .quiz-card p { margin: 8px 0 13px; color: var(--muted); font-size: 13px; }
+    .answers { display: grid; gap: 7px; }
+    .answer { padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: var(--paper-strong); cursor: pointer; text-align: left; font-size: 12px; }
+    .answer:hover { border-color: var(--blue); }
+    .answer.correct { color: var(--mint); border-color: var(--mint); background: var(--mint-soft); }
+    .answer.wrong-answer { color: var(--coral); border-color: var(--coral); background: var(--coral-soft); }
+    .quiz-feedback { min-height: 22px; margin-top: 9px; color: var(--muted); font-size: 11px; }
+    .quiz-score { margin-top: 14px; padding: 15px; border-radius: 14px; color: var(--blue-deep); background: var(--blue-soft); font-weight: 850; }
+    .glossary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 18px; margin: 18px 0 0; }
+    .glossary div { padding: 13px 0; border-bottom: 1px solid var(--line-soft); }
+    .glossary dt { font-weight: 850; }
+    .glossary dd { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    footer.page-footer { max-width: 1240px; margin: 0 auto; padding: 0 22px 48px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 1100px) {
+      .pipeline-steps { grid-template-columns: repeat(4, 1fr); }
+      .pipeline-button:nth-child(4)::after { display: none; }
+      .technique-grid { grid-template-columns: repeat(2, 1fr); }
+      .route-flow { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .toc { display: none; }
+      .loop-map { grid-template-columns: 1fr; }
+      .loop-arrow { transform: rotate(90deg); justify-self: center; }
+    }
+    @media (max-width: 720px) {
+      .topbar { min-height: 60px; }
+      .brand span:last-child, .source-link.top-source { display: none; }
+      .hero-facts, .truth-grid, .two-col, .three-col, .notebook-grid, .technique-grid, .correction-grid, .quiz-grid, .glossary, .controls { grid-template-columns: 1fr; }
+      .truth { border-right: 0; border-bottom: 1px solid var(--line-soft); }
+      .truth:last-child { border-bottom: 0; }
+      .notebook-tools, .router-row { grid-template-columns: 1fr; }
+      .route-flow { grid-template-columns: 1fr; }
+      .debug-step { grid-template-columns: 38px 1fr; }
+      .debug-step code { grid-column: 2; }
+    }
+    @media (max-width: 520px) {
+      .pipeline-steps { grid-template-columns: repeat(2, 1fr); }
+      .pipeline-button:nth-child(2n)::after { display: none; }
+      .hero { padding-top: 48px; }
+      h1 { font-size: 39px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">RAG<br>MAP</div><span>RAG 学习地图</span></div>
+    <div class="top-actions">
+      <a class="source-link top-source" href="../从零-RAG大师/Readme.md">查看课程源文件</a>
+      <button class="icon-button" id="themeButton" type="button" aria-label="切换深浅主题" title="切换深浅主题">◐</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">FROM ZERO TO RELIABLE RAG</div>
+    <h1>让模型先<span>找证据</span>，再有根据地回答</h1>
+    <p class="hero-copy">这不是 22 个技巧的堆砌，而是一张完整的系统地图：<strong>离线把资料整理成可检索知识，在线理解问题、找证据、控制质量，再生成带来源的回答。</strong></p>
+    <div class="hero-actions">
+      <a class="button primary" href="#mental-model">先看完整流程</a>
+      <a class="button" href="#curriculum">浏览 22 个 Notebook</a>
+      <a class="button" href="#corrections">直接看纠错清单</a>
+    </div>
+    <div class="hero-facts">
+      <div class="fact"><b>22</b><span>个 Notebook</span></div>
+      <div class="fact"><b>393</b><span>个代码单元</span></div>
+      <div class="fact"><b>265</b><span>个函数示例</span></div>
+      <div class="fact"><b>10</b><span>项关键纠错</span></div>
+    </div>
+  </section>
+
+  <section class="truth-strip" aria-label="RAG 三个核心认知">
+    <div class="truth-grid">
+      <div class="truth"><b>RAG 不是训练模型</b><span>它是在回答前，把外部证据临时放进模型上下文。</span></div>
+      <div class="truth"><b>检索和生成是两件事</b><span>Retriever 找材料；LLM 根据材料组织答案。</span></div>
+      <div class="truth"><b>线上不应该重复建库</b><span>解析、切块、向量化通常离线做；请求时只处理问题。</span></div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <aside>
+      <nav class="toc" aria-label="页面目录">
+        <p class="toc-title">LEARNING PATH</p>
+        <a href="#mental-model">01 · 一张图理解 RAG</a>
+        <a href="#curriculum">02 · 22 章学习路线</a>
+        <a href="#chunking">03 · 文档怎样切</a>
+        <a href="#routing">04 · 问题怎样路由</a>
+        <a href="#techniques">05 · 增强技术地图</a>
+        <a href="#advanced">06 · 高级 RAG 边界</a>
+        <a href="#corrections">07 · 原内容纠错</a>
+        <a href="#reference">08 · 正确参考实现</a>
+        <a href="#debug">09 · 排错与评估</a>
+        <a href="#quiz">10 · 6 题自测</a>
+        <a href="#glossary">11 · 术语速查</a>
+        <div class="toc-status" id="tocStatus">已完成自测 0 / 6</div>
+      </nav>
+    </aside>
+
+    <main class="content" id="main">
+      <section class="section" id="mental-model">
+        <div class="section-kicker">01 · THE MENTAL MODEL</div>
+        <h2>先分清两条流水线：离线建库，在线回答</h2>
+        <p class="section-lead">Notebook 为了演示方便，常在一个函数里从 PDF 一路跑到答案。真实系统必须把“文档发生变化时做的事”和“每次用户提问时做的事”拆开。</p>
+        <div class="pipeline-lab">
+          <div class="pipeline-mode" role="group" aria-label="流程筛选">
+            <button class="mode-button active" type="button" data-mode="all">完整流程</button>
+            <button class="mode-button" type="button" data-mode="offline">只看离线建库</button>
+            <button class="mode-button" type="button" data-mode="online">只看在线查询</button>
+          </div>
+          <div class="pipeline-steps" id="pipelineSteps" aria-label="可点击的 RAG 流程"></div>
+          <div class="pipeline-reading" id="pipelineReading" aria-live="polite"></div>
+          <div class="stage-legend"><span><i class="dot offline"></i>离线：文档更新时运行</span><span><i class="dot online"></i>在线：每次提问时运行</span></div>
+        </div>
+        <div class="two-col">
+          <article class="concept">
+            <h3>离线建库：把资料整理成“书架索引”</h3>
+            <p>读取 PDF、网页或数据库，清洗后切成小块，为每块生成 Embedding，并连同来源、页码、版本写入向量库。</p>
+            <div class="insight"><strong>触发时机：</strong>文档新增、更新、删除，或 Embedding 模型更换。</div>
+          </article>
+          <article class="concept">
+            <h3>在线查询：带着问题去“书架找证据”</h3>
+            <p>理解问题，必要时改写或分解；召回候选证据，过滤与重排，然后把证据和问题交给 LLM。</p>
+            <div class="insight"><strong>触发时机：</strong>每一次用户提问。</div>
+          </article>
+        </div>
+        <div class="plain-box"><strong>一句话：</strong>RAG = Retrieval（找证据）+ Augmented Context（把证据放进上下文）+ Generation（根据证据回答）。向量数据库只是 Retrieval 的一种实现，不等于整个 RAG。</div>
+      </section>
+
+      <section class="section" id="curriculum">
+        <div class="section-kicker">02 · 22 NOTEBOOKS, ONE MAP</div>
+        <h2>22 章不是从简单到复杂的直线，而是在优化不同阶段</h2>
+        <p class="section-lead">用关键词搜索，或按“建库 / 检索 / 检索后 / 决策闭环”筛选。每张卡都告诉你：它解决什么问题，以及不能把它误解成什么。</p>
+        <div class="notebook-panel">
+          <div class="notebook-tools">
+            <input class="search-input" id="notebookSearch" type="search" placeholder="搜索：切块、HyDE、重排、Graph、反馈……" aria-label="搜索 Notebook">
+            <div class="filters" role="group" aria-label="按阶段筛选 Notebook">
+              <button class="filter-button active" type="button" data-filter="all">全部</button>
+              <button class="filter-button" type="button" data-filter="build">建库</button>
+              <button class="filter-button" type="button" data-filter="retrieve">检索</button>
+              <button class="filter-button" type="button" data-filter="post">检索后</button>
+              <button class="filter-button" type="button" data-filter="control">闭环</button>
+            </div>
+          </div>
+          <div class="notebook-grid" id="notebookGrid"></div>
+          <div class="empty-state" id="emptyState">没有匹配的章节，换一个关键词试试。</div>
+        </div>
+      </section>
+
+      <section class="section" id="chunking">
+        <div class="section-kicker">03 · DOCUMENT PREPARATION</div>
+        <h2>切块不是“把字符串切短”，而是在控制证据颗粒度</h2>
+        <p class="section-lead">块太小，事实被拆散；块太大，主题被稀释且浪费 token。没有一个永远正确的 chunk size，应该用真实问答集评估召回质量。</p>
+        <div class="chunk-lab">
+          <div class="controls">
+            <div class="control"><label for="chunkSize">Chunk size <output id="chunkSizeValue">800</output></label><input id="chunkSize" type="range" min="200" max="1600" step="100" value="800"></div>
+            <div class="control"><label for="chunkOverlap">Overlap <output id="chunkOverlapValue">120</output></label><input id="chunkOverlap" type="range" min="0" max="400" step="20" value="120"></div>
+          </div>
+          <div class="chunk-track" id="chunkTrack" aria-label="切块与重叠示意"></div>
+          <div class="chunk-readout" id="chunkReadout"></div>
+        </div>
+        <div class="three-col" style="margin-top:16px">
+          <article class="concept"><h3>固定长度切块</h3><p>实现简单、速度快，适合格式稳定的文本；缺点是可能在句子或主题中间切断。</p></article>
+          <article class="concept"><h3>语义切块</h3><p>在句子语义变化明显处断开，更容易保留主题；成本更高，阈值也需要评估。</p></article>
+          <article class="concept"><h3>命题切块</h3><p>把复合段落改写成独立事实命题，适合精确事实检索；要防止生成模型改写时引入新事实。</p></article>
+        </div>
+        <table class="strategy-table">
+          <thead><tr><th>策略</th><th>真正解决的问题</th><th>适合场景</th><th>主要风险</th></tr></thead>
+          <tbody>
+            <tr><td>标题 / 上下文增强</td><td>单独的块离开原章节后语义不完整</td><td>长报告、层级文档</td><td>增强文本不能冒充原文引用</td></tr>
+            <tr><td>文档问题增强</td><td>用户问题与原文措辞差异太大</td><td>FAQ、产品知识库</td><td>合成问题需要和原文绑定</td></tr>
+            <tr><td>分层索引</td><td>既要先定位主题，又要拿到细节</td><td>长文档、书籍、规范</td><td>摘要层只能导航，最终证据仍应回到原文</td></tr>
+            <tr><td>多模态处理</td><td>关键证据藏在图片、图表、扫描页</td><td>财报、论文、说明书</td><td>图片描述是模型生成物，需要保留原图引用</td></tr>
+          </tbody>
+        </table>
+        <div class="warning"><strong>先验收解析，再讨论检索。</strong>如果 PDF 读出来是 <code>%PDF-1.7</code>、交叉引用表或乱码，说明 Reader 没有真正解析 PDF；此时调 chunk size、top-k、Prompt 都没有意义。</div>
+      </section>
+
+      <section class="section" id="routing">
+        <div class="section-kicker">04 · QUERY UNDERSTANDING + ROUTING</div>
+        <h2>意图识别发生在检索前：决定接下来走哪条路</h2>
+        <p class="section-lead">意图识别不是为了给问题贴标签，而是为了改变动作：是否检索、查哪个知识源、要不要分解、选语义还是关键词、是否需要最新数据或计算工具。</p>
+        <div class="router-lab">
+          <div class="router-row">
+            <input class="router-input" id="routerInput" value="分析一下人工智能监管对企业的影响" aria-label="输入一个问题体验检索路由">
+            <button class="button primary" id="routeButton" type="button">生成学习路线</button>
+          </div>
+          <div class="router-presets" aria-label="示例问题">
+            <button class="preset-button" type="button">Transformer 是什么？</button>
+            <button class="preset-button" type="button">总结整份 AI 行业报告</button>
+            <button class="preset-button" type="button">今天最新的 AI 政策是什么？</button>
+            <button class="preset-button" type="button">结合我的业务情况给建议</button>
+          </div>
+          <div class="router-result" id="routerResult" aria-live="polite"></div>
+        </div>
+        <div class="plain-box"><strong>上面的路由器是教学规则，不是生产分类器。</strong>生产系统应使用结构化输出（枚举 + 校验）、置信度和兜底策略；低置信度时可以澄清，而不是硬猜。</div>
+        <details open>
+          <summary>一个更可靠的分类输出应该长什么样？</summary>
+          <div class="code-card">
+            <div class="code-head"><span>structured_intent.py</span><span>同一套中文枚举贯穿全流程</span></div>
+            <pre><code><span class="kw">from</span> enum <span class="kw">import</span> Enum
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel, Field
+
+<span class="kw">class</span> <span class="fn">QueryIntent</span>(str, Enum):
+    FACTUAL = <span class="st">"事实"</span>
+    ANALYTICAL = <span class="st">"分析"</span>
+    GLOBAL_SUMMARY = <span class="st">"全局总结"</span>
+    CONTEXTUAL = <span class="st">"依赖上下文"</span>
+    FRESH = <span class="st">"时效信息"</span>
+
+<span class="kw">class</span> <span class="fn">RouteDecision</span>(BaseModel):
+    intent: QueryIntent
+    needs_retrieval: bool
+    needs_clarification: bool = <span class="kw">False</span>
+    confidence: float = Field(ge=<span class="num">0</span>, le=<span class="num">1</span>)
+
+decision = classify_once(query)       <span class="cm"># 只分类一次</span>
+docs = retrieve(query, decision)      <span class="cm"># 把结果显式传下去</span></code></pre>
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="techniques">
+        <div class="section-kicker">05 · TECHNIQUE MAP</div>
+        <h2>每种增强技术都只是在修一段链路</h2>
+        <p class="section-lead">遇到效果差，先定位是哪一阶段失效，再选择技术。盲目同时叠加查询重写、HyDE、混合检索、重排和压缩，往往只会增加成本并让问题更难排查。</p>
+        <div class="technique-grid">
+          <article class="technique" data-stage="检索前"><h3>查询重写</h3><p>把口语、省略和歧义改写成更适合知识库检索的表达。</p><div class="when">适合：原问题表达不完整</div></article>
+          <article class="technique" data-stage="检索前"><h3>Step-back</h3><p>先提出更高层问题，找背景知识，再回答具体问题。</p><div class="when">适合：需要原理或背景的复杂问题</div></article>
+          <article class="technique" data-stage="检索前"><h3>子查询分解</h3><p>把多跳问题拆成若干可独立检索的小问题，再合并证据。</p><div class="when">适合：比较、因果、多条件问题</div></article>
+          <article class="technique" data-stage="检索前"><h3>HyDE</h3><p>先生成“可能答案长什么样”的假设文档，用它的向量去找真实文档。</p><div class="when">适合：短问题和文档措辞差距大</div></article>
+          <article class="technique" data-stage="召回"><h3>混合检索</h3><p>向量检索负责语义相近，BM25 负责精确词、编号和专有名词。</p><div class="when">适合：既有自然语言又有精确标识</div></article>
+          <article class="technique" data-stage="召回"><h3>分层检索</h3><p>先在摘要层定位主题，再限定范围检索原文细节。</p><div class="when">适合：文档长、层级明确</div></article>
+          <article class="technique" data-stage="召回"><h3>Graph RAG</h3><p>用实体、关系和社区结构找跨片段、多跳关联。</p><div class="when">适合：关系推理，而非所有知识库</div></article>
+          <article class="technique" data-stage="检索后"><h3>Rerank</h3><p>对较大的候选集做更精细的“问题—文档”相关性排序。</p><div class="when">适合：召回率尚可，前几名不够准</div></article>
+          <article class="technique" data-stage="检索后"><h3>RSE 段落重构</h3><p>把相邻高价值块重新拼成连续段落，恢复跨块上下文。</p><div class="when">适合：答案跨越多个相邻块</div></article>
+          <article class="technique" data-stage="生成前"><h3>上下文压缩</h3><p>从候选证据中抽取与当前问题有关的句子，减少噪声和 token。</p><div class="when">适合：top-k 较大、内容重复</div></article>
+          <article class="technique" data-stage="决策"><h3>Self-RAG 思路</h3><p>决定是否检索，并检查证据相关性、答案支持度和实用性。</p><div class="when">适合：需要动态检索和自检</div></article>
+          <article class="technique" data-stage="纠正"><h3>CRAG</h3><p>评估初始检索质量；证据不足时改写查询、换知识源或网络搜索。</p><div class="when">适合：知识库可能缺失或过时</div></article>
+        </div>
+        <div class="warning"><strong>Rerank 是候选上下文进入 Prompt 前的质量门，不是最终答案质量门。</strong>它能提高证据排序，但不能保证最终答案忠实、完整，也不能代替引用校验与答案评估。</div>
+      </section>
+
+      <section class="section" id="advanced">
+        <div class="section-kicker">06 · CONTROL LOOPS</div>
+        <h2>高级 RAG 的共同点：不再“一次检索、一次生成就结束”</h2>
+        <p class="section-lead">Self-RAG、CRAG、反馈回路和强化学习都在引入“观察—判断—调整”。区别在于：谁做判断、调整什么，以及是否真的训练了一个可学习策略。</p>
+        <div class="loop-map" aria-label="高级 RAG 控制回路">
+          <article class="loop-node"><b>Observe · 观察</b><span>检索分数、证据内容、答案、用户反馈、时效性。</span></article>
+          <div class="loop-arrow">→</div>
+          <article class="loop-node"><b>Judge · 判断</b><span>相关吗？支持答案吗？信息够吗？需要换知识源吗？</span></article>
+          <div class="loop-arrow">→</div>
+          <article class="loop-node"><b>Act · 调整</b><span>重写查询、扩充或过滤上下文、重新检索、拒答或升级人工。</span></article>
+        </div>
+        <div class="two-col">
+          <article class="concept">
+            <h3>Self-RAG</h3>
+            <p>原论文方法把“是否检索、证据是否相关、回答是否被支持”等反思能力训练进模型，并使用特殊 reflection tokens。Notebook 实现的是<strong>受 Self-RAG 启发的多次 LLM 判断流程</strong>，适合学习控制思想，但不是论文级复现。</p>
+          </article>
+          <article class="concept">
+            <h3>CRAG</h3>
+            <p>核心是给检索结果做质量分级：可信则使用，不可信则纠正或换外部来源，模糊则组合。外部网页不是天然可信，仍需来源筛选、时间戳和引用。</p>
+          </article>
+          <article class="concept">
+            <h3>反馈闭环</h3>
+            <p>用户评分可以作为 rerank 特征、训练数据候选或评估集，但不能把未经审核的模型回答直接当事实写回知识库，否则错误会自我强化。</p>
+          </article>
+          <article class="concept">
+            <h3>强化学习</h3>
+            <p>真正的 RL 需要环境、状态、动作、奖励和由奖励更新的策略。只有 epsilon-greedy 启发式和“记录动作”的字典，还不等于策略网络被训练。</p>
+          </article>
+        </div>
+        <div class="plain-box"><strong>生产建议：</strong>先用确定性规则 + 结构化分类 + 离线评估建立稳定基线；只有当动作选择问题明确、奖励可靠、数据量足够时，再考虑强化学习。</div>
+      </section>
+
+      <section class="section" id="corrections">
+        <div class="section-kicker">07 · CORRECTIONS</div>
+        <h2>原 Notebook 中需要特别纠正的 10 个点</h2>
+        <p class="section-lead">以下不是吹毛求疵：其中几项会让代码永远走默认分支，或让实验名称比实际实现更“高级”。学习时应该区分“概念演示”和“可正确运行的实现”。</p>
+        <div class="correction-grid">
+          <article class="correction">
+            <div class="correction-top"><span class="severity">运行错误</span><h3>自适应检索中英文标签不一致</h3></div>
+            <div class="wrong"><b>原实现</b><code>classify_query()</code> 返回“事实性”，路由却判断 <code>"Factual"</code>，所以总会进入默认事实检索。</div>
+            <div class="right"><b>正确做法</b>用同一套 Enum 或中文常量贯穿分类与路由，并对模型输出做结构化校验。</div>
+          </article>
+          <article class="correction">
+            <div class="correction-top"><span class="severity">成本错误</span><h3>同一个问题被重复分类</h3></div>
+            <div class="wrong"><b>原实现</b>完整管道先分类一次，<code>adaptive_retrieval()</code> 内部又分类一次；评估函数还会继续重复。</div>
+            <div class="right"><b>正确做法</b>入口只分类一次，将 <code>RouteDecision</code> 显式传给检索器和生成器。</div>
+          </article>
+          <article class="correction">
+            <div class="correction-top"><span class="severity">运行错误</span><h3>自适应 RAG 的相关性判断也不匹配</h3></div>
+            <div class="wrong"><b>原实现</b>评估器返回“相关 / 完全支持”，代码却判断 <code>"relevant"</code> 和 <code>"fully supported"</code>，导致相关文档被丢弃、支持分恒为 0。</div>
+            <div class="right"><b>正确做法</b>统一语言枚举，或让模型直接返回 JSON / Pydantic 结构。</div>
+          </article>
+          <article class="correction">
+            <div class="correction-top"><span class="severity concept">概念校准</span><h3>Notebook 的 Self-RAG 不是原论文复现</h3></div>
+            <div class="wrong"><b>容易误解</b>把几个独立 LLM Judge 调用命名为“完整 Self-RAG”。</div>
+            <div class="right"><b>正确理解</b>这是 Self-RAG-inspired inference pipeline；原方法涉及反思 token 和专门训练。</div>
+          </article>
+          <article class="correction">
+            <div class="correction-top"><span class="severity concept">概念校准</span><h3>Graph RAG 不只是“块相似图”</h3></div>
+            <div class="wrong"><b>原示例边界</b>节点仍是文本块，按共享概念和向量相似度连边；遍历深度还使用全局访问数量，不能代表真实层深。</div>
+            <div class="right"><b>正确理解</b>这是图增强检索 Demo。完整 GraphRAG 通常包含实体关系抽取、社区、社区摘要和多层查询。</div>
+          </article>
+          <article class="correction">
+            <div class="correction-top"><span class="severity concept">概念校准</span><h3>“策略网络”并没有真正学习</h3></div>
+            <div class="wrong"><b>原实现</b><code>policy_network()</code> 是启发式 epsilon-greedy；<code>update_policy()</code> 只是把动作和奖励记入字典。</div>
+            <div class="right"><b>正确理解</b>应称为 RL 交互骨架或 bandit 风格 Demo，不能说已训练了神经策略网络。</div>
+          </article>
+          <article class="correction">
+            <div class="correction-top"><span class="severity">架构错误</span><h3>不要每次请求都重新解析 PDF 和建库</h3></div>
+            <div class="wrong"><b>Notebook 为演示方便</b>很多完整管道在每个 query 内调用 <code>process_document(pdf_path)</code>。</div>
+            <div class="right"><b>正确做法</b>离线持久化索引；在线只向量化 query、检索、重排和生成。</div>
+          </article>
+          <article class="correction">
+            <div class="correction-top"><span class="severity">数据风险</span><h3>用户好评不能自动变成事实</h3></div>
+            <div class="wrong"><b>原反馈示例</b>把高分“问题 + 模型回答”作为新文档写进向量库，容易把幻觉固化并放大。</div>
+            <div class="right"><b>正确做法</b>进入候选区，经过来源核验、去重、权限与人工审核后再发布；原始资料仍是事实来源。</div>
+          </article>
+          <article class="correction">
+            <div class="correction-top"><span class="severity concept">概念校准</span><h3>不要保存和压缩隐藏的 Chain of Thought</h3></div>
+            <div class="wrong"><b>原说明</b>建议在交互中压缩“历史推理轨迹”。</div>
+            <div class="right"><b>正确做法</b>保存可审计的任务状态、工具结果、证据、决策摘要和最终结论，不依赖模型隐藏思维链。</div>
+          </article>
+          <article class="correction">
+            <div class="correction-top"><span class="severity">证据风险</span><h3>HyDE 假设文档不能当证据</h3></div>
+            <div class="wrong"><b>容易误解</b>假设文档写得像“权威来源”，但内容本质上是模型猜测。</div>
+            <div class="right"><b>正确做法</b>它只用于生成检索向量；最终回答必须基于真正召回的原文，并保留来源。</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="reference">
+        <div class="section-kicker">08 · CORRECT REFERENCE</div>
+        <h2>把正确边界写进一个最小参考实现</h2>
+        <p class="section-lead">下面是框架无关的 Python 骨架，重点不在某个 SDK，而在职责分离：索引持久化、分类只做一次、候选召回与重排分开、回答只使用真实证据。</p>
+        <details open>
+          <summary>离线：构建并持久化索引</summary>
+          <div class="code-card">
+            <div class="code-head"><span>build_index.py</span><span>文档变化时执行</span></div>
+            <pre><code><span class="kw">def</span> <span class="fn">build_index</span>(source_paths):
+    documents = reader.load(source_paths)
+    assert_parsing_quality(documents)          <span class="cm"># 先抽样检查正文、页码、表格</span>
+
+    nodes = splitter.split(documents)
+    nodes = add_metadata(
+        nodes,
+        fields=[<span class="st">"source_path"</span>, <span class="st">"page"</span>, <span class="st">"version"</span>, <span class="st">"updated_at"</span>],
+    )
+
+    vectors = embedder.embed_documents([n.text <span class="kw">for</span> n <span class="kw">in</span> nodes])
+    vector_store.upsert(nodes, vectors)
+    vector_store.persist(<span class="st">"./storage"</span>)   <span class="cm"># StorageContext 本身不等于已落盘</span></code></pre>
+          </div>
+        </details>
+        <details open>
+          <summary>在线：分类一次，检索、重排、生成</summary>
+          <div class="code-card">
+            <div class="code-head"><span>answer.py</span><span>每次用户提问执行</span></div>
+            <pre><code><span class="kw">def</span> <span class="fn">answer</span>(query, conversation=None):
+    decision = classify_once(query, conversation)    <span class="cm"># 结构化 RouteDecision</span>
+
+    <span class="kw">if</span> decision.needs_clarification:
+        <span class="kw">return</span> ask_for_clarification(decision)
+
+    rewritten = transform_query(query, decision)
+    candidates = hybrid_retrieve(                   <span class="cm"># 扩召回，例如 top 30</span>
+        rewritten,
+        filters=decision.metadata_filters,
+        top_k=<span class="num">30</span>,
+    )
+    evidence = reranker.rank(query, candidates)[:<span class="num">6</span>]
+
+    <span class="kw">if</span> not enough_evidence(evidence):
+        <span class="kw">return</span> insufficient_answer_with_sources(evidence)
+
+    result = generator.answer(
+        question=query,
+        evidence=evidence,                           <span class="cm"># 不把 HyDE 文本当证据</span>
+        require_citations=<span class="kw">True</span>,
+    )
+    <span class="kw">return</span> verify_and_format(result, evidence)</code></pre>
+          </div>
+        </details>
+        <div class="two-col">
+          <article class="concept"><h3><code>embed_documents()</code></h3><p>通常用于批量文档；可能带适合文档侧的前缀或批处理参数。</p></article>
+          <article class="concept"><h3><code>embed_query()</code></h3><p>用于用户问题。必须与建库模型处于同一向量空间，但某些模型的 query/document 编码方式不同。</p></article>
+        </div>
+        <div class="warning"><strong>Embedding 维度必须匹配向量索引。</strong>建库与查询必须使用同一模型和同一归一化规则；更换模型通常意味着重建索引，而不是只改一个配置字符串。</div>
+      </section>
+
+      <section class="section" id="debug">
+        <div class="section-kicker">09 · DEBUG + EVALUATION</div>
+        <h2>RAG 答错时，按数据流从前往后查</h2>
+        <p class="section-lead">不要一上来改 Prompt。先确认事实有没有进入系统，再确认它是否被召回，最后才看模型有没有忠实使用证据。</p>
+        <div class="debug-list">
+          <div class="debug-step"><span>01</span><div><b>解析正确吗？</b><small>抽样打印 PDF 正文、表格、图片描述、页码和文件名。</small></div><code>reader output</code></div>
+          <div class="debug-step"><span>02</span><div><b>切块保住事实了吗？</b><small>检查答案是否跨切口、标题是否丢失、metadata 是否跟随 Node。</small></div><code>nodes[:5]</code></div>
+          <div class="debug-step"><span>03</span><div><b>Retriever 找到了吗？</b><small>直接查看 top-k 的正文、score、来源，不调用生成模型。</small></div><code>retrieve(query)</code></div>
+          <div class="debug-step"><span>04</span><div><b>Rerank 排对了吗？</b><small>看正确证据是否在候选集中，以及重排后名次如何变化。</small></div><code>candidate → reranked</code></div>
+          <div class="debug-step"><span>05</span><div><b>答案被证据支持吗？</b><small>逐条核对事实、数值和引用；证据不足时应该明确拒答。</small></div><code>faithfulness</code></div>
+        </div>
+        <table class="strategy-table">
+          <thead><tr><th>评估层</th><th>应该测什么</th><th>常用指标</th><th>常见误区</th></tr></thead>
+          <tbody>
+            <tr><td>解析 / 切块</td><td>关键事实是否进入 Node，来源是否完整</td><td>抽样通过率、表格/图片覆盖率</td><td>只看代码没报错</td></tr>
+            <tr><td>召回</td><td>正确证据是否进入候选集</td><td>Recall@k、MRR、nDCG</td><td>只看向量相似度分数</td></tr>
+            <tr><td>重排</td><td>正确证据是否排到 Prompt 可容纳的位置</td><td>Precision@k、nDCG@k</td><td>把重排当最终答案校验</td></tr>
+            <tr><td>生成</td><td>答案是否正确、完整、忠于证据</td><td>Faithfulness、Answer correctness、引用准确率</td><td>只用同一个 LLM 自评一次</td></tr>
+            <tr><td>系统</td><td>成本、延迟、稳定性和新鲜度</td><td>P95 延迟、token、失败率、索引时效</td><td>只优化回答观感</td></tr>
+          </tbody>
+        </table>
+        <div class="plain-box"><strong>评估集要来自真实业务问题。</strong>至少记录问题、标准证据、参考答案、不能回答的反例，以及版本/时间。否则调参得到的“提升”很可能只是对几个示例过拟合。</div>
+      </section>
+
+      <section class="section" id="quiz">
+        <div class="section-kicker">10 · QUICK CHECK</div>
+        <h2>用 6 道题确认你真的理解了边界</h2>
+        <p class="section-lead">每题选一次即可看到解释；答题进度只保存在当前浏览器。</p>
+        <div class="quiz-grid" id="quizGrid"></div>
+        <div class="quiz-score" id="quizScore">当前得分：0 / 6</div>
+      </section>
+
+      <section class="section" id="glossary">
+        <div class="section-kicker">11 · GLOSSARY</div>
+        <h2>最后用一张术语表收口</h2>
+        <dl class="glossary">
+          <div><dt>Document</dt><dd>Reader 读取外部资料后的统一对象，包含正文和文件级 metadata。</dd></div>
+          <div><dt>Node / Chunk</dt><dd>Document 切分后的可检索单元；应保留来源、页码和父级关系。</dd></div>
+          <div><dt>Embedding</dt><dd>把文本映射为向量；相近向量代表语义上可能相关，不代表事实一定正确。</dd></div>
+          <div><dt>Vector Store</dt><dd>保存并搜索向量的组件；只是检索基础设施，不负责生成答案。</dd></div>
+          <div><dt>BM25</dt><dd>基于词频的关键词检索，擅长专有名词、编号和精确措辞。</dd></div>
+          <div><dt>Hybrid Retrieval</dt><dd>融合语义检索和关键词检索，常用加权分数或 Reciprocal Rank Fusion。</dd></div>
+          <div><dt>Retriever</dt><dd>召回候选证据，目标偏向“不漏”；通常先取较大的 top-k。</dd></div>
+          <div><dt>Reranker</dt><dd>对候选证据做更精细排序，目标偏向“把最准的放前面”。</dd></div>
+          <div><dt>Context Compression</dt><dd>检索后、生成前，抽取或压缩与问题有关的证据，减少噪声。</dd></div>
+          <div><dt>HyDE</dt><dd>用假设文档改善检索表达；假设内容不能作为最终事实依据。</dd></div>
+          <div><dt>Self-RAG</dt><dd>带检索决策与反思信号的训练/推理方法；不能泛指所有 LLM 自检流程。</dd></div>
+          <div><dt>CRAG</dt><dd>检测检索质量并在证据不足时纠正、换源或扩展检索。</dd></div>
+          <div><dt>Graph RAG</dt><dd>利用实体、关系、社区或图遍历完成关联与多跳检索。</dd></div>
+          <div><dt>Faithfulness</dt><dd>答案中的事实是否能被提供的证据直接支持。</dd></div>
+        </dl>
+        <div class="plain-box"><strong>最终心智模型：</strong>先保证“资料读对了”，再保证“证据找到了”，然后保证“证据排在前面”，最后保证“答案没有超出证据”。高级 RAG 只是让这条链路可以判断、纠正和迭代。</div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="page-footer">内容基于 <a href="../从零-RAG大师/">S2/从零-RAG大师</a> 的 22 个 Notebook 整理；页面中的概念边界与参考代码已按正确的 RAG 工程实践校准，原 Notebook 文件未被修改。</footer>
+
+  <script>
+    const pipeline = [
+      { stage: "offline", title: "读取", sub: "source → document", body: "用正确的 Reader 解析 PDF、网页、数据库或图片。这里丢掉的表格、图片和页码，后续检索无法凭空恢复。" },
+      { stage: "offline", title: "切块", sub: "document → nodes", body: "按结构、语义或命题切分，同时保留 source_path、page、version 等 metadata。切块是在决定最小证据单元。" },
+      { stage: "offline", title: "向量化", sub: "nodes → vectors", body: "批量生成文档向量。建库和查询必须使用兼容的 Embedding 模型与归一化方式。" },
+      { stage: "offline", title: "持久化", sub: "vectors → index", body: "将向量、文本、metadata 和版本写入可复用索引。仅把 store 装入 StorageContext 不等于已经落盘。" },
+      { stage: "online", title: "理解问题", sub: "query → route", body: "识别意图、时效性、上下文依赖和是否需要澄清。分类的价值是选择动作，不只是贴标签。" },
+      { stage: "online", title: "召回", sub: "query → candidates", body: "使用向量、BM25、图或分层索引召回候选。召回阶段更关注不要漏掉正确证据。" },
+      { stage: "online", title: "重排压缩", sub: "candidates → evidence", body: "用 reranker、过滤或上下文压缩挑出最值得进入 Prompt 的证据，并保留可回溯来源。" },
+      { stage: "online", title: "生成验证", sub: "evidence → answer", body: "LLM 只根据证据回答，附引用；随后检查支持度、完整性与格式。证据不足时应明确说明。" },
+    ];
+    const pipelineSteps = document.getElementById("pipelineSteps");
+    const pipelineReading = document.getElementById("pipelineReading");
+    let pipelineMode = "all";
+    function selectPipeline(index) {
+      [...pipelineSteps.children].forEach((button, i) => button.classList.toggle("active", i === index));
+      const step = pipeline[index];
+      pipelineReading.innerHTML = `<b>${String(index + 1).padStart(2, "0")} · ${step.title} · ${step.stage === "offline" ? "离线建库" : "在线查询"}</b><p>${step.body}</p>`;
+    }
+    function renderPipeline() {
+      pipelineSteps.innerHTML = "";
+      pipeline.forEach((step, index) => {
+        const visible = pipelineMode === "all" || pipelineMode === step.stage;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `pipeline-button ${step.stage}`;
+        button.hidden = !visible;
+        button.innerHTML = `<b>${step.title}</b><small>${step.sub}</small>`;
+        button.addEventListener("click", () => selectPipeline(index));
+        pipelineSteps.appendChild(button);
+      });
+      const first = pipeline.findIndex(step => pipelineMode === "all" || step.stage === pipelineMode);
+      selectPipeline(first < 0 ? 0 : first);
+    }
+    document.querySelectorAll(".mode-button").forEach(button => {
+      button.addEventListener("click", () => {
+        pipelineMode = button.dataset.mode;
+        document.querySelectorAll(".mode-button").forEach(item => item.classList.toggle("active", item === button));
+        renderPipeline();
+      });
+    });
+    renderPipeline();
+
+    const notebooks = [
+      { n: 0, title: "前言", stage: "build", tag: "总览", desc: "建立学习目标和课程地图，先知道后续每种技术在优化哪一段。", caution: "先读", file: "0_前言.ipynb" },
+      { n: 1, title: "基础 RAG", stage: "retrieve", tag: "基线", desc: "PDF → 切块 → Embedding → 相似度检索 → LLM 回答，理解最小闭环。", caution: "必学", file: "1_基础rag.ipynb" },
+      { n: 2, title: "语义分块", stage: "build", tag: "切块", desc: "根据相邻句子的语义变化找断点，减少在主题中间切开的概率。", caution: "对比固定块", file: "2_语义分块.ipynb" },
+      { n: 3, title: "切块大小选择", stage: "build", tag: "评估", desc: "比较不同 chunk size；结论不是某个固定数字，而是要用真实问题评估。", caution: "无万能参数", file: "3_切块大小选择.ipynb" },
+      { n: 4, title: "上下文增强检索", stage: "build", tag: "增强", desc: "给局部块补充所属章节或文档语境，避免块离开原文后语义不完整。", caution: "增强≠原文", file: "4_上下文增强检索的rag.ipynb" },
+      { n: 5, title: "上下文片段标题", stage: "build", tag: "标题", desc: "为块生成或保留标题，让检索同时看到主题和局部内容。", caution: "保留来源", file: "5_上下文片段标题提取.ipynb" },
+      { n: 6, title: "文档问题增强", stage: "build", tag: "合成问题", desc: "为文档块生成可能被问到的问题，缩短用户措辞与原文措辞的差距。", caution: "绑定原文", file: "6_文档增强的rag.ipynb" },
+      { n: 7, title: "查询转换", stage: "retrieve", tag: "检索前", desc: "查询重写、Step-back 和子查询分解，适配模糊问题与多跳问题。", caution: "不要丢失约束", file: "7_查询转换.ipynb" },
+      { n: 8, title: "重排序", stage: "post", tag: "Rerank", desc: "先宽召回，再对候选做精排，把最相关证据放进有限上下文。", caution: "不是答案校验", file: "8_重排序.ipynb" },
+      { n: 9, title: "相关段落提取", stage: "post", tag: "RSE", desc: "给相邻块评分并重构连续段落，恢复被固定切块打散的上下文。", caution: "防重复", file: "9_相关段落提取.ipynb" },
+      { n: 10, title: "上下文压缩", stage: "post", tag: "压缩", desc: "检索后、生成前提取与问题有关的信息，降低噪声与 token 成本。", caution: "保留引用", file: "10_上下文压缩.ipynb" },
+      { n: 11, title: "反馈回路", stage: "control", tag: "反馈", desc: "利用历史反馈调整排序或构造训练候选，但不能自动把回答写成事实。", caution: "先审核", file: "11_反馈回路机制的rag.ipynb" },
+      { n: 12, title: "自适应检索", stage: "retrieve", tag: "意图路由", desc: "检索前识别问题类型，再选择不同召回策略；原实现存在中英文标签错误。", caution: "已纠错", file: "12_自适应检索.ipynb" },
+      { n: 13, title: "自适应 RAG", stage: "control", tag: "Self-RAG 思路", desc: "动态判断是否检索、证据相关性、支持度和实用性。属于启发式复现。", caution: "非论文复现", file: "13_自适应rag.ipynb" },
+      { n: 14, title: "命题分块", stage: "build", tag: "原子事实", desc: "将复杂段落拆成可独立理解的事实命题，提高精确检索能力。", caution: "防生成幻觉", file: "14_命题分块.ipynb" },
+      { n: 15, title: "多模态 RAG", stage: "build", tag: "图像", desc: "抽取 PDF 图像并生成描述，或直接做跨模态向量检索。", caution: "描述不是原图", file: "15_多模态rag.ipynb" },
+      { n: 16, title: "融合检索", stage: "retrieve", tag: "Vector + BM25", desc: "组合语义召回与关键词召回，兼顾含义、专名、编号和精确措辞。", caution: "先归一化或 RRF", file: "16_融合检索.ipynb" },
+      { n: 17, title: "图 RAG", stage: "retrieve", tag: "Graph", desc: "根据概念关系扩展检索，适合理解关联和多跳路径；示例是图增强 Demo。", caution: "非完整 GraphRAG", file: "17_图rag.ipynb" },
+      { n: 18, title: "分层检索", stage: "retrieve", tag: "Hierarchy", desc: "先用摘要定位相关页面，再从相关范围检索原文细节。", caution: "摘要只导航", file: "18_分层检索rag.ipynb" },
+      { n: 19, title: "HyDE", stage: "retrieve", tag: "假设文档", desc: "生成假设答案并用其向量检索真实文档，改善短查询表达。", caution: "假设不是证据", file: "19_假设文档嵌入rag.ipynb" },
+      { n: 20, title: "动态纠正 RAG", stage: "control", tag: "CRAG", desc: "评估检索质量；低质量时重写查询、精炼知识或切换外部搜索。", caution: "外部来源也要验证", file: "20_动态纠正rag.ipynb" },
+      { n: 21, title: "强化学习增强 RAG", stage: "control", tag: "RL 骨架", desc: "把重写、扩充、过滤和生成视为动作，用奖励观察策略选择。", caution: "示例并未训练网络", file: "21_强化学习增强rag.ipynb" },
+    ];
+    const stageNames = { build: "建库", retrieve: "检索", post: "检索后", control: "闭环" };
+    const notebookGrid = document.getElementById("notebookGrid");
+    const notebookSearch = document.getElementById("notebookSearch");
+    const emptyState = document.getElementById("emptyState");
+    let activeFilter = "all";
+    function renderNotebooks() {
+      const keyword = notebookSearch.value.trim().toLowerCase();
+      const filtered = notebooks.filter(item => {
+        const stageMatch = activeFilter === "all" || item.stage === activeFilter;
+        const text = `${item.n} ${item.title} ${item.tag} ${item.desc} ${item.caution}`.toLowerCase();
+        return stageMatch && (!keyword || text.includes(keyword));
+      });
+      notebookGrid.innerHTML = filtered.map(item => `
+        <article class="notebook-card" data-stage="${item.stage}">
+          <div class="notebook-top"><span class="notebook-num">${String(item.n).padStart(2, "0")}</span><span class="tag">${stageNames[item.stage]} · ${item.tag}</span></div>
+          <h3>${item.title}</h3>
+          <p>${item.desc}</p>
+          <footer><a href="../从零-RAG大师/${item.file}">打开 Notebook →</a><small>${item.caution}</small></footer>
+        </article>
+      `).join("");
+      emptyState.style.display = filtered.length ? "none" : "block";
+    }
+    document.querySelectorAll(".filter-button").forEach(button => {
+      button.addEventListener("click", () => {
+        activeFilter = button.dataset.filter;
+        document.querySelectorAll(".filter-button").forEach(item => item.classList.toggle("active", item === button));
+        renderNotebooks();
+      });
+    });
+    notebookSearch.addEventListener("input", renderNotebooks);
+    renderNotebooks();
+
+    const chunkSize = document.getElementById("chunkSize");
+    const chunkOverlap = document.getElementById("chunkOverlap");
+    const chunkTrack = document.getElementById("chunkTrack");
+    const chunkSizeValue = document.getElementById("chunkSizeValue");
+    const chunkOverlapValue = document.getElementById("chunkOverlapValue");
+    const chunkReadout = document.getElementById("chunkReadout");
+    function renderChunks() {
+      const size = Number(chunkSize.value);
+      const overlap = Math.min(Number(chunkOverlap.value), Math.max(0, size - 100));
+      const width = Math.max(28, size / 1600 * 70);
+      const overlapWidth = overlap / size * width;
+      chunkSizeValue.textContent = size;
+      chunkOverlapValue.textContent = overlap;
+      chunkTrack.innerHTML = `<div class="chunk-block" style="left:5%;width:${width}%">块 A：定义、条件、关键事实与证据来源……</div><div class="chunk-block" style="left:${5 + width - overlapWidth}%;width:${width}%">块 B：重叠上文 + 后续结论与限定条件……</div>`;
+      const ratio = Math.round(overlap / size * 100);
+      let advice = "比例温和，适合作为实验起点。";
+      if (ratio > 30) advice = "重叠偏大：上下文更连续，但索引和重复召回成本明显增加。";
+      if (ratio < 5) advice = "重叠很小：成本低，但跨切口的句子和因果关系更容易丢失。";
+      chunkReadout.textContent = `重叠约占每块 ${ratio}%。${advice}最终仍要用 Recall@k 和答案支持度评估。`;
+    }
+    [chunkSize, chunkOverlap].forEach(input => input.addEventListener("input", renderChunks));
+    renderChunks();
+
+    const routeProfiles = [
+      {
+        name: "时效信息",
+        match: query => /今天|最新|当前|现在|实时|本周|最近/.test(query),
+        steps: [
+          ["识别时效", "需要当前数据与明确时间戳"],
+          ["选择来源", "官方 API / 可信网页，而非旧向量库"],
+          ["检索验证", "多来源核对发布时间和事件时间"],
+          ["生成引用", "回答中写明截至时间和来源"],
+        ],
+      },
+      {
+        name: "全局总结",
+        match: query => /总结|概括|整份|全文|全篇|整体/.test(query),
+        steps: [
+          ["识别范围", "不是 top-k 局部问答"],
+          ["全局读取", "分层摘要 / map-reduce / tree summarize"],
+          ["覆盖检查", "确保章节与重要主题不遗漏"],
+          ["结构输出", "按主题组织并标出来源范围"],
+        ],
+      },
+      {
+        name: "依赖上下文",
+        match: query => /我的|结合我|根据上文|刚才|这个|它|我们/.test(query),
+        steps: [
+          ["解析指代", "从会话或用户上下文补全对象"],
+          ["权限过滤", "只检索用户有权访问的数据"],
+          ["上下文检索", "query + 已确认的上下文条件"],
+          ["个性化回答", "区分事实证据与建议判断"],
+        ],
+      },
+      {
+        name: "分析型问题",
+        match: query => /分析|为什么|原因|影响|比较|区别|趋势|如何/.test(query),
+        steps: [
+          ["问题分解", "拆成原因、证据、影响等子问题"],
+          ["融合召回", "向量 + BM25，多角度扩大候选"],
+          ["重排整合", "去重并保留不同证据视角"],
+          ["综合回答", "结论、依据、限制与不确定性"],
+        ],
+      },
+      {
+        name: "事实型问题",
+        match: () => true,
+        steps: [
+          ["提取实体", "对象、时间、指标和限定条件"],
+          ["精确召回", "metadata 过滤 + 混合检索"],
+          ["证据重排", "优先直接包含答案的原文"],
+          ["简洁回答", "给结论、引用；没有证据则拒答"],
+        ],
+      },
+    ];
+    const routerInput = document.getElementById("routerInput");
+    const routerResult = document.getElementById("routerResult");
+    function routeQuery() {
+      const query = routerInput.value.trim() || "请解释 RAG";
+      const profile = routeProfiles.find(item => item.match(query));
+      routerResult.innerHTML = `
+        <div class="route-head"><span>识别结果：<b>${profile.name}</b></span><span class="confidence">TEACHING HEURISTIC</span></div>
+        <div class="route-flow">${profile.steps.map((step, index) => `<div class="route-step"><span>${index + 1}</span><b>${step[0]}</b><small>${step[1]}</small></div>`).join("")}</div>
+        <div class="router-note">问题：“${query.replace(/[<>&"]/g, char => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[char]))}” · 生产系统还应返回置信度、知识源、过滤条件与是否需要澄清。</div>
+      `;
+    }
+    document.getElementById("routeButton").addEventListener("click", routeQuery);
+    routerInput.addEventListener("keydown", event => { if (event.key === "Enter") routeQuery(); });
+    document.querySelectorAll(".preset-button").forEach(button => {
+      button.addEventListener("click", () => { routerInput.value = button.textContent; routeQuery(); });
+    });
+    routeQuery();
+
+    const quizzes = [
+      { q: "线上收到用户问题后，第一步应该重新读取 PDF 并建库吗？", a: ["应该，保证最新", "不应该，通常加载已持久化索引", "取决于 top-k"], correct: 1, why: "解析、切块和文档向量化通常是离线流程；线上只处理 query 和召回。" },
+      { q: "Rerank 最准确的定位是什么？", a: ["最终答案质量门", "候选证据进入 Prompt 前的排序", "向量数据库的替代品"], correct: 1, why: "Rerank 提高候选证据顺序，但不能保证生成答案忠实或正确。" },
+      { q: "HyDE 生成的假设文档可以直接当引用来源吗？", a: ["可以，它写得很完整", "不可以，只应用于改善检索", "只有长文档可以"], correct: 1, why: "HyDE 文本是模型生成的猜测，不是真实证据；最终答案必须回到召回原文。" },
+      { q: "用户问“总结整本报告”，最合适的是？", a: ["普通 top-3 向量检索", "全局 / 分层摘要流程", "把 chunk size 调到最大"], correct: 1, why: "全局总结要求覆盖全文，局部 top-k 很容易漏掉章节。" },
+      { q: "反馈为 5 星的模型回答，应该自动写回知识库吗？", a: ["应该，高分代表正确", "不应该，应先核验来源和审核", "只要重复两次就可以"], correct: 1, why: "用户满意度不等于事实正确性，自动写回会造成错误自我强化。" },
+      { q: "检索结果里没有正确证据，最先应该改什么？", a: ["只改生成 Prompt", "先查解析、切块和召回", "提高 LLM temperature"], correct: 1, why: "证据没进入上下文时，生成模型无法可靠补救；应沿数据流从前往后排查。" },
+    ];
+    const answered = new Map();
+    const quizGrid = document.getElementById("quizGrid");
+    const quizScore = document.getElementById("quizScore");
+    const tocStatus = document.getElementById("tocStatus");
+    try {
+      const savedQuiz = JSON.parse(localStorage.getItem("rag-learning-quiz") || "[]");
+      if (Array.isArray(savedQuiz)) savedQuiz.forEach(([index, correct]) => {
+        if (Number.isInteger(index) && index >= 0 && index < quizzes.length) answered.set(index, Boolean(correct));
+      });
+    } catch (_) {}
+    function updateQuizScore() {
+      const correct = [...answered.values()].filter(Boolean).length;
+      quizScore.textContent = `当前得分：${correct} / ${quizzes.length} · 已完成 ${answered.size} 题`;
+      tocStatus.textContent = `已完成自测 ${answered.size} / ${quizzes.length}`;
+      localStorage.setItem("rag-learning-quiz", JSON.stringify([...answered.entries()]));
+    }
+    function renderQuiz() {
+      quizGrid.innerHTML = quizzes.map((item, index) => `
+        <article class="quiz-card" data-quiz="${index}">
+          <h3>${String(index + 1).padStart(2, "0")}</h3>
+          <p>${item.q}</p>
+          <div class="answers">${item.a.map((answer, answerIndex) => `<button class="answer" type="button" data-answer="${answerIndex}">${answer}</button>`).join("")}</div>
+          <div class="quiz-feedback" aria-live="polite"></div>
+        </article>
+      `).join("");
+      document.querySelectorAll(".quiz-card").forEach(card => {
+        const index = Number(card.dataset.quiz);
+        if (answered.has(index)) {
+          card.querySelector(`[data-answer="${quizzes[index].correct}"]`).classList.add("correct");
+          card.querySelector(".quiz-feedback").textContent = `${answered.get(index) ? "上次已答对。" : "上次未答对。"}${quizzes[index].why}`;
+        }
+        card.querySelectorAll(".answer").forEach(button => {
+          button.addEventListener("click", () => {
+            if (answered.has(index)) return;
+            const selected = Number(button.dataset.answer);
+            const correct = selected === quizzes[index].correct;
+            answered.set(index, correct);
+            button.classList.add(correct ? "correct" : "wrong-answer");
+            if (!correct) card.querySelector(`[data-answer="${quizzes[index].correct}"]`).classList.add("correct");
+            card.querySelector(".quiz-feedback").textContent = `${correct ? "答对了。" : "再记一下："}${quizzes[index].why}`;
+            updateQuizScore();
+          });
+        });
+      });
+    }
+    renderQuiz();
+    updateQuizScore();
+
+    const root = document.documentElement;
+    const themeButton = document.getElementById("themeButton");
+    const savedTheme = localStorage.getItem("rag-learning-theme");
+    if (savedTheme) root.dataset.theme = savedTheme;
+    themeButton.addEventListener("click", () => {
+      const next = root.dataset.theme === "dark" ? "light" : "dark";
+      root.dataset.theme = next;
+      localStorage.setItem("rag-learning-theme", next);
+    });
+
+    const progressBar = document.getElementById("progressBar");
+    function updateProgress() {
+      const total = document.documentElement.scrollHeight - innerHeight;
+      progressBar.style.width = `${total > 0 ? scrollY / total * 100 : 0}%`;
+    }
+    addEventListener("scroll", updateProgress, { passive: true });
+    updateProgress();
+
+    const tocLinks = [...document.querySelectorAll(".toc a")];
+    const sections = [...document.querySelectorAll("main .section")];
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        tocLinks.forEach(link => link.classList.toggle("active", link.getAttribute("href") === `#${entry.target.id}`));
+      });
+    }, { rootMargin: "-22% 0px -68% 0px" });
+    sections.forEach(section => observer.observe(section));
+  </script>
+</body>
+</html>
