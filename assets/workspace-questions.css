@@ -125,8 +125,9 @@ body {
   line-height: 1.65;
 }
 .question-list li:last-child { border-bottom: 0; }
-.question-list li:target { margin-inline: -8px !important; border-radius: 8px; background: var(--yellow-soft); }
-.qa-disclosure summary {
+.question-list li:target,
+.question-list li:has(.qa-disclosure[open]) { margin-inline: -8px !important; border-radius: 8px; background: var(--yellow-soft); }
+.qa-disclosure > summary {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 18px;
   gap: 14px;
@@ -136,8 +137,8 @@ body {
   cursor: pointer;
   list-style: none;
 }
-.qa-disclosure summary::-webkit-details-marker { display: none; }
-.qa-disclosure summary::after {
+.qa-disclosure > summary::-webkit-details-marker { display: none; }
+.qa-disclosure > summary::after {
   content: "";
   width: 7px;
   height: 7px;
@@ -147,17 +148,79 @@ body {
   transform: rotate(45deg);
   transition: transform 160ms ease;
 }
-.qa-disclosure[open] summary::after { transform: rotate(225deg); }
-.qa-disclosure summary:hover, .qa-disclosure[open] summary { background: color-mix(in srgb, var(--blue-soft) 60%, transparent); }
-.qa-disclosure summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.qa-disclosure[open] > summary::after { transform: rotate(225deg); }
+.qa-disclosure > summary:hover, .qa-disclosure[open] > summary { background: color-mix(in srgb, var(--blue-soft) 60%, transparent); }
+.qa-disclosure > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .answer-content {
   min-height: 76px;
-  margin: 4px 24px 18px 60px;
-  padding: 16px;
-  border: 1px dashed var(--line);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--page) 55%, var(--paper));
+  margin: 4px 0 18px;
+  padding: 22px 24px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--page) 28%, var(--paper));
+  font-size: 15px;
+  line-height: 1.9;
+  letter-spacing: .01em;
 }
+.answer-content p { margin: 0; }
+.answer-content p + p { margin-top: 1.1em; }
+.followup-group {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+.followup-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--blue-deep);
+  font-size: 14px;
+  font-weight: 800;
+}
+.followup-count { color: var(--muted); font: 700 11px/1.5 var(--mono); letter-spacing: .04em; }
+.followup-list { display: grid; gap: 9px; }
+.followup-item {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--paper);
+}
+.followup-item > summary {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 16px;
+  gap: 11px;
+  align-items: start;
+  padding: 12px 15px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+.followup-item > summary::-webkit-details-marker { display: none; }
+.followup-item > summary::after {
+  content: "+";
+  color: var(--blue-deep);
+  font: 700 18px/1.2 var(--sans);
+  text-align: center;
+}
+.followup-item[open] > summary::after { content: "−"; }
+.followup-item > summary:hover,
+.followup-item[open] > summary { background: var(--blue-soft); }
+.followup-item > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.followup-index { color: var(--blue-deep); font: 800 11px/2.1 var(--mono); }
+.followup-answer {
+  padding: 14px 17px 16px 52px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.8;
+}
+.followup-answer p { margin: 0; }
+.followup-answer:empty { display: none; }
 .question-number { color: var(--blue-deep); font: 800 12px/1.9 var(--mono); }
 .question-text { min-width: 0; }
 
@@ -191,7 +254,9 @@ body {
   .article section h2 { display: block; font-size: 21px; }
   .article section h2::before { display: block; margin-bottom: 7px; }
   .question-list li { font-size: 13px; }
-  .qa-disclosure summary { grid-template-columns: 34px minmax(0, 1fr) 16px; gap: 9px; padding-block: 12px; }
-  .answer-content { margin-left: 43px; margin-right: 16px; }
+  .qa-disclosure > summary { grid-template-columns: 34px minmax(0, 1fr) 16px; gap: 9px; padding-block: 12px; }
+  .answer-content { padding: 18px 16px; }
+  .followup-item > summary { grid-template-columns: 22px minmax(0, 1fr) 16px; gap: 8px; padding: 11px 12px; }
+  .followup-answer { padding: 13px 14px; }
   .story-code pre { font-size: 12px; }
 }

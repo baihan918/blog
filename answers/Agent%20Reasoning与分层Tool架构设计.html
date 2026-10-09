@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent Reasoning 按工具分类发现并选择具体 Tool，Tool Router 统一管理与鉴权，Tool Runtime 执行不同 Provider 的工具。">
+  <title>Agent Reasoning 与分层 Tool 架构设计</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../assets/answer-pages.css?v=2">
+  <style>
+    .article h4 { margin: 32px 0 12px; scroll-margin-top: 94px; font-size: 17px; line-height: 1.4; }
+    .article h4::before { display: block; margin-bottom: 8px; color: var(--mint); content: attr(data-section); font: 800 10px/1 var(--mono); letter-spacing: .1em; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar"><div class="brand"><span class="brand-mark">AG</span><span class="brand-title">Agent Reasoning 与分层 Tool 架构设计</span></div><div class="top-actions"><button class="menu-button" id="menuToggle" type="button" aria-label="打开目录" aria-expanded="false">☰</button><button class="icon-button" id="themeToggle" type="button" aria-label="切换深浅主题">◐</button></div></header>
+  <section class="hero"><div class="eyebrow">Agent Architecture · Tool Discovery · Runtime</div><h1>Agent Reasoning<br>与分层 Tool 架构设计</h1><p>Agent 按工具分类发现并选择具体工具，按依赖关系安排调用；Tool Router 统一管理与鉴权，Runtime 执行不同 Provider 的工具。</p></section>
+  <main class="layout" id="main"><aside class="toc-shell" id="tocShell"><nav class="toc" aria-label="页面目录"><p class="toc-title">READING MAP</p><a href="#section-1" data-toc="section-1" data-level="2">1. 核心结论</a><a href="#section-2" data-toc="section-2" data-level="2">2. 示例任务与约束</a><a href="#section-3" data-toc="section-3" data-level="2">3. 工具的两级发现</a><a href="#section-4" data-toc="section-4" data-level="2">4. Agent Reasoning 的职责</a><a href="#section-5" data-toc="section-5" data-level="2">5. 依赖顺序与并行边界</a><a href="#section-6" data-toc="section-6" data-level="2">6. Tool Registry 与元数据</a><a href="#section-7" data-toc="section-7" data-level="2">7. Tool Router：统一管理与鉴权</a><a href="#section-8" data-toc="section-8" data-level="2">8. Function Calling 与参数</a><a href="#section-9" data-toc="section-9" data-level="2">9. Tool Runtime 与 Provider</a><a href="#section-10" data-toc="section-10" data-level="2">10. Observe 与动态调整</a><a href="#section-11" data-toc="section-11" data-level="2">11. 修改后的验证</a><a href="#section-12" data-toc="section-12" data-level="2">12. 完整架构与职责</a><a href="#section-13" data-toc="section-13" data-level="2">13. 设计原则</a></nav>
+</aside>
+<article class="article"><h2 id="section-1" data-section="SECTION 01">1. 核心结论</h2>
+<p>Agent Reasoning 同时负责理解任务、判断当前需要哪类能力、在该分类下查看具体工具，并选择工具和参数。它根据执行结果继续推理，安排下一步。这里不再单设 Capability Planning。</p><blockquote><p><strong>工具选择与调用顺序属于 Agent Reasoning；Tool Router 负责工具统一管理和鉴权，不替 Agent 选择工具。</strong></p></blockquote><div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">User Task → Agent Reasoning → 查看工具一级分类 → 查看分类下的具体 Tool
+          → 选择 Tool 与参数 → Tool Router（注册管理 + 鉴权）
+          → Tool Runtime（按 Provider 执行） → Observe → Agent Reasoning</code></pre></div><p>Capability 是工具目录中的稳定分类。Tool 是 Agent 最终调用的具体动作。MCP、Function、RAG、Code、Browser 是工具的来源或执行方式。</p><hr>
+<h2 id="section-2" data-section="SECTION 02">2. 示例任务与约束</h2>
+<blockquote><p><strong>把商品详情页的按钮样式按照 Figma 修改一下，不要修改公共 Button 组件。</strong></p></blockquote><p>Agent 需要识别目标、设计来源、禁止改动范围和完成标准。它不能只根据任务文字立即调用 <code>edit_file</code>：先找到代码和设计信息，确认实现位置后才能修改，修改后还要验证。</p><div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">目标：商品详情页按钮与 Figma 一致
+约束：不能修改公共 Button
+完成条件：代码检查通过，页面效果与设计一致</code></pre></div><hr>
+<h2 id="section-3" data-section="SECTION 03">3. 工具的两级发现</h2>
+<p>一级是面向任务的工具分类；Agent 先看分类名称和描述。选中相关分类后，再查看该分类下可用的具体工具及其 schema、风险和前置条件。</p><div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">repository_search → search_code / search_symbol / find_references
+code_read         → read_file / read_directory
+design_read       → figma_get_design_context / figma_get_screenshot
+code_edit         → edit_file / create_file
+code_validation   → run_lint / run_typecheck / run_test / run_build
+visual_validation → start_dev_server / browser_screenshot / visual_compare</code></pre></div><p>这是按需展开目录，不是 Tool Router 预先挑选候选工具。Agent 对当前步骤做选择；新信息出现时可以再查看其他分类。</p><hr>
+<h2 id="section-4" data-section="SECTION 04">4. Agent Reasoning 的职责</h2>
+<ul><li>理解用户目标、约束和完成标准。</li><li>判断当前步骤需要哪一个或哪几个工具分类，查看分类内工具。</li><li>选择具体 Tool、填写参数，并判断哪些调用有前置依赖。</li><li>读取 Tool Result，决定继续查询、修改、验证、重试或结束。</li></ul><div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">当前缺少代码位置 → 查看 repository_search → 选择 search_code
+搜索结果指向 ProductAction → 查看 code_read → 选择 read_file
+确认业务层修改点且读到 Figma → 查看 code_edit → 选择 edit_file</code></pre></div><p>这些判断发生在同一个 Agent Reasoning 循环里；不需要在它前面再运行一次 Capability Planner。</p><hr>
+<h2 id="section-5" data-section="SECTION 05">5. 依赖顺序与并行边界</h2>
+<p>工具调用不是独立的扁平清单。Agent 应依据证据和前置条件构建当前任务的依赖关系；只有不存在依赖的步骤才适合并行。</p><div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">search_code ─→ read_file ───────────┐
+                                  ├─→ 判断修改点 ─→ edit_file ─→ run_test ─→ visual_compare
+figma_get_design_context ────────┘</code></pre></div><p>上例中读取 Figma 可以与搜索或读代码并行；<code>edit_file</code> 必须等代码与设计依据齐备。测试和视觉验证必须基于修改后的代码。如果测试失败，Agent 回到推理循环调整后续步骤。</p><p>某些工具本身也有前置条件，例如 <code>browser_screenshot</code> 需要开发服务已启动，读取文件需要先获得路径。这些依赖应通过工具元数据和执行结果让 Agent 可见。</p><hr>
+<h2 id="section-6" data-section="SECTION 06">6. Tool Registry 与元数据</h2>
+<p>Registry 维护分类到具体 Tool、Tool 到 Provider 的映射，供 Agent 查询，也供 Router 鉴权和 Runtime 执行。</p><div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-json">{
+  &quot;name&quot;: &quot;figma_get_design_context&quot;,
+  &quot;category&quot;: &quot;design_read&quot;,
+  &quot;description&quot;: &quot;读取 Figma 节点的设计上下文&quot;,
+  &quot;schema&quot;: {&quot;node_id&quot;: &quot;string&quot;},
+  &quot;provider&quot;: &quot;mcp&quot;,
+  &quot;server&quot;: &quot;figma&quot;,
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;prerequisites&quot;: [&quot;figma_connection&quot;]
+}</code></pre></div><p>分类是发现入口，不代表一个分类只能有一个 Tool。同一分类可以容纳不同用途的工具；Agent 要查看工具描述与 schema 后作具体选择。</p><hr>
+<h2 id="section-7" data-section="SECTION 07">7. Tool Router：统一管理与鉴权</h2>
+<p>Agent 已经选定工具和参数后，Tool Router 接收 Tool Call，通过 Registry 解析工具身份并做统一管理和鉴权。它不依据任务语义替 Agent 换工具，也不决定调用顺序。</p><div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Agent Tool Call
+    ↓
+Tool Router
+    ├─ 校验工具是否已注册、是否对当前 Agent 可见
+    ├─ 校验参数 schema、作用域、身份与权限
+    ├─ 应用风险策略：允许 / 拒绝 / 沙箱 / 人工审批
+    └─ 记录审计、配额与调用状态
+    ↓
+Tool Runtime</code></pre></div><p>原文单列的 Tool Policy 可以作为 Router 内部的策略模块，不必再画成与 Router 并列的决策层。权限配置由系统控制，Agent 不能通过选择工具绕过。</p><hr>
+<h2 id="section-8" data-section="SECTION 08">8. Function Calling 与参数</h2>
+<p>Function Calling 是 Agent 输出具体 Tool Call 的一种形式，不是另一个独立的工具选择者。Agent 看到所选分类下的工具 schema 后，可产生如下调用：</p><div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-json">{
+  &quot;name&quot;: &quot;search_code&quot;,
+  &quot;arguments&quot;: {&quot;query&quot;: &quot;ProductDetail 商品详情&quot;}
+}</code></pre></div><p>Router 校验该调用，Runtime 执行。Tool Result 返回后，Agent 再判断下一步。</p><hr>
+<h2 id="section-9" data-section="SECTION 09">9. Tool Runtime 与 Provider</h2>
+<p>Tool Runtime 根据 Registry 中的 Provider 信息调用对应执行器，屏蔽协议差异；业务推理和工具选择仍由 Agent 完成。</p><div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Tool Call → Tool Router（管理、鉴权） → Tool Runtime
+                                          ├─ MCP Executor → Figma / Jira / GitHub
+                                          ├─ Function Executor → 内部函数
+                                          ├─ RAG Executor → 文档检索
+                                          ├─ Code Runtime → 文件 / 命令
+                                          └─ Browser Runtime → 页面操作</code></pre></div><p><code>Figma MCP Server</code> 是 Provider，不是一个可与 <code>search_code</code> 并列选择的 Tool。Registry 应注册它暴露的具体工具，如 <code>figma_get_design_context</code>。</p><hr>
+<h2 id="section-10" data-section="SECTION 10">10. Observe 与动态调整</h2>
+<p>Agent 收到工具结果后，更新对任务的理解和依赖关系，再选择下一步工具。例如搜索定位到 <code>ProductAction</code>，读取后发现它使用公共 Button；由于用户禁止修改公共组件，Agent 应改为寻找业务层样式入口。</p><div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">Tool Result → Agent Reasoning
+    ├─ 证据不足 → 查看相关分类并继续读取
+    ├─ 前置条件满足 → 调用修改工具
+    ├─ 验证失败 → 分析错误、修复并重新验证
+    └─ 达到完成标准 → Done</code></pre></div><p>动态调整的是 Agent 的推理与调用计划；Router 对每次调用重复执行统一管理和鉴权。</p><hr>
+<h2 id="section-11" data-section="SECTION 11">11. 修改后的验证</h2>
+<p>代码变更不能以 <code>edit_file</code> 返回成功作为完成条件。Agent 应按任务选择有意义的验证工具，并遵循依赖顺序。</p><div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">edit_file → run_lint / run_typecheck / run_test / run_build
+          → start_dev_server → browser_screenshot → visual_compare</code></pre></div><p>如果构建失败或截图不符合设计，Agent 读取失败信息，继续修改并重新验证。必要时重新读取源代码或设计信息。</p><hr>
+<h2 id="section-12" data-section="SECTION 12">12. 完整架构与职责</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code class="language-text">User
+  ↓
+Agent Reasoning ←─────────────────────────────────────┐
+  │ 先看工具分类，再看该类具体工具；决定顺序与参数   │
+  ├─→ Tool Catalog / Registry（分类、schema、元数据） │
+  ↓                                                  │
+Tool Call                                           │
+  ↓                                                  │
+Tool Router（注册管理、鉴权、风险策略、审计）          │
+  ↓                                                  │
+Tool Runtime → MCP / Function / RAG / Code / Browser │
+  ↓                                                  │
+Tool Result / Observe ──────────────────────────────┘</code></pre></div><div class="table-wrap"><table><thead><tr><th>组成</th><th>负责什么</th><th>商品详情页示例</th></tr></thead><tbody><tr><td>Agent Reasoning</td><td>理解任务、逐级查看工具、选择 Tool 和顺序、观察并调整</td><td>先找实现和设计，再改业务样式，最后验证</td></tr><tr><td>Tool Catalog / Registry</td><td>维护分类、具体工具、schema、Provider 与风险元数据</td><td>repository_search 下有 search_code</td></tr><tr><td>Tool Router</td><td>统一管理、鉴权、参数校验和审计</td><td>判断 edit_file 是否可在当前仓库执行</td></tr><tr><td>Tool Runtime</td><td>按 Provider 执行已获准的调用</td><td>调用 Figma MCP 或代码执行器</td></tr><tr><td>Tool Result</td><td>提供事实与错误供 Agent 再推理</td><td>返回 ProductAction 路径或构建失败信息</td></tr></tbody></table></div><hr>
+<h2 id="section-13" data-section="SECTION 13">13. 设计原则</h2>
+<ul><li><strong>分类用于发现，Tool 用于执行。</strong>Agent 最终选择的是具体 Tool。</li><li><strong>Agent 决定调用顺序。</strong>有依赖的调用必须等待前置结果，独立调用才可并行。</li><li><strong>Router 不做语义选择。</strong>它负责统一管理、鉴权、风险策略与审计。</li><li><strong>Provider 不进入工具选择层。</strong>MCP、Function、RAG、Code、Browser 是实现或执行方式。</li><li><strong>观察结果会改变后续行动。</strong>工具目录可以按需再次展开，不需要初始阶段冻结 Capability Scope。</li></ul><blockquote><p><strong>Agent 选择“做什么、先后怎么做”；Tool Router 决定“这次调用是否被允许”；Tool Runtime 负责“怎样执行”。</strong></p></blockquote><hr></article>
+</main>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div><button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+  <footer>Agent Reasoning · Layered Tool Architecture</footer>
+  <script src="../assets/answer-pages.js"></script>
+</body>
+</html>
