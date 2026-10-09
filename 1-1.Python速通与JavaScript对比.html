@@ -725,6 +725,10 @@
       <span class="toc-branch">↳</span>
       <span>列表推导式</span>
     </a>
+<a class="toc-link depth-3" href="#section-65" data-toc-link="section-65">
+      <span class="toc-branch">↳</span>
+      <span>二维列表初始化：避免共享行</span>
+    </a>
 <a class="toc-link depth-3" href="#section-21" data-toc-link="section-21">
       <span class="toc-branch">↳</span>
       <span>4.2 字典、普通对象与 Map</span>
@@ -1571,7 +1575,28 @@ letters.at(-<span class="tok-number">2</span>); <span class="tok-comment">// &qu
     <pre><code class="language-javascript"><span class="tok-keyword">const</span> squares = Array.<span class="tok-keyword">from</span>({ length: <span class="tok-number">10</span> }, (_, x) =&gt; x)
   .filter((x) =&gt; x % <span class="tok-number">2</span> === <span class="tok-number">0</span>)
   .map((x) =&gt; x ** <span class="tok-number">2</span>);</code></pre>
-  </div><h3 id="section-21" data-section-heading>4.2 字典、普通对象与 Map<a class="heading-anchor" href="#section-21" aria-label="跳转到本节">#</a></h3><p>Python 的 <code>dict</code> 是键值对容器。JavaScript 中要根据场景选择普通对象或 <code>Map</code>。</p>
+  </div><h3 id="section-65" data-section-heading>二维列表初始化：避免共享行<a class="heading-anchor" href="#section-65" aria-label="跳转到本节">#</a></h3><p>动态规划中常要创建 <code>row</code> 行、<code>col</code> 列的 <code>dp</code> 表。下面的写法看起来正确，但修改一个单元格时会影响同一列的所有行：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">row, col = <span class="tok-number">3</span>, <span class="tok-number">2</span>
+dp = [[<span class="tok-number">0</span>] * col] * row  <span class="tok-comment"># 错误：三行指向同一个内部列表</span>
+dp[<span class="tok-number">0</span>][<span class="tok-number">0</span>] = <span class="tok-number">1</span>
+print(dp)  <span class="tok-comment"># [[1, 0], [1, 0], [1, 0]]</span></code></pre>
+  </div><p>原因是 <code>[0] * col</code> 先创建一行；外层的 <code>* row</code> 只重复这一行的<strong>引用</strong>，不会创建独立的行。因此 <code>dp[0] is dp[1]</code> 为 <code>True</code>。内层的 <code>* col</code> 用来填充不可变的整数 <code>0</code>，这里没有共享可变对象的问题。</p>
+<p>用列表推导式在每次循环时新建一行：</p>
+<div class="code-card code-python" data-code-card>
+    <div class="code-toolbar">
+      <span class="language-badge"><span class="language-dot"></span>Python</span>
+      <button class="copy-code" type="button" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code class="language-python">dp = [[<span class="tok-number">0</span>] * col <span class="tok-keyword">for</span> _ <span class="tok-keyword">in</span> range(row)]
+dp[<span class="tok-number">0</span>][<span class="tok-number">0</span>] = <span class="tok-number">1</span>
+print(dp)  <span class="tok-comment"># [[1, 0], [0, 0], [0, 0]]</span></code></pre>
+  </div><p>这里的 <code>_</code> 表示循环变量不需要使用；推导式会执行 <code>row</code> 次，每次生成一个新的内部列表。</p>
+<h3 id="section-21" data-section-heading>4.2 字典、普通对象与 Map<a class="heading-anchor" href="#section-21" aria-label="跳转到本节">#</a></h3><p>Python 的 <code>dict</code> 是键值对容器。JavaScript 中要根据场景选择普通对象或 <code>Map</code>。</p>
 <h3 id="section-22" data-section-heading>使用普通对象<a class="heading-anchor" href="#section-22" aria-label="跳转到本节">#</a></h3><p>Python：</p>
 <div class="code-card code-python" data-code-card>
     <div class="code-toolbar">

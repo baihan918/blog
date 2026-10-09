@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent 两级 Tool Discovery 与 Router 权限治理设计">
+  <title>Agent 两级 Tool Discovery 与 Router 权限治理设计</title>
+  <link rel="stylesheet" href="../assets/answer-pages.css?v=2">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">MD</span><span class="brand-title">Agent 两级 Tool Discovery 与 Router 权限治理设计</span></div>
+    <div class="top-actions"><a class="source-link" href="0-md/Agent%E4%B8%A4%E7%BA%A7ToolDiscovery%E4%B8%8ERouter%E6%9D%83%E9%99%90%E6%B2%BB%E7%90%86%E8%AE%BE%E8%AE%A1.md">查看 Markdown</a><button class="menu-button" id="menuToggle" type="button" aria-label="打开目录" aria-expanded="false">☰</button><button class="icon-button" id="themeToggle" type="button" aria-label="切换深浅主题">◐</button></div>
+  </header>
+  <section class="hero"><div class="eyebrow">Markdown Reading Page</div><h1>Agent 两级 Tool Discovery 与 Router 权限治理设计</h1></section>
+  <main class="layout" id="main">
+    <aside class="toc-shell" id="tocShell"><nav class="toc" aria-label="页面目录"><p class="toc-title">READING MAP</p><a href="#1-背景" data-toc="1-背景" data-level="2">1. 背景</a>
+<a href="#2-核心职责" data-toc="2-核心职责" data-level="2">2. 核心职责</a>
+<a href="#agent-reasoning" data-toc="agent-reasoning" data-level="3">Agent Reasoning</a>
+<a href="#tool-catalog-tool-client" data-toc="tool-catalog-tool-client" data-level="3">Tool Catalog / Tool Client</a>
+<a href="#tool-router" data-toc="tool-router" data-level="3">Tool Router</a>
+<a href="#tool-runtime" data-toc="tool-runtime" data-level="3">Tool Runtime</a>
+<a href="#3-agent-source-与权限配置" data-toc="3-agent-source-与权限配置" data-level="2">3. Agent Source 与权限配置</a>
+<a href="#source-不由-llm-生成" data-toc="source-不由-llm-生成" data-level="3">Source 不由 LLM 生成</a>
+<a href="#4-第一阶段-获取-allowed-capability-groups" data-toc="4-第一阶段-获取-allowed-capability-groups" data-level="2">4. 第一阶段：获取 Allowed Capability Groups</a>
+<a href="#5-第二阶段-agent-reasoning-选择-capability-group" data-toc="5-第二阶段-agent-reasoning-选择-capability-group" data-level="2">5. 第二阶段：Agent Reasoning 选择 Capability Group</a>
+<a href="#6-第三阶段-按需展开-concrete-tools" data-toc="6-第三阶段-按需展开-concrete-tools" data-level="2">6. 第三阶段：按需展开 Concrete Tools</a>
+<a href="#7-第四阶段-llm-产生-tool-call" data-toc="7-第四阶段-llm-产生-tool-call" data-level="2">7. 第四阶段：LLM 产生 Tool Call</a>
+<a href="#8-第五阶段-tool-client-调用-router" data-toc="8-第五阶段-tool-client-调用-router" data-level="2">8. 第五阶段：Tool Client 调用 Router</a>
+<a href="#9-router-执行时权限兜底" data-toc="9-router-执行时权限兜底" data-level="2">9. Router：执行时权限兜底</a>
+<a href="#10-router-与-apollo" data-toc="10-router-与-apollo" data-level="2">10. Router 与 Apollo</a>
+<a href="#11-tool-runtime-执行" data-toc="11-tool-runtime-执行" data-level="2">11. Tool Runtime 执行</a>
+<a href="#12-tool-result-回到-react" data-toc="12-tool-result-回到-react" data-level="2">12. Tool Result 回到 ReAct</a>
+<a href="#13-capability-group-在-react-中动态变化" data-toc="13-capability-group-在-react-中动态变化" data-level="2">13. Capability Group 在 ReAct 中动态变化</a>
+<a href="#14-tool-调用的异步模型" data-toc="14-tool-调用的异步模型" data-level="2">14. Tool 调用的异步模型</a>
+<a href="#15-完整架构" data-toc="15-完整架构" data-level="2">15. 完整架构</a>
+<a href="#16-为什么不需要独立-capability-planning" data-toc="16-为什么不需要独立-capability-planning" data-level="2">16. 为什么不需要独立 Capability Planning</a>
+<a href="#17-设计收益" data-toc="17-设计收益" data-level="2">17. 设计收益</a>
+<a href="#18-面试总结" data-toc="18-面试总结" data-level="2">18. 面试总结</a></nav></aside>
+    <article class="article"><h2 id="1-背景" data-section="SECTION 01">1. 背景</h2>
+<p>Workspace Agent 中，不同 Agent 共享统一的 Tool Infrastructure，但职责和权限不同：</p>
+<ul><li>Workflow Agent：围绕 Workflow Node 完成任务和流程推进。</li><li>Node Conversation Agent：围绕当前 Node 已生成的 Artifact 进行开放式对话、修改和迭代。</li><li>每个 Agent 都有独立的 ReAct Loop。</li><li>多个 Agent 复用同一套 Tool Catalog / Tool Router / Tool Runtime，但可见和可执行的 Tool 范围不同。</li></ul>
+<p>如果把所有 Tool Schema 一次性暴露给 LLM，会带来 Tool Schema 占用 Context、Tool Selection 搜索空间过大、多 Agent 权限边界不清等问题。</p>
+<p>因此采用：</p>
+<blockquote><p><strong>Source 权限过滤 + 两级 Tool Discovery + Agent Reasoning + Router 执行时兜底校验</strong></p></blockquote>
+<h2 id="2-核心职责" data-section="SECTION 02">2. 核心职责</h2>
+<h3 id="agent-reasoning">Agent Reasoning</h3>
+<p>负责回答：</p>
+<blockquote><p><strong>当前应该使用什么能力，以及具体调用哪个 Tool？</strong></p></blockquote>
+<p>Capability Group Selection 和 Concrete Tool Selection 都属于 Agent ReAct / Reasoning，不再单独设计 Capability Planning。</p>
+<h3 id="tool-catalog-tool-client">Tool Catalog / Tool Client</h3>
+<p>负责：</p>
+<ul><li>根据当前 Agent Source 获取允许使用的 Capability Groups。</li><li>根据 Agent 选择的 Group 按需展开 Concrete Tools。</li><li>向 Agent 提供 Tool Name、Description、Input Schema。</li><li>避免一次性把全部 Tool Schema 放入 LLM Context。</li></ul>
+<h3 id="tool-router">Tool Router</h3>
+<p>负责：</p>
+<blockquote><p><strong>当前来源是否允许执行这次 Tool Call？</strong></p></blockquote>
+<p>主要承担 Source/Tool 权限校验、参数校验、Risk Policy、Audit 等执行治理。Router 不负责替 Agent 做语义层面的 Tool Selection。</p>
+<h3 id="tool-runtime">Tool Runtime</h3>
+<p>负责：</p>
+<blockquote><p><strong>已经允许执行的 Tool Call 具体怎么执行？</strong></p></blockquote>
+<p>Runtime 屏蔽 MCP、Function Tool、RAG 等不同 Provider 的执行差异。</p>
+<h2 id="3-agent-source-与权限配置" data-section="SECTION 03">3. Agent Source 与权限配置</h2>
+<p>每个 Agent 初始化时绑定自己的 Source，例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>workspace_workflow_agent
+prd_conversation_agent
+rfc_conversation_agent</code></pre></div>
+<p>权限配置维护在 Tool Router 侧，并通过 Apollo 管理，而不是写死在 Agent Prompt 中。</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Apollo
+
+workspace_workflow_agent
+  ├─ repository_search
+  ├─ artifact
+  ├─ workflow
+  └─ rag
+
+prd_conversation_agent
+  ├─ repository_search
+  ├─ artifact
+  └─ rag</code></pre></div>
+<h3 id="source-不由-llm-生成">Source 不由 LLM 生成</h3>
+<p>Source 属于 Agent Runtime 身份信息：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>tool_client = ToolClient(
+    source=&quot;prd_conversation_agent&quot;
+)</code></pre></div>
+<p>后续 Tool Call 由 Tool Client / Runtime 自动携带 Source，而不是让 LLM 自由填写。</p>
+<blockquote><p><strong>LLM 负责产生 Tool 决策，Agent Runtime 负责提供可信身份。</strong></p></blockquote>
+<h2 id="4-第一阶段-获取-allowed-capability-groups" data-section="SECTION 04">4. 第一阶段：获取 Allowed Capability Groups</h2>
+<p>Agent 初始化 Tool Client 后，不直接获取所有 Concrete Tools，而是先根据 Source 获取当前 Agent 有权限的能力分组：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>tool_groups = tool_client.get_allowed_tool_groups()</code></pre></div>
+<p>例如返回：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>repository_search
+code_read
+artifact
+rag</code></pre></div>
+<p>提供给 LLM 的只是轻量能力描述：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code>[
+  {
+    &quot;name&quot;: &quot;repository_search&quot;,
+    &quot;description&quot;: &quot;检索当前 Workspace Repository 中的相关代码和文件&quot;
+  },
+  {
+    &quot;name&quot;: &quot;artifact&quot;,
+    &quot;description&quot;: &quot;读取或修改当前 Workflow Artifact&quot;
+  },
+  {
+    &quot;name&quot;: &quot;rag&quot;,
+    &quot;description&quot;: &quot;检索 Workspace 业务知识&quot;
+  }
+]</code></pre></div>
+<p>此时不暴露各 Group 下所有 Tool 的完整 Schema。</p>
+<h2 id="5-第二阶段-agent-reasoning-选择-capability-group" data-section="SECTION 05">5. 第二阶段：Agent Reasoning 选择 Capability Group</h2>
+<p>用户任务进入 Agent 后开始 ReAct。</p>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>根据 Figma 把商品详情页按钮样式调整一下。</code></pre></div>
+<p>Agent 根据 Query、State、Context 和 Observation 判断当前需要：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>design_read
+repository_search</code></pre></div>
+<p>这里发生的是 <strong>Capability Group Selection</strong>，仍属于 Agent Reasoning，而不是独立 Capability Planning Agent。</p>
+<h2 id="6-第三阶段-按需展开-concrete-tools" data-section="SECTION 06">6. 第三阶段：按需展开 Concrete Tools</h2>
+<p>确定 Capability Group 后，通过 Tool Client 获取该 Group 下当前 Source 有权限的 Concrete Tools：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>design_tools = tool_client.get_tools(&quot;design_read&quot;)
+repo_tools = tool_client.get_tools(&quot;repository_search&quot;)</code></pre></div>
+<p>例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>design_read
+  ├─ figma_get_node
+  └─ figma_get_styles
+
+repository_search
+  ├─ search_file
+  ├─ search_symbol
+  └─ search_code</code></pre></div>
+<p>此时才把具体 Tool 的 Name、Description、Input Schema 和必要约束提供给 LLM。</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Capability Groups
+        ↓
+Agent Reasoning
+        ↓
+选择相关 Group
+        ↓
+展开 Concrete Tools
+        ↓
+Agent Reasoning
+        ↓
+选择具体 Tool</code></pre></div>
+<h2 id="7-第四阶段-llm-产生-tool-call" data-section="SECTION 07">7. 第四阶段：LLM 产生 Tool Call</h2>
+<p>拿到 Concrete Tool Schema 后，LLM 在当前 ReAct 中选择具体 Tool：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  &quot;name&quot;: &quot;search_code&quot;,
+  &quot;arguments&quot;: {
+    &quot;query&quot;: &quot;ProductDetail Button&quot;
+  }
+}</code></pre></div>
+<p>模型只关心：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>toolName + arguments</code></pre></div>
+<p>不需要知道 Router、Apollo、MCP 或 Runtime 的内部实现。</p>
+<h2 id="8-第五阶段-tool-client-调用-router" data-section="SECTION 08">8. 第五阶段：Tool Client 调用 Router</h2>
+<p>Agent Runtime 拿到 Tool Call 后：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>result = await tool_client.call(
+    tool_name=tool_call.name,
+    arguments=tool_call.arguments
+)</code></pre></div>
+<p>Tool Client 自动补充 Runtime Context：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  &quot;source&quot;: &quot;prd_conversation_agent&quot;,
+  &quot;workspaceId&quot;: &quot;workspace_123&quot;,
+  &quot;traceId&quot;: &quot;trace_456&quot;,
+  &quot;toolCallId&quot;: &quot;call_789&quot;,
+  &quot;toolName&quot;: &quot;search_code&quot;,
+  &quot;arguments&quot;: {
+    &quot;query&quot;: &quot;ProductDetail Button&quot;
+  }
+}</code></pre></div>
+<p>其中 Source 来自 Agent 初始化，不来自 LLM。</p>
+<h2 id="9-router-执行时权限兜底" data-section="SECTION 09">9. Router：执行时权限兜底</h2>
+<p>初始化阶段已经根据 Source 过滤过 Capability Groups 和 Concrete Tools，因此正常情况下 Agent 看不到无权限 Tool。</p>
+<p>但真正执行时 Router 仍需二次校验：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Agent 初始化
+      ↓
+根据 Source 获取 Allowed Capability Groups
+      ↓
+只向 LLM 暴露允许的能力
+      ↓
+按 Group 获取 Allowed Concrete Tools
+      ↓
+LLM 产生 Tool Call
+      ↓
+Tool Router
+      ↓
+根据 Source 再次校验权限
+      ↓
+Tool Runtime</code></pre></div>
+<p>两层控制职责不同：</p>
+<ul><li><strong>初始化阶段：控制 Agent 能看到什么。</strong></li><li><strong>Router 执行阶段：控制 Agent 最终能执行什么。</strong></li></ul>
+<p>Router 仍需兜底，因为 Apollo 权限可能动态变化、Tool 可能被下线，也可能存在绕过正常 Catalog 流程直接构造请求的情况。</p>
+<h2 id="10-router-与-apollo" data-section="SECTION 10">10. Router 与 Apollo</h2>
+<p>权限关系通过 Apollo 动态配置，例如：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>source: prd_conversation_agent
+
+allowed_groups:
+  - repository_search
+  - artifact
+  - rag
+
+allowed_tools:
+  - repository_search.search_code
+  - repository_search.read_file
+  - artifact.read
+  - artifact.update
+  - rag.search</code></pre></div>
+<p>Router 的校验流程：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Source 是否有效？
+        ↓
+Group / Tool 是否允许？
+        ↓
+Tool 是否 Enabled？
+        ↓
+Arguments 是否符合 Schema？
+        ↓
+Risk Policy 是否允许？
+        ↓
+通过
+        ↓
+Tool Runtime</code></pre></div>
+<p>使用 Apollo 的核心价值是：</p>
+<blockquote><p><strong>权限策略和 Router 执行逻辑解耦。</strong></p></blockquote>
+<p>新增 Agent、开放 Tool 或调整权限时，不需要把权限关系硬编码进 Agent Prompt 或 Router 业务代码。</p>
+<h2 id="11-tool-runtime-执行" data-section="SECTION 11">11. Tool Runtime 执行</h2>
+<p>Router 校验通过后交给 Tool Runtime。</p>
+<p>Runtime 根据 Tool Registry 找到实际 Provider：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>search_code
+   ↓
+Tool Registry
+   ↓
+provider = Function
+
+figma_get_node
+   ↓
+Tool Registry
+   ↓
+provider = MCP
+
+rag_search
+   ↓
+Tool Registry
+   ↓
+provider = RAG</code></pre></div>
+<p>因此：</p>
+<blockquote><p><strong>Router 解决&quot;能不能执行&quot;，Runtime 解决&quot;怎么执行&quot;。</strong></p></blockquote>
+<h2 id="12-tool-result-回到-react" data-section="SECTION 12">12. Tool Result 回到 ReAct</h2>
+<p>Runtime 执行后返回标准化 Tool Result：</p>
+<div class="code-card"><div class="code-head"><span>json</span><button class="copy-button" type="button">复制</button></div><pre><code>{
+  &quot;toolCallId&quot;: &quot;call_789&quot;,
+  &quot;status&quot;: &quot;success&quot;,
+  &quot;data&quot;: {
+    &quot;files&quot;: []
+  },
+  &quot;error&quot;: null
+}</code></pre></div>
+<p>Agent Runtime 将结果转换成 Observation / ToolMessage：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Agent Reasoning
+      ↓
+选择 Capability Group
+      ↓
+展开 Concrete Tools
+      ↓
+选择 Tool
+      ↓
+Tool Call
+      ↓
+Router
+      ↓
+Runtime
+      ↓
+Tool Result
+      ↓
+Observation
+      ↓
+下一轮 Agent Reasoning</code></pre></div>
+<p>下一轮 Agent 根据 Observation 决定继续调用 Tool、展开新的 Capability Group、调整 Plan、生成结果或结束当前 ReAct。</p>
+<h2 id="13-capability-group-在-react-中动态变化" data-section="SECTION 13">13. Capability Group 在 ReAct 中动态变化</h2>
+<p>Capability Group 不是任务开始时一次确定后固定：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>第一轮：repository_search
+        ↓
+第二轮：code_read
+        ↓
+第三轮：design_read
+        ↓
+第四轮：code_edit
+        ↓
+第五轮：code_validation</code></pre></div>
+<blockquote><p><strong>Tool Discovery 本身也是 ReAct 的一部分。</strong></p></blockquote>
+<p>Agent 每一轮都可以根据最新 Observation 决定是否需要新的 Capability Group。</p>
+<h2 id="14-tool-调用的异步模型" data-section="SECTION 14">14. Tool 调用的异步模型</h2>
+<p>Tool Client 底层适合采用异步 I/O：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>result = await tool_client.call(
+    tool_name=tool_call.name,
+    arguments=tool_call.arguments
+)</code></pre></div>
+<p>但 async 不代表 Agent 不等待结果。</p>
+<p>有数据依赖时：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Tool A
+  ↓
+await Result A
+  ↓
+Observation
+  ↓
+Tool B</code></pre></div>
+<p>没有数据依赖的 Tool 可以并发：</p>
+<div class="code-card"><div class="code-head"><span>python</span><button class="copy-button" type="button">复制</button></div><pre><code>results = await asyncio.gather(
+    tool_client.call(&quot;tool_a&quot;, args_a),
+    tool_client.call(&quot;tool_b&quot;, args_b)
+)</code></pre></div>
+<blockquote><p><strong>底层 I/O 可以异步；Tool 是否并行由任务依赖关系决定，而不是由 async 本身决定。</strong></p></blockquote>
+<h2 id="15-完整架构" data-section="SECTION 15">15. 完整架构</h2>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>                    Agent Runtime
+                         │
+                         │ source
+                         ▼
+                    Tool Client
+                         │
+             get_allowed_tool_groups()
+                         │
+                         ▼
+                Capability Groups
+                         │
+                         ▼
+                  Agent Reasoning
+                    / ReAct Loop
+                         │
+                 选择 Capability
+                         │
+                         ▼
+              get_tools(capability)
+                         │
+                         ▼
+               Concrete Tool Schema
+                         │
+                         ▼
+                  Agent Reasoning
+                         │
+              toolName + arguments
+                         │
+                         ▼
+                    Tool Client
+                         │
+          自动注入 source / trace context
+                         │
+                         ▼
+                    Tool Router
+                         │
+               Apollo Permission
+                         │
+          Auth / Schema / Risk / Audit
+                         │
+                         ▼
+                    Tool Runtime
+                         │
+              ┌──────────┼──────────┐
+              ▼          ▼          ▼
+             MCP      Function     RAG
+              │          │          │
+              └──────────┼──────────┘
+                         ▼
+                    Tool Result
+                         │
+                         ▼
+              Observation / ToolMessage
+                         │
+                         ▼
+                  Agent Reasoning</code></pre></div>
+<h2 id="16-为什么不需要独立-capability-planning" data-section="SECTION 16">16. 为什么不需要独立 Capability Planning</h2>
+<p>Capability 判断已经包含在 Agent Reasoning / ReAct 中。</p>
+<p>每轮根据：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Goal
++ Current State
++ Current Context
++ Previous Observation</code></pre></div>
+<p>判断：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>当前需要什么 Capability Group？
+        ↓
+需要哪个 Concrete Tool？
+        ↓
+调用后得到什么 Observation？
+        ↓
+下一步做什么？</code></pre></div>
+<p>因此不需要额外增加 Capability Planning Agent。</p>
+<p>职责可以固定为：</p>
+<div class="code-card"><div class="code-head"><span>text</span><button class="copy-button" type="button">复制</button></div><pre><code>Agent Reasoning
+    = 当前应该使用什么能力 / 什么 Tool
+
+Tool Catalog
+    = 不要一次把所有 Tool 暴露给模型
+
+Tool Router
+    = 当前 Source 是否允许执行这次调用
+
+Tool Runtime
+    = 具体如何执行这个 Tool</code></pre></div>
+<h2 id="17-设计收益" data-section="SECTION 17">17. 设计收益</h2>
+<ol><li><strong>降低 Tool Schema Context 消耗</strong>：先暴露 Capability Groups，需要时再展开 Tool。</li><li><strong>降低 Tool Selection 难度</strong>：避免模型一次从几十甚至上百个 Tool 中选择。</li><li><strong>支持多 Agent 共用 Tool Infrastructure</strong>：共享基础设施，同时保持不同权限。</li><li><strong>权限不依赖 Prompt</strong>：真正的权限由确定性系统层执行。</li><li><strong>Tool Provider 与 Agent 解耦</strong>：Agent 不需要知道底层来自 MCP、Function 还是 RAG。</li><li><strong>支持动态扩展</strong>：新增 Agent、Tool、Group 或调整权限，不需要重构整个 Reasoning 链路。</li></ol>
+<h2 id="18-面试总结" data-section="SECTION 18">18. 面试总结</h2>
+<blockquote><p>我们没有把所有 Tool Schema 一次性注册给 LLM。每个 Agent 初始化时会绑定自己的 Source，通过 Tool Client 根据 Source 权限先获取当前 Agent 可用的 Capability Groups，只把能力分组提供给 LLM。Agent 在 ReAct 中先判断当前需要哪个 Capability，再通过 Tool Client 按需展开这个 Group 下有权限的 Concrete Tool Schema，交给 LLM 做具体 Tool Selection。模型生成 <code>toolName + arguments</code> 后，由 Runtime 自动补充 Source、Trace 等可信执行上下文，请求 Tool Router。Router 根据 Apollo 中维护的 Source 权限做执行时二次校验，通过后再交给 Tool Runtime 调用 MCP、Function、RAG 等实际 Provider。Tool Result 最终转换成 Observation 回到当前 Agent 的 ReAct Loop。</p></blockquote>
+<p>一句话总结：</p>
+<blockquote><p><strong>初始化阶段控制 Agent 能看到什么，Agent Reasoning 决定当前想调用什么，Router 控制最终能不能执行，Runtime 负责具体怎么执行。</strong></p></blockquote></article>
+  </main>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="返回顶部">↑</button>
+  <footer>Agent 两级 Tool Discovery 与 Router 权限治理设计</footer>
+  <script src="../assets/answer-pages.js"></script>
+</body>
+</html>
